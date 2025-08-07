@@ -864,22 +864,71 @@ os.makedirs(EXPORT_DIR, exist_ok=True)
 # Alias para que exista un endpoint 'guia_despacho' que invoque la misma lógica que 'salida'
 @app.route('/guia_despacho', methods=['GET', 'POST'])
 def guia_despacho():
-    # 1. Cargar sesión
-    nota     = session.get('nv_para_guia', '')
-    guia     = session.get('guia_para_guia', '')
+    """Genera la vista de la Guía de Despacho.
+
+    Lee los datos desde ``nv.csv`` y los traspasa a la guía. Se hace un
+    esfuerzo por normalizar los nombres de columnas del archivo de notas de
+    venta para que coincidan con los campos esperados en la plantilla, ya que
+    los archivos provenientes de distintos orígenes suelen variar en tildes o
+    abreviaciones.
+    """
+
+    # 1. Cargar sesión o querystring
+    nota     = session.get('nv_para_guia') or request.args.get('nv', '').strip()
+    guia     = session.get('guia_para_guia') or request.args.get('guia', '').strip()
     scaneado = session.get('items_para_guia', [])  # ← solo los escaneados
 
     # 2. Cargar archivo NV para traer nombre, descripción, precio
     datos_nv = {}
-    lineas = []
+    lineas: list[dict] = []
     if nota and os.path.exists(NV_FILE):
         try:
             df = pd.read_csv(NV_FILE, header=0, dtype=str, keep_default_na=False)
             df.columns = [c.strip() for c in df.columns]
-            df = df[df['Num. Nota'] == nota]
 
-            df['Cantidad'] = pd.to_numeric(df.get('Cantidad','0'), errors='coerce').fillna(0).astype(int)
-            df['Precio Unitario'] = pd.to_numeric(df.get('Precio Unitario','0'), errors='coerce').fillna(0).astype(int)
+            # Normalizar nombres de columnas al formato usado en la guía
+            def _norm(txt: str) -> str:
+                s = unicodedata.normalize("NFKD", str(txt))
+                s = s.encode("ascii", "ignore").decode().lower()
+                return re.sub(r"[^a-z0-9]", "", s)
+
+            wanted = {
+                'ciudad': 'Ciudad',
+                'fecha': 'Fecha',
+                'numnota': 'Num. Nota',
+                'rut': 'RUT',
+                'razonsocial': 'Razón Social',
+                'canal': 'Canal',
+                'fechaentrega': 'Fecha Entrega',
+                'formadepago': 'Forma de Pago',
+                'numordcompra': 'Num. Ord .Compra',
+                'codigo': 'Código',
+                'codigoproducto': 'Código',
+                'descriptor': 'Descriptor',
+                'descripcion': 'Descriptor',
+                'cantidad': 'Cantidad',
+                'cant': 'Cantidad',
+                'preciounitario': 'Precio Unitario',
+                'precio': 'Precio Unitario',
+            }
+
+            renames = {}
+            norm_cols = {_norm(c): c for c in df.columns}
+            for key, canonical in wanted.items():
+                if key in norm_cols:
+                    renames[norm_cols[key]] = canonical
+            if renames:
+                df.rename(columns=renames, inplace=True)
+
+            df = df.loc[:, ~df.columns.str.match(r'^Unnamed', case=False)]
+
+            if 'Num. Nota' in df.columns:
+                df = df[df['Num. Nota'].astype(str).str.strip() == str(nota)]
+            else:
+                df = pd.DataFrame()
+
+            df['Cantidad'] = pd.to_numeric(df.get('Cantidad', '0'), errors='coerce').fillna(0).astype(int)
+            df['Precio Unitario'] = pd.to_numeric(df.get('Precio Unitario', '0'), errors='coerce').fillna(0).astype(int)
 
             # 2a. Datos generales de cabecera (cliente, dirección, etc.)
             datos_nv = df.iloc[0].to_dict() if not df.empty else {}
@@ -887,28 +936,48 @@ def guia_despacho():
             # 2b. Armar líneas para la guía
             if scaneado:
                 # Usar sólo los productos escaneados
+<<<<<<< ours
                 map_nv = {row['Código']: row for _, row in df.iterrows()}
+=======
+                map_nv = {row.get('Código'): row for _, row in df.iterrows()}
+>>>>>>> theirs
                 for s in scaneado:
                     codigo = s['codigo']
                     cantidad = s['cantidad']
                     info = map_nv.get(codigo, {})
                     linea = {
+<<<<<<< ours
                         'codigo':     codigo,
                         'descripcion': info.get('Descriptor', ''),
                         'cantidad':   cantidad,
                         'precio':     info.get('Precio Unitario', ''),
                         'descuento':  '0%'  # puedes ajustar si hay descuento
+=======
+                        'codigo': codigo,
+                        'descripcion': info.get('Descriptor', ''),
+                        'cantidad': cantidad,
+                        'precio': info.get('Precio Unitario', ''),
+                        'descuento': '0%'  # puedes ajustar si hay descuento
+>>>>>>> theirs
                     }
                     lineas.append(linea)
             else:
                 # Si no se escaneó nada, incluir todas las líneas de la NV
                 for _, row in df.iterrows():
                     lineas.append({
+<<<<<<< ours
                         'codigo':     row.get('Código', ''),
                         'descripcion': row.get('Descriptor', ''),
                         'cantidad':   row.get('Cantidad', 0),
                         'precio':     row.get('Precio Unitario', ''),
                         'descuento':  '0%'
+=======
+                        'codigo': row.get('Código', ''),
+                        'descripcion': row.get('Descriptor', ''),
+                        'cantidad': row.get('Cantidad', 0),
+                        'precio': row.get('Precio Unitario', ''),
+                        'descuento': '0%'
+>>>>>>> theirs
                     })
 
         except Exception as e:
