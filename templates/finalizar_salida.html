@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Finalización de Recepción</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background: linear-gradient(to right, #00c0cb, #0057d1);
+      color: #333;
+      text-align: center;
+    }
+    .container {
+      width: 95%;
+      max-width: 600px;
+      margin: 2em auto;
+      background: white;
+      border-radius: 8px;
+      padding: 2em;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    }
+    h2 {
+      margin-top: 0;
+      color: #0057d1;
+    }
+    p {
+      font-size: 1.1em;
+      margin-bottom: 2em;
+    }
+    a button {
+      display: inline-block;
+      background: #0057d1;
+      color: white;
+      padding: 0.7em 1.5em;
+      margin: 0.5em;
+      border: none;
+      border-radius: 4px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    a button:hover {
+      background: #00c0cb;
+      color: #0057d1;
+    }
+    .btn-volver {
+      background: #6c757d;
+      color: white;
+    }
+    .btn-volver:hover {
+      background: #999;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Recepción Finalizada</h2>
+    <p>Puedes descargar los siguientes documentos:</p>
+
+    <a href="/ingreso/diferencias.xls">
+      <button type="button">📊 Descargar Informe de Diferencias</button>
+    </a>
+
+
+    <form method="GET" action="{{ url_for('guia_despacho') }}">
+        <button type="submit">🚚 Guía de Despacho</button>
+    </form>
+
+
+    <br><br>
+
+    <a href="{{ url_for('ingreso') }}">
+      <button type="button" class="btn-volver">🔙 Volver al Inicio</button>
+    </a>
+  </div>
+</body>
+</html>

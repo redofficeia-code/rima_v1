@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+    "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Notas de Venta Pendientes</title>
+  <style>
+    body { font-family: sans-serif; margin: 1em; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 4px 6px; white-space: nowrap; }
+    th { background-color: #0b6c5d; color: white; }
+    .pagination { margin-top: 1em; }
+    .pagination a { margin: 0 5px; text-decoration: none; }
+    .current { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Notas de Venta Pendientes</h1>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for cat, msg in msgs %}
+        <div style="border-left:5px solid {% if cat=='error' %}red{% elif cat=='warning' %}orange{% else %}green{% endif %};
+                    padding:0.5em; margin-bottom:1em;">
+          {{ msg }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% if not ordenes %}
+    <p>No hay notas de venta pendientes para mostrar.</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr>
+          {# Usamos la lista `columns` en lugar de las keys del primer registro #}
+          {% for col in columns %}
+            <th>{{ col }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for fila in ordenes %}
+        <tr>
+          {% for col in columns %}
+            <td>{{ fila[col] }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      {% if page > 1 %}
+        <a href="{{ url_for('listado_nv', page=1) }}">&laquo; primera</a>
+        <a href="{{ url_for('listado_nv', page=page-1) }}">&lsaquo; anterior</a>
+      {% endif %}
+      <span class="current">Página {{ page }} de {{ total_pages }}</span>
+      {% if page < total_pages %}
+        <a href="{{ url_for('listado_nv', page=page+1) }}">siguiente &rsaquo;</a>
+        <a href="{{ url_for('listado_nv', page=total_pages) }}">última &raquo;</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Salida de Mercancía</title>
+  <style type="text/css">
+    body {
+      font-family: sans-serif;
+      background: linear-gradient(to right, #00c0cb, #0057d1);
+      margin: 0; padding: 0; color: #333;
+    }
+    .container {
+      width: 95%; max-width: 1650px;
+      margin: 1em auto; background: #fff;
+      border-radius: 8px; padding: 1em;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    }
+    h1 { text-align: center; margin-top: 0; }
+    .flash-message {
+      padding: 10px; margin: 10px 0;
+      border-left: 5px solid; background: #f9f9f9;
+      text-align: left;
+    }
+    .flash-success { border-color: green; }
+    .flash-warning { border-color: orange; }
+    .flash-error, .flash-danger { border-color: red; }
+
+    .row { display: flex; gap: 1em; flex-wrap: wrap; }
+    .col { flex: 1; overflow-x: auto; }
+
+    table {
+      border-collapse: collapse; width: 100%;
+      margin-top: 1em; font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #ccc; padding: 6px 8px;
+      text-align: left; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    th { background: #0057d1; color: white; }
+
+    /* estados de escaneo */
+    .red-row td    { background: #fdd; }      /* nada escaneado */
+    .yellow-row td { background: #ffe680; }   /* parcialmente */
+    .green-row td  { background: #dfd; }      /* completado */
+
+    form { margin-top: 1em; }
+    input[type="text"], button, input[type="number"] {
+      padding: 0.5em; width: 100%; box-sizing: border-box;
+    }
+    button {
+      background: #0057d1; color: #fff;
+      border: none; cursor: pointer; margin-top: .5em;
+    }
+
+    .form-row { display: flex; gap: 1em; flex-wrap: wrap; }
+    .form-col { flex: 1 1 180px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Salida de Mercancía</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="flash-message flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- ── Buscar Nota de Venta ───────────────────────────────────────── -->
+    <form method="POST">
+      <input type="hidden" name="action" value="buscar_nv">
+      <label><strong>N° Nota de Venta:</strong>
+        <input type="text" name="nv" value="{{ nota|e }}" autofocus>
+      </label>
+      <button type="submit">Buscar Nota</button>
+    </form>
+
+    {% if nv_items %}
+    <div class="row">
+      <!-- ── IZQUIERDA: Nota de Venta ───────────────────────────────── -->
+      <div class="col">
+        <h2>Nota de Venta {{ nota }}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Cant.</th>
+              <th>Prec.Unit.</th>
+              <th>Escaneado</th>
+              <th>Faltan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in nv_items %}
+            <tr class="
+              {% if item.scanned == 0 %}
+                red-row
+              {% elif item.scanned < item['Cant.'] %}
+                yellow-row
+              {% else %}
+                green-row
+              {% endif %}
+            ">
+              <td>{{ item['Código'] }}</td>
+              <td>{{ item['Nombre'] }}</td>
+              <td>{{ item['Cant.'] }}</td>
+              <td>{{ item['Prec.Unit.'] }}</td>
+              <td>{{ item.scanned }}</td>
+              <td>{{ item['Faltan'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── DERECHA: Stock Actual ──────────────────────────────────── -->
+      <div class="col">
+        <h2>Stock Actual</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Cantidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for stk in stock_items %}
+            <tr>
+              <td>{{ stk['Código'] }}</td>
+              <td>{{ stk['Nombre'] }}</td>
+              <td>{{ stk['Cantidad'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Formulario de Escaneo ─────────────────────────────────────── -->
+    <form method="POST">
+      <input type="hidden" name="action" value="scan">
+      <div class="form-row">
+        <div class="form-col">
+          <label><strong>Código:</strong>
+            <input type="text" name="codigo" autofocus>
+          </label>
+        </div>
+        <div class="form-col">
+          <label><strong>Cantidad:</strong>
+            <input type="number" name="cantidad" value="1" min="1">
+          </label>
+        </div>
+      </div>
+      <button type="submit">Registrar Escaneo</button>
+    </form>
+
+    <!-- ── Botón para terminar el proceso ────────────────────────────── -->
+    <form method="GET" action="{{ url_for('finalizar_salida') }}">
+      <button type="submit">Terminar Proceso</button>
+    </form>
+    {% endif %}
+  </div>
+</body>
+</html>

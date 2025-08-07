@@ -1,0 +1,204 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">  
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Órdenes de Compra Pendientes</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0; padding: 0;
+      font-family: sans-serif;
+      color: black;
+      background: #00c0cb;
+      background: linear-gradient(to right, #00c0cb, #0057d1);
+      text-align: center;
+    }
+
+    .container {
+      width: 95%;
+      max-width: 1000px;
+      margin: 1em auto;
+      background: white;
+      color: #333;
+      border-radius: 8px;
+      padding: 1em;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+      font-size: 0.85rem;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    form {
+      margin-bottom: 1em;
+    }
+
+    input[type="text"] {
+      padding: 0.3em;
+      font-size: 0.85rem;
+    }
+
+    button {
+      padding: 0.3em 0.6em;
+      font-size: 0.85rem;
+      background: #0057d1;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 1em;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.8rem;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.3em 0.4em;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #eee;
+    }
+
+    .pager {
+      display: flex;
+      justify-content: center;
+      gap: .5em;
+      margin-top: 1em;
+    }
+
+    .pager a {
+      padding: .3em .6em;
+      background: #0057d1;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    .pager .current {
+      padding: .3em .6em;
+      background: #003f8a;
+      color: white;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    .back {
+      display: inline-block;
+      margin-top: 1em;
+      color: #0057d1;
+      text-decoration: none;
+      font-size: 0.8rem;
+    }
+
+    .ver-detalle-link {
+      color: #0057d1;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .ver-detalle-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Órdenes de Compra Pendientes</h1>
+
+    <!-- Filtros -->
+    <form method="get">
+      <label>Ciudad:
+        <input type="text" name="ciudad" value="{{ request.args.get('ciudad', '') }}">
+      </label>
+      &nbsp;&nbsp;
+      <label>Razón Social:
+        <input type="text" name="razon_social" value="{{ request.args.get('razon_social', '') }}">
+      </label>
+      &nbsp;&nbsp;
+      <button type="submit">Filtrar</button>
+      <a href="{{ url_for('listado_oc') }}">Limpiar</a>
+    </form>
+
+    {% if ordenes %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              {% for col in ordenes[0].keys() %}
+                <th>{{ col }}</th>
+              {% endfor %}
+              <th>Ver Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in ordenes %}
+              <tr>
+                {% for v in row.values() %}
+                  <td>{{ v }}</td>
+                {% endfor %}
+                <td>
+                  <a class="ver-detalle-link" href="{{ url_for('ingreso') }}?oc={{ row['No. OC'] }}">Ir a Detalle</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if total_pages > 1 %}
+        <div class="pager">
+          {% if page > 1 %}
+            <a href="{{ url_for('listado_oc', page=page-1, ciudad=request.args.get('ciudad', ''), razon_social=request.args.get('razon_social', '')) }}">« Anterior</a>
+          {% endif %}
+          <span class="current">Página {{ page }} / {{ total_pages }}</span>
+          {% if page < total_pages %}
+            <a href="{{ url_for('listado_oc', page=page+1, ciudad=request.args.get('ciudad', ''), razon_social=request.args.get('razon_social', '')) }}">Siguiente »</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% else %}
+      <p>No hay órdenes pendientes cargadas.</p>
+    {% endif %}
+
+    <a href="{{ url_for('listados') }}" class="back">← Volver a Listados</a>
+  </div>
+
+  <!-- Script para ocultar duplicados -->
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const seen = new Set();
+    const rows = document.querySelectorAll("table tbody tr");
+
+    rows.forEach(row => {
+      const cells = row.querySelectorAll("td");
+      if (cells.length === 0) return;
+
+      const oc = cells[2]?.innerText.trim();
+      const rut = cells[3]?.innerText.trim();
+
+      const clave = `${oc}_${rut}`;
+      if (seen.has(clave)) {
+        row.style.display = "none";
+      } else {
+        seen.add(clave);
+      }
+    });
+  });
+  </script>
+</body>
+</html>

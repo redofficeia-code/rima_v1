@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Inventario</title>
+  <style type="text/css">
+    body { font-family: sans-serif; background:#f0f4f8; margin:0; padding:0; }
+    .container { width:95%; max-width:1200px; margin:1em auto; background:#fff;
+                 padding:1em; border:1px solid #ccc; }
+    h1 { text-align:center; }
+    .flash { border-left:5px solid; padding:0.5em; margin:0.5em 0; }
+    .flash-success{border-color:green;} .flash-warning{border-color:orange;}
+    table { border-collapse:collapse; width:100%; font-size:13px; margin-top:1em; }
+    th, td { border:1px solid #999; padding:4px 6px; text-align:left; }
+    th { background:#0057d1; color:#fff; }
+    .diff-pos { background:#dfd; } .diff-neg { background:#fdd; }
+    .row { display:flex; gap:1em; flex-wrap:wrap; }
+    .col { flex:1; overflow-x:auto; }
+    form { margin-top:1em; }
+    input[type="text"], button { padding:6px; width:100%; box-sizing:border-box; }
+    button { background:#0057d1; color:#fff; border:none; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Inventario de Mercancía</h1>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, m in msgs %}
+        <div class="flash flash-{{cat}}">{{ m }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <!-- 1) Botón para cargar todo el inventario -->
+    <form method="POST">
+      <input type="hidden" name="action" value="cargar_inv">
+      <button type="submit">Cargar Inventario Esperado</button>
+    </form>
+
+    {% if expected %}
+    <div class="row">
+      <!-- 2) Tabla de resultados: esperado vs contado -->
+      <div class="col">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th><th>Nombre</th>
+              <th>Esperado</th><th>Contado</th><th>Diferencia</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in results %}
+            <tr class="{% if r.Diferencia>0 %}diff-pos{% elif r.Diferencia<0 %}diff-neg{% endif %}">
+              <td>{{ r.Código }}</td>
+              <td>{{ r.Nombre }}</td>
+              <td>{{ r.Esperado }}</td>
+              <td>{{ r.Contado }}</td>
+              <td>{{ r.Diferencia }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 3) Formulario para registrar un conteo -->
+      <div class="col">
+        <h2>Registrar Conteo</h2>
+        <form method="POST">
+          <input type="hidden" name="action" value="scan_inv">
+          <label>Código:<input type="text" name="codigo" autofocus></label>
+          <label>Contado:<input type="text" name="contado" value="0"></label>
+          <button type="submit">Registrar</button>
+        </form>
+
+        <!-- tabla de últimos escaneos -->
+        {% if scanned %}
+        <h3>Últimos Escaneos</h3>
+        <table>
+          <thead><tr><th>Código</th><th>Contado</th><th>Hora</th></tr></thead>
+          <tbody>
+            {% for s in scanned %}
+            <tr>
+              <td>{{ s.Código }}</td>
+              <td>{{ s.Contado }}</td>
+              <td>{{ s.Hora }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>

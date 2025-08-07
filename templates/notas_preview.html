@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Preview Notas</title></head>
+<body>
+  <h1>Preview Notas de Venta</h1>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash-{{cat}}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+</body>
+</html>
