@@ -1,0 +1,12 @@
+diff --git a/templates/index.html b/templates/index.html
+index 34f677f..e443731 100644
+--- a/templates/index.html
++++ b/templates/index.html
+@@ -105,7 +105,6 @@
+      <a href="{{ url_for('listados')       }}"><span>LISTADOS</span></a>
+      <a href="{{ url_for('inventario')     }}"><span>INVENTARIO</span></a>
+      <a href="{{ url_for('devoluciones')   }}"><span>DEVOLUCIONES</span></a>
+-     <a href="{{ url_for('devolucion_salida') }}"><span>DEVOLUCIÓN SALIDA</span></a>
+   </div>
+ </div>
+</body>

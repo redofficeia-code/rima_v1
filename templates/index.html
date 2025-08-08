@@ -64,15 +64,6 @@
       font-size: 1.2em;
     }
 
-    /* .secondary {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;   
-      gap: 1.5%;                         
-      margin-bottom: 2em;               
-    } 
-*/
-
     .secondary a {
       width: 21%;
       padding-bottom: 21%;
@@ -93,18 +84,32 @@
 </head>
 <body>
   <div class="container">
-    <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="Logo" style="max-height: 100px; margin: 1em auto;">
-
+    <img src="{{ url_for('static', filename='img/logo2.png') }}"
+         alt="Logo"
+         style="max-height: 100px; margin: 1em auto;">
 
     <div class="primary">
-      <a href="{{ url_for('ingreso') }}"><span>INGRESO</span></a>
-      <a href="{{ url_for('salida')  }}"><span>SALIDA</span></a>
+      <a href="{{ url_for('ingreso') }}">
+        <span>INGRESO</span>
+      </a>
+      <a href="{{ url_for('salida') }}">
+        <span>SALIDA</span>
+      </a>
+      <a href="{{ url_for('devolucion_salida') }}">
+        <span>DEVOLUCIÓN SALIDA</span>
+      </a>
     </div>
 
     <div class="secondary">
-      <a href="{{ url_for('listados')       }}"><span>LISTADOS</span></a>
-      <a href="{{ url_for('inventario')     }}"><span>INVENTARIO</span></a>
-      <a href="{{ url_for('devoluciones')   }}"><span>DEVOLUCIONES</span></a>
+      <a href="{{ url_for('listados') }}">
+        <span>LISTADOS</span>
+      </a>
+      <a href="{{ url_for('inventario') }}">
+        <span>INVENTARIO</span>
+      </a>
+      <a href="{{ url_for('devoluciones') }}">
+        <span>DEVOLUCIONES</span>
+      </a>
     </div>
   </div>
 </body>
