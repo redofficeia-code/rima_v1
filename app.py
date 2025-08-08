@@ -79,32 +79,169 @@ def devoluciones():
 def devolucion_ingreso():
     return redirect(url_for('ingreso'))
 
-
-from flask import render_template, request, redirect, url_for, flash, session
-
 @app.route('/devoluciones_salida', methods=['GET', 'POST'])
 def devoluciones_salida():
-    # Si guardas datos en sesión, recupéralos aquí:
-    devoluciones = session.get('devolucion_items', [])
+    """Permite cargar una Nota de Venta para gestionar devoluciones.
+
+    La vista replica el comportamiento de ``salida``: se busca una NV,
+    se muestra su detalle junto al stock disponible y se pueden escanear
+    códigos para registrar la devolución.
+    """
+    # Recuperar datos desde sesión
+    nota         = session.get('dev_current_nv', '')
+    guia_actual  = session.get('dev_current_guia', '')
+    nv_items     = session.get('dev_nv_items', [])
+    salida_items = session.get('dev_salida_items', [])
 
     if request.method == 'POST':
-        # 1) Extrae los campos del formulario/escáner
-        guia   = request.form.get('guia')    # o como lo llames
-        codigo = request.form.get('codigo')
-        cantidad = request.form.get('cantidad')
-        timestamp = datetime.now().isoformat()
+        action = request.form.get('action', 'buscar_nv')
 
-        # 2) Guarda tu lógica (puede ser CSV, BD, session…)
-        append_guide_entry(guia, codigo, cantidad, timestamp)
+        if action == 'buscar_nv':
+            nota = (request.form.get('nv') or '').strip()
+            session['dev_current_nv'] = nota
+            session.pop('dev_nv_items', None)
+            session.pop('dev_salida_items', None)
 
-        # 3) Si usas sesión para mostrar, actualiza session['devolucion_items']…
+            if not nota:
+                flash('Debes ingresar un número de Nota de Venta.', 'warning')
+                return redirect(url_for('devoluciones_salida'))
+            if not os.path.exists(NV_FILE):
+                flash('No se ha importado ninguna Nota de Venta.', 'warning')
+                return redirect(url_for('devoluciones_salida'))
 
-        flash('Devolución registrada con éxito.', 'success')
-        return redirect(url_for('devoluciones_salida'))
+            try:
+                df_nv = pd.read_csv(NV_FILE, header=0, dtype=str, keep_default_na=False)
+                df_nv.columns = [c.strip() for c in df_nv.columns]
+                df_nv = df_nv.loc[:, ~df_nv.columns.str.match(r'^Unnamed', case=False)]
 
-    # GET: renderiza el formulario + lista de devoluciones
-    return render_template('devoluciones_salida.html',
-                           devoluciones=devoluciones)
+                if 'Num. Nota' not in df_nv.columns:
+                    flash("La columna 'Num. Nota' no está en el archivo de NV.", 'error')
+                    return redirect(url_for('devoluciones_salida'))
+
+                df_nv = df_nv[df_nv['Num. Nota'] == nota]
+                if df_nv.empty:
+                    flash(f'No se encontró la Nota de Venta {nota}.', 'error')
+                    return redirect(url_for('devoluciones_salida'))
+
+                df_nv['Cantidad'] = pd.to_numeric(df_nv.get('Cantidad','0'), errors='coerce').fillna(0).astype(int)
+                df_nv['Precio Unitario'] = pd.to_numeric(df_nv.get('Precio Unitario','0'), errors='coerce').fillna(0).astype(int)
+
+                df_show = df_nv[['Código','Descriptor','Cantidad','Precio Unitario']].copy()
+                df_show.columns = ['Código','Nombre','Cant.','Prec.Unit.']
+                df_show['Faltan'] = df_show['Cant.']
+
+                nv_items = df_show.to_dict(orient='records')
+                session['dev_nv_items'] = nv_items
+                session['dev_salida_items'] = []
+                flash(f'Nota {nota} cargada con {len(nv_items)} líneas.', 'success')
+            except Exception as e:
+                app.logger.error(f"Error al leer NV en devoluciones: {e}")
+                flash(f"Error al leer Nota de Venta: {e}", 'error')
+                return redirect(url_for('devoluciones_salida'))
+
+        elif action == 'scan':
+            codigo = (request.form.get('codigo') or '').strip()
+            try:
+                cantidad = int(request.form.get('cantidad', 1))
+            except ValueError:
+                cantidad = 1
+            ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            guia = guia_actual
+            if (g := request.form.get('guia', '').strip()):
+                guia = g
+                session['dev_current_guia'] = guia
+
+            found = False
+            for s in salida_items:
+                if s['guia'] == guia and s['codigo'] == codigo:
+                    s['cantidad'] += cantidad
+                    s['hora'] = ahora
+                    found = True
+                    break
+            if not found:
+                salida_items.append({
+                    'guia': guia,
+                    'codigo': codigo,
+                    'cantidad': cantidad,
+                    'hora': ahora
+                })
+            session['dev_salida_items'] = salida_items
+            flash(f'{cantidad} unidad(es) de {codigo} ' + ('sumadas' if found else 'registradas') + '.', 'success')
+            return redirect(url_for('devoluciones_salida'))
+
+        elif action == 'terminar_salida':
+            session['items_para_guia'] = salida_items
+            session['nv_para_guia']    = nota
+            session['guia_para_guia']  = guia_actual
+            flash("Productos escaneados preparados para la Guía de Despacho.", "info")
+            return redirect(url_for('finalizar_salida'))
+
+    # Cargar Stock igual que en salida
+    stock_map = {}
+    if os.path.exists(STOCK_FILE):
+        try:
+            df_st = pd.read_csv(STOCK_FILE, header=0, dtype=str, keep_default_na=False, encoding='utf-8-sig', sep=',')
+            df_st.columns = [c.strip().replace("\ufeff", "") for c in df_st.columns]
+            df_st = df_st.rename(columns={
+                'CÃ³digo':          'Código',
+                'Codigo':           'Código',
+                'codigo_producto':  'Código',
+                'Cantidad':         'Cantidad',
+                'cantidad':         'Cantidad',
+                'Nombre':           'Nombre',
+                'nombre':           'Nombre'
+            })
+
+            if all(col in df_st.columns for col in ('Código','Nombre','Cantidad')):
+                df_st['Cantidad'] = pd.to_numeric(df_st['Cantidad'], errors='coerce').fillna(0).astype(int)
+                for _, row in df_st.iterrows():
+                    key = str(row['Código']).strip()
+                    stock_map[key] = {
+                        'Nombre':   row['Nombre'].strip(),
+                        'Cantidad': row['Cantidad']
+                    }
+        except Exception as e:
+            app.logger.error(f"Error al leer Stock: {e}")
+            flash(f"Error al leer Stock: {e}", 'error')
+    else:
+        flash(f"DEBUG: no existe STOCK_FILE en '{STOCK_FILE}'", 'warning')
+
+    # Construir stock_items restando escaneos
+    stock_items = []
+    scanned_totals = {}
+
+    if nv_items:
+        for s in salida_items:
+            k = str(s['codigo']).strip()
+            scanned_totals[k] = scanned_totals.get(k, 0) + s['cantidad']
+
+        for item in nv_items:
+            code = str(item['Código']).strip()
+            total = int(item['Cant.'])
+            esc = scanned_totals.get(code, 0)
+            falta = max(total - esc, 0)
+            item['scanned'] = esc
+            item['Faltan'] = falta
+
+        for line in nv_items:
+            code = str(line['Código']).strip()
+            orig = stock_map.get(code, {}).get('Cantidad', 0)
+            remain = max(orig - line['scanned'], 0)
+            stock_items.append({
+                'Código':  code,
+                'Nombre':  stock_map.get(code, {}).get('Nombre', line['Nombre']),
+                'Cantidad': remain
+            })
+
+    return render_template(
+        'devoluciones_salida.html',
+        nota=nota,
+        guia=guia_actual,
+        nv_items=nv_items,
+        salida_items=salida_items,
+        stock_items=stock_items
+    )
 
 
 @app.route('/listados')
