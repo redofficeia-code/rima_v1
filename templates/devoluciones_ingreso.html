@@ -1,0 +1,293 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Devolución Ingreso de Mercancía – WMS</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: sans-serif;
+      background: linear-gradient(to right, #00c0cb, #0057d1);
+      color: #333;
+      text-align: center;
+    }
+    .container {
+      width: 95%; max-width: 1650px;
+      margin: 1em auto;
+      background: white;
+      border-radius: 8px;
+      padding: 1em;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    }
+    h1 { margin-top: 0; }
+    form { margin-bottom: 1.5em; text-align:left; }
+    label { display:block; margin-top:.5em; font-weight:bold; }
+    input[type="text"], input[type="number"], button {
+      width: 100%; padding:.5em; margin-top:.25em;
+      border:1px solid #ccc; border-radius:4px; font-size:1em;
+    }
+    button { background:#0057d1; color:white; cursor:pointer; }
+    button:hover { background:#00c0cb; color:#0057d1; }
+    .tables {
+      display:flex; flex-wrap:wrap; gap:2em; justify-content:space-between;
+    }
+    .table-box {
+      flex:1 1 45%; overflow-x:auto; margin-top:1em;
+    }
+    table {
+      width:100%; border-collapse:collapse; margin-top:.5em;
+      font-size: 0.85em;
+      table-layout: fixed;
+    }
+    th, td {
+      border:1px solid #ccc;
+      padding:.3em .5em;
+      white-space:nowrap;
+      text-align:left;
+    }
+    th { background:#eee; }
+    td:nth-child(2), th:nth-child(2) {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    input:disabled, button:disabled {
+      background: #eee;
+      color: #999;
+      cursor: not-allowed;
+    }
+    .faltan-0 { background-color: #8ce0a1; }
+    .faltan-menor { background-color: #f8bc63; }
+    .faltan-total { background-color: #f6b8b8; }
+
+    #toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  max-width: 500px;
+  min-width: 300px;
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 1em 1.5em;
+  border-left: 6px solid #ffc107;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  border-radius: 8px;
+  font-weight: normal;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.4s ease, top 0.4s ease;
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+
+
+
+    #toast button {
+      background: none;
+      border: none;
+      color: #856404;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1em;
+    }
+
+    .toast-hidden {
+      opacity: 0;
+      top: -100px;
+      pointer-events: none;
+    }
+
+    @media (max-width:600px) {
+      .tables { flex-direction:column; }
+      .table-box { flex:1 1 100%; }
+    }
+  </style>
+</head>
+<body onload="focusScan();">
+  <div class="container">
+    <h1>Devolución Ingreso de Mercancía</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat,msg in messages %}
+          <div class="toast-msg" data-msg="{{ msg }}"></div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+
+    <form method="post">
+      <input type="hidden" name="action" value="buscar_oc">
+      <label for="oc">No. OC:</label>
+      <input id="oc" name="oc" type="text" value="{{ request.args.get('oc') or oc or '' }}" required autocomplete="off">
+      <button type="submit">Buscar OC</button>
+    </form>
+
+    {% if oc_items %}
+      <div class="tables">
+        <div class="table-box">
+          <h2>Orden de Compra {{ oc }}</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Cant.</th>
+                <th>Prec.Unit.</th>
+                <th>Faltan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in oc_items %}
+                {% set faltan = item.Faltan|int %}
+                <tr class="
+                  {% if faltan == item['Cantidad']|int %}faltan-total
+                  {% elif faltan > 0 %}faltan-menor
+                  {% else %}faltan-0
+                  {% endif %}">
+                  <td>{{ item['Código'] }}</td>
+                  <td>{{ item['Nombre'] }}</td>
+                  <td>{{ item['Cantidad'] }}</td>
+                  <td>{{ item['Prec.Unit.'] }}</td>
+                  <td>{{ item.Faltan }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-box">
+          <h2>Ingreso</h2>
+          <table>
+            <thead>
+              <tr><th>Guía</th><th>Código</th><th>Cant.</th><th>Hora</th></tr>
+            </thead>
+            <tbody>
+              {% for s in scanned_items %}
+                <tr>
+                  <td>{{ s.guia }}</td>
+                  <td>{{ s.codigo_producto }}</td>
+                  <td>{{ s.cantidad }}</td>
+                  <td>{{ s.fecha_hora }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <form method="post" id="scanForm">
+        <input type="hidden" name="action" value="scan">
+        <input type="hidden" name="oc" value="{{ oc }}">
+        <label for="guia">No. Guía:</label>
+        <input id="guia" name="guia" type="text" value="{{ guia or '' }}" required>
+        <label for="cantidad">Cantidad (default 1):</label>
+        <input id="cantidad" name="cantidad" type="number" value="1" min="1" max="100000000"
+               onkeydown="if(event.key === 'Enter'){ document.getElementById('scanInput').focus(); }">
+        <label for="scanInput">Escanee producto:</label>
+        <input id="scanInput" name="codigo" type="text" autocomplete="off" required disabled>
+      </form>
+
+      <form method="post" style="margin-top:1em">
+        <input type="hidden" name="action" value="finish">
+        <button type="submit" style="background:#28a745;color:white;border:none;padding:.5em 1em;border-radius:4px;cursor:pointer">
+          Finalizar Recepción
+        </button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div id="toast" class="toast-hidden"></div>
+
+  <script>
+  function showToast(message, duration = 0) {
+    const toast = document.getElementById('toast');
+    toast.innerHTML = `
+    <div style="flex:1; text-align:left; white-space:nowrap;">${message}</div>
+    <button onclick="hideToast()">OK</button>
+`;
+
+
+    toast.classList.remove('toast-hidden');
+
+    if (duration > 0) {
+      setTimeout(hideToast, duration);
+    }
+  }
+
+  function hideToast() {
+    const toast = document.getElementById('toast');
+    toast.classList.add('toast-hidden');
+    setTimeout(() => {
+      toast.innerHTML = '';
+    }, 400); // coincide con la transición CSS
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Activa el input solo si hay guía
+    const guiaInput = document.getElementById('guia'),
+          scanInput = document.getElementById('scanInput');
+    if (guiaInput && scanInput) {
+      function checkGuia() {
+        const valido = guiaInput.value.trim().length >= 1;
+        scanInput.disabled = !valido;
+      }
+      guiaInput.addEventListener('input', checkGuia);
+      checkGuia();
+    }
+
+    // Mostrar mensaje flash si lo hay
+    document.querySelectorAll('.toast-msg').forEach(el => {
+      const message = el.dataset.msg;
+      if (message) showToast(message);
+    });
+  });
+
+  // Simula escaneo rápido
+  (function () {
+    let buffer = '', lastTs = Date.now();
+    const TH = 50;
+    const scanInput = document.getElementById('scanInput'),
+          scanForm = document.getElementById('scanForm');
+    if (!scanInput || !scanForm) return;
+
+    window.addEventListener('keydown', function (e) {
+      if (document.activeElement !== scanInput) return;
+      const now = Date.now();
+      if (now - lastTs > TH) buffer = '';
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        scanInput.value = buffer;
+        buffer = '';
+        scanForm.submit();
+      } else if (e.key.length === 1) {
+        buffer += e.key;
+      }
+      lastTs = now;
+    });
+
+    scanForm.addEventListener('submit', () => {
+      setTimeout(() => {
+        buffer = '';
+        scanInput.value = '';
+        scanInput.focus();
+      }, 50);
+    });
+  })();
+
+  function focusScan() {
+    const scanInput = document.getElementById('scanInput');
+    if (scanInput && !scanInput.disabled) scanInput.focus();
+  }
+</script>
+
+
+
+
+</body>
+</html>
