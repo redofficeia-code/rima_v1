@@ -936,48 +936,28 @@ def guia_despacho():
             # 2b. Armar líneas para la guía
             if scaneado:
                 # Usar sólo los productos escaneados
-<<<<<<< ours
                 map_nv = {row['Código']: row for _, row in df.iterrows()}
-=======
-                map_nv = {row.get('Código'): row for _, row in df.iterrows()}
->>>>>>> theirs
                 for s in scaneado:
                     codigo = s['codigo']
                     cantidad = s['cantidad']
                     info = map_nv.get(codigo, {})
                     linea = {
-<<<<<<< ours
                         'codigo':     codigo,
                         'descripcion': info.get('Descriptor', ''),
                         'cantidad':   cantidad,
                         'precio':     info.get('Precio Unitario', ''),
                         'descuento':  '0%'  # puedes ajustar si hay descuento
-=======
-                        'codigo': codigo,
-                        'descripcion': info.get('Descriptor', ''),
-                        'cantidad': cantidad,
-                        'precio': info.get('Precio Unitario', ''),
-                        'descuento': '0%'  # puedes ajustar si hay descuento
->>>>>>> theirs
                     }
                     lineas.append(linea)
             else:
                 # Si no se escaneó nada, incluir todas las líneas de la NV
                 for _, row in df.iterrows():
                     lineas.append({
-<<<<<<< ours
                         'codigo':     row.get('Código', ''),
                         'descripcion': row.get('Descriptor', ''),
                         'cantidad':   row.get('Cantidad', 0),
                         'precio':     row.get('Precio Unitario', ''),
                         'descuento':  '0%'
-=======
-                        'codigo': row.get('Código', ''),
-                        'descripcion': row.get('Descriptor', ''),
-                        'cantidad': row.get('Cantidad', 0),
-                        'precio': row.get('Precio Unitario', ''),
-                        'descuento': '0%'
->>>>>>> theirs
                     })
 
         except Exception as e:
