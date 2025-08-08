@@ -69,6 +69,21 @@ def append_guide_entry(guia, codigo, cantidad, timestamp):
 def index():
     return render_template('index.html')
 
+
+@app.route('/devoluciones')
+def devoluciones():
+    return render_template('devoluciones.html')
+
+
+@app.route('/devoluciones/ingreso')
+def devolucion_ingreso():
+    return redirect(url_for('ingreso'))
+
+
+@app.route('/devoluciones/salida')
+def devolucion_salida():
+    return redirect(url_for('salida'))
+
 @app.route('/listados')
 def listados():
     return render_template('listados.html')
@@ -936,28 +951,28 @@ def guia_despacho():
             # 2b. Armar líneas para la guía
             if scaneado:
                 # Usar sólo los productos escaneados
-                map_nv = {row['Código']: row for _, row in df.iterrows()}
+                map_nv = {row.get('Código'): row for _, row in df.iterrows()}
                 for s in scaneado:
                     codigo = s['codigo']
                     cantidad = s['cantidad']
                     info = map_nv.get(codigo, {})
                     linea = {
-                        'codigo':     codigo,
+                        'codigo': codigo,
                         'descripcion': info.get('Descriptor', ''),
-                        'cantidad':   cantidad,
-                        'precio':     info.get('Precio Unitario', ''),
-                        'descuento':  '0%'  # puedes ajustar si hay descuento
+                        'cantidad': cantidad,
+                        'precio': info.get('Precio Unitario', ''),
+                        'descuento': '0%'  # puedes ajustar si hay descuento
                     }
                     lineas.append(linea)
             else:
                 # Si no se escaneó nada, incluir todas las líneas de la NV
                 for _, row in df.iterrows():
                     lineas.append({
-                        'codigo':     row.get('Código', ''),
+                        'codigo': row.get('Código', ''),
                         'descripcion': row.get('Descriptor', ''),
-                        'cantidad':   row.get('Cantidad', 0),
-                        'precio':     row.get('Precio Unitario', ''),
-                        'descuento':  '0%'
+                        'cantidad': row.get('Cantidad', 0),
+                        'precio': row.get('Precio Unitario', ''),
+                        'descuento': '0%'
                     })
 
         except Exception as e:
