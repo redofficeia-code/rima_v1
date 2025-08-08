@@ -75,9 +75,9 @@ def devoluciones():
     return render_template('devoluciones.html')
 
 
-@app.route('/devoluciones/ingreso')
+@app.route('/devoluciones/ingreso', methods=['GET', 'POST'])
 def devolucion_ingreso():
-    return redirect(url_for('ingreso'))
+    return ingreso_core('devoluciones_ingreso.html', 'devolucion_ingreso')
 
 @app.route('/devoluciones_salida', methods=['GET', 'POST'])
 def devoluciones_salida():
@@ -436,8 +436,7 @@ def notas_preview():
 
 
 
-@app.route('/ingreso', methods=['GET', 'POST'])
-def ingreso():
+def ingreso_core(template, endpoint):
     oc = session.get('current_oc')
     guia_actual = session.get('current_guia', '')
     oc_items = session.get('oc_items', [])
@@ -493,7 +492,7 @@ def ingreso():
                 except Exception as e:
                     logger.error(f'Error procesando OC: {e}')
                     flash(f'Error al procesar Órdenes de Compra: {e}', 'error')
-            return redirect(url_for('ingreso'))
+            return redirect(url_for(endpoint))
 
         elif action == 'scan':
             guia = request.form.get('guia', '').strip() or guia_actual
@@ -510,12 +509,12 @@ def ingreso():
 
             if not oc:
                 flash('Primero debes buscar una OC.', 'warning')
-                return redirect(url_for('ingreso'))
+                return redirect(url_for(endpoint))
 
         elif action == 'finish':
             if not scanned_items:
                 flash('No hay ítems para guardar.', 'warning')
-                return redirect(url_for('ingreso'))
+                return redirect(url_for(endpoint))
 
             df_rep = pd.DataFrame(scanned_items)
             proveedor = rut = ""
@@ -577,10 +576,10 @@ def ingreso():
                   ('sumadas' if found else 'registradas') + '.', 'success')
         else:
             flash(f'El código {codigo} no pertenece a la órden {oc}.', 'warning')
-        return redirect(url_for('ingreso'))
+        return redirect(url_for(endpoint))
 
     if not oc or not oc_items:
-        return render_template('ingreso.html', oc='', oc_items=[], scanned_items=[], guia='')
+        return render_template(template, oc='', oc_items=[], scanned_items=[], guia='')
 
     scanned_map = {}
     for s in scanned_items:
@@ -601,12 +600,17 @@ def ingreso():
         oc_display.append(item2)
 
     return render_template(
-        'ingreso.html',
+        template,
         oc=oc,
         oc_items=oc_display,
         scanned_items=scanned_items,
         guia=guia_actual
     )
+
+
+@app.route('/ingreso', methods=['GET', 'POST'])
+def ingreso():
+    return ingreso_core('ingreso.html', 'ingreso')
 
 
 
