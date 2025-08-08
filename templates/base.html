@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}WMS – App Bodega{% endblock %}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: sans-serif;
+      background: linear-gradient(to right, #00c0cb, #0057d1);
+      color: white;
+      text-align: center;
+    }
+    .container {
+      width: 95%; max-width: 1000px;
+      margin: 1em auto;
+    }
+    header {
+      font-size: 2em;
+      color: #ffeb0c;
+      text-shadow: 1px 1px 2px #000;
+      margin-bottom: 1.5em;
+    }
+    .primary, .secondary {
+      display: flex; flex-wrap: wrap;
+      justify-content: center; gap: 1.5%;
+      margin-bottom: 2em;
+    }
+    .primary a, .secondary a {
+      display: block; text-decoration: none;
+      background: #0057d1; border-radius: 12px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+      position: relative; transition: background .2s;
+    }
+    .primary a span, .secondary a span {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-weight: bold; white-space: nowrap;
+      color: white;
+    }
+    .primary a:hover, .secondary a:hover {
+      background: #00c0cb;
+    }
+    .primary a { width: 35%; padding-bottom: 35%; font-size: 1.2em; }
+    .secondary a { width: 21%; padding-bottom: 21%; font-size: 1em; }
+    @media (max-width: 600px) {
+      .primary a, .secondary a { width: 45%; padding-bottom: 45%; }
+      .secondary a:nth-child(3) { width: 95%; padding-bottom: 95%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="{{ url_for('static', filename='img/logo2.png') }}"
+         alt="Logo"
+         style="max-height:100px; margin:1em auto;">
+    <header>{% block header %}WMS – App Bodega{% endblock %}</header>
+
+    <div class="primary">
+      <a href="{{ url_for('ingreso') }}"><span>INGRESO</span></a>
+      <a href="{{ url_for('salida') }}"><span>SALIDA</span></a>
+      <a href="{{ url_for('devoluciones_salida') }}"><span>DEVOLUCIÓN SALIDA</span></a>
+    </div>
+
+    <div class="secondary">
+      <a href="{{ url_for('listados') }}"><span>LISTADOS</span></a>
+      <a href="{{ url_for('inventario') }}"><span>INVENTARIO</span></a>
+      <a href="{{ url_for('devoluciones') }}"><span>DEVOLUCIONES</span></a>
+    </div>
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

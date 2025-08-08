@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Devolución de Salida</h1>
+
+  <form method="post">
+    <label>Número de Guía:</label>
+    <input type="text" name="guia" required>
+    <label>Código Producto:</label>
+    <input type="text" name="codigo" required>
+    <label>Cantidad:</label>
+    <input type="number" name="cantidad" min="1" required>
+    <button type="submit">Registrar Devolución</button>
+  </form>
+
+  {% if devoluciones %}
+    <h2>Devoluciones registradas</h2>
+    <table>
+      <thead>
+        <tr><th>Guía</th><th>Código</th><th>Cantidad</th><th>Fecha</th></tr>
+      </thead>
+      <tbody>
+        {% for d in devoluciones %}
+          <tr>
+            <td>{{ d.guia }}</td>
+            <td>{{ d.codigo }}</td>
+            <td>{{ d.cantidad }}</td>
+            <td>{{ d.timestamp }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

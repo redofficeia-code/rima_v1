@@ -82,8 +82,8 @@ def devolucion_ingreso():
 
 from flask import render_template, request, redirect, url_for, flash, session
 
-@app.route('/devolucion_salida', methods=['GET', 'POST'])
-def devolucion_salida():
+@app.route('/devoluciones_salida', methods=['GET', 'POST'])
+def devoluciones_salida():
     # Si guardas datos en sesión, recupéralos aquí:
     devoluciones = session.get('devolucion_items', [])
 
@@ -100,10 +100,10 @@ def devolucion_salida():
         # 3) Si usas sesión para mostrar, actualiza session['devolucion_items']…
 
         flash('Devolución registrada con éxito.', 'success')
-        return redirect(url_for('devolucion_salida'))
+        return redirect(url_for('devoluciones_salida'))
 
     # GET: renderiza el formulario + lista de devoluciones
-    return render_template('devolucion_salida.html',
+    return render_template('devoluciones_salida.html',
                            devoluciones=devoluciones)
 
 
