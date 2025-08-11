@@ -122,16 +122,16 @@
 
 
     <form method="post">
-      <input type="hidden" name="action" value="buscar_oc">
-      <label for="oc">No. OC:</label>
-      <input id="oc" name="oc" type="text" value="{{ request.args.get('oc') or oc or '' }}" required autocomplete="off">
-      <button type="submit">Buscar OC</button>
+      <input type="hidden" name="action" value="buscar_factura">
+      <label for="factura">No. Factura:</label>
+      <input id="factura" name="factura" type="text" value="{{ request.args.get('factura') or factura or '' }}" required autocomplete="off">
+      <button type="submit">Buscar Factura</button>
     </form>
 
-    {% if oc_items %}
+    {% if factura_items %}
       <div class="tables">
         <div class="table-box">
-          <h2>Orden de Compra {{ oc }}</h2>
+          <h2>Factura de Compra {{ factura }}</h2>
           <table>
             <thead>
               <tr>
@@ -143,7 +143,7 @@
               </tr>
             </thead>
             <tbody>
-              {% for item in oc_items %}
+              {% for item in factura_items %}
                 {% set faltan = item.Faltan|int %}
                 <tr class="
                   {% if faltan == item['Cantidad']|int %}faltan-total
@@ -183,7 +183,7 @@
 
       <form method="post" id="scanForm">
         <input type="hidden" name="action" value="scan">
-        <input type="hidden" name="oc" value="{{ oc }}">
+        <input type="hidden" name="factura" value="{{ factura }}">
         <label for="guia">No. Guía:</label>
         <input id="guia" name="guia" type="text" value="{{ guia or '' }}" required>
         <label for="cantidad">Cantidad (default 1):</label>
