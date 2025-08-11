@@ -925,6 +925,32 @@ def inventario():
             else:
                 flash(f'Código {codigo} no está en el inventario esperado.', 'warning')
 
+        # ── 3) Exportar resultados ────────────────────────────────────────
+        elif action == 'export_inv':
+            results = []
+            for exp in expected_items:
+                cnt = next((s['Contado'] for s in scanned_items if s['Código'] == exp['Código']), 0)
+                results.append({
+                    'Código': exp['Código'],
+                    'Nombre': exp['Nombre'],
+                    'Esperado': exp['Cantidad'],
+                    'Contado': cnt,
+                    'Diferencia': cnt - exp['Cantidad']
+                })
+            if results:
+                output = io.StringIO()
+                writer = csv.DictWriter(output, fieldnames=['Código', 'Nombre', 'Esperado', 'Contado', 'Diferencia'])
+                writer.writeheader()
+                writer.writerows(results)
+                output.seek(0)
+                return send_file(
+                    io.BytesIO(output.getvalue().encode('utf-8-sig')),
+                    mimetype='text/csv',
+                    as_attachment=True,
+                    download_name='inventario_resultados.csv'
+                )
+            flash('No hay datos de inventario para exportar.', 'warning')
+
         return redirect(url_for('inventario'))
 
     # ── Render ────────────────────────────────────────────────────────────
