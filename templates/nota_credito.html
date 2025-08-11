@@ -1,0 +1,338 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Nota de Crédito – WMS</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: sans-serif;
+      background: #eef3f7;
+      color: #333;
+    }
+    .container {
+      width: 96%; max-width: 1300px;
+      margin: 12px auto;
+      background: #fff;
+      border: 1px solid #ccd6e0;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    header {
+      padding: 10px 14px;
+      border-bottom: 1px solid #e2e8f0;
+      background: linear-gradient(#f9fbfd,#f1f5f9);
+    }
+    h1 { margin: 0; font-size: 18px; }
+    .section { padding: 12px 14px; }
+    .grid {
+      display: grid;
+      grid-template-columns: 140px 1fr 140px 1fr;
+      gap: 8px 10px;
+      align-items: center;
+    }
+    .grid label { font-size: 12px; color: #334155; }
+    input[type="text"], input[type="number"], input[type="date"], select, textarea {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 13px;
+      background: #fff;
+    }
+    input[type="checkbox"] { transform: scale(1.05); }
+    textarea { min-height: 90px; }
+    .dual { display: grid; grid-template-columns: 110px 1fr; gap: 6px; }
+    .row { display: flex; gap: 10px; align-items: center; }
+    .row > * { flex: 1; }
+    .items-wrap {
+      border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;
+    }
+    table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    thead { background: #f8fafc; }
+    th, td { border-bottom: 1px solid #eef2f7; padding: 8px; text-align: left; }
+    th.num, td.num { text-align: right; }
+    .foot {
+      display: grid;
+      grid-template-columns: 1fr 330px;
+      gap: 10px; margin-top: 10px;
+    }
+    .left-controls {
+      display: grid; gap: 8px;
+      grid-template-columns: 160px 120px 120px 1fr;
+      align-items: center;
+    }
+    .left-controls .span-2 { grid-column: span 2; }
+    .totals {
+      border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px;
+      background: #fbfdff;
+    }
+    .totals .row { margin: 4px 0; }
+    .totals label { width: 50%; font-size: 12px; color: #475569; }
+    .totals input { text-align: right; }
+    .subsection-title {
+      margin: 4px 0 8px 0; font-size: 13px; color:#0f172a; font-weight: 600;
+    }
+    .refs {
+      display: grid;
+      grid-template-columns: 180px 1fr 170px 170px;
+      gap: 8px 10px; align-items: center;
+    }
+    .refs label { font-size: 12px; }
+    .actions { padding: 12px 14px; border-top: 1px solid #e2e8f0; text-align: right; }
+    button {
+      padding: 8px 12px; border: 1px solid #0ea5e9; background: #0284c7;
+      color: white; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .link { color:#0ea5e9; text-decoration:none; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header><h1>Nota de Crédito</h1></header>
+
+    <form id="form-nc" class="section" action="#" method="post" onsubmit="return false;">
+      <!-- Encabezado principal -->
+      <div class="grid">
+        <label for="nc_num">N/C Nº</label>
+        <input type="text" id="nc_num" name="nc_num">
+
+        <label for="fecha">Fecha</label>
+        <input type="date" id="fecha" name="fecha">
+
+        <label for="fav_ref">FAV REF. Nº</label>
+        <input type="text" id="fav_ref" name="fav_ref">
+
+        <label for="fav_a_desc">FAV a</label>
+        <div class="dual">
+          <input type="text" id="fav_a_cod" name="fav_a_cod" placeholder="Código">
+          <input type="text" id="fav_a_desc" name="fav_a_desc" placeholder="Descripción / Nombre">
+        </div>
+
+        <label for="tipo_venta">Tipo Venta</label>
+        <select id="tipo_venta" name="tipo_venta">
+          <option value="">– Seleccionar –</option>
+          <option>Contado</option>
+          <option>Crédito</option>
+          <option>Transferencia</option>
+        </select>
+
+        <label for="cliente_desc">Cliente</label>
+        <div class="dual">
+          <input type="text" id="cliente_cod" name="cliente_cod" placeholder="Código">
+          <input type="text" id="cliente_desc" name="cliente_desc" placeholder="Razón social">
+        </div>
+
+        <label for="moneda">Moneda</label>
+        <input type="number" step="0.000001" id="moneda" name="moneda" value="0.000000">
+
+        <label for="comisionista_desc">Comisionista</label>
+        <div class="row">
+          <input type="text" id="comisionista_desc" name="comisionista_desc">
+          <input type="number" step="0.01" id="comision_pct" name="comision_pct" placeholder="%" title="Porcentaje">
+        </div>
+
+        <label for="vendedor_desc">Vendedor</label>
+        <div class="dual">
+          <input type="text" id="vendedor_cod" name="vendedor_cod" placeholder="Código">
+          <input type="text" id="vendedor_desc" name="vendedor_desc" placeholder="Nombre">
+        </div>
+
+        <label for="descuento_val">Descuento</label>
+        <div class="row">
+          <input type="number" step="0.01" id="descuento_val" name="descuento_val" value="0.00">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="descuento_pct" name="descuento_pct">
+            <label for="descuento_pct" style="margin:0;">%</label>
+          </div>
+        </div>
+
+        <label for="sucursal_desc">Sucursal</label>
+        <div class="dual">
+          <input type="text" id="sucursal_cod" name="sucursal_cod" placeholder="Código">
+          <input type="text" id="sucursal_desc" name="sucursal_desc" placeholder="Nombre">
+        </div>
+      </div>
+
+      <!-- Ítems -->
+      <div class="subsection-title">Ítems</div>
+      <div class="items-wrap">
+        <table id="tabla-items">
+          <thead>
+            <tr>
+              <th style="width:120px;">Código</th>
+              <th>Descripción</th>
+              <th class="num" style="width:120px;">Cantidad</th>
+              <th class="num" style="width:120px;">Precio</th>
+              <th class="num" style="width:80px;">D%</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px;">
+        <button type="button" onclick="agregarItem()">Agregar ítem</button>
+      </div>
+
+      <!-- Controles inferiores y totales -->
+      <div class="foot">
+        <div>
+          <div class="left-controls">
+            <label><input type="checkbox" id="reingresa_stock" name="reingresa_stock"> Reingresa Stock</label>
+            <label><input type="checkbox" id="nula" name="nula"> Nula</label>
+            <label><input type="checkbox" id="es_nc" name="es_nc"> N/C</label>
+
+            <div class="row">
+              <label style="flex:0 0 90px;">IndServicio</label>
+              <select id="ind_servicio" name="ind_servicio">
+                <option value="">–</option>
+                <option value="bien">Bien</option>
+                <option value="servicio">Servicio</option>
+              </select>
+            </div>
+
+            <label class="span-2" for="forma_pago">Forma de Pago</label>
+            <input class="span-2" type="text" id="forma_pago" name="forma_pago">
+
+            <label class="span-2"><input type="checkbox" id="tipo_transaccion" name="tipo_transaccion"> Tipo Transaccion</label>
+          </div>
+        </div>
+
+        <div class="totals">
+          <div class="row"><label for="afecto">Afecto</label><input type="number" step="0.01" id="afecto" name="afecto" value="0"></div>
+          <div class="row"><label for="exento">Exento</label><input type="number" step="0.01" id="exento" name="exento" value="0"></div>
+          <div class="row"><label for="neto">Neto</label><input type="number" step="0.01" id="neto" name="neto" value="0"></div>
+          <div class="row"><label for="iva">IVA</label><input type="number" step="0.01" id="iva" name="iva" value="0"></div>
+          <div class="row"><label for="otros_imp1">Otros Imp1</label><input type="number" step="0.01" id="otros_imp1" name="otros_imp1" value="0"></div>
+          <div class="row"><label for="otros_imp2">Otros Imp2</label><input type="number" step="0.01" id="otros_imp2" name="otros_imp2" value="0"></div>
+          <div class="row"><label for="total"><strong>Total</strong></label><input type="number" step="0.01" id="total" name="total" value="0"></div>
+        </div>
+      </div>
+
+      <!-- Segunda pantalla / Datos adicionales -->
+      <hr style="margin:16px 0;border:none;border-top:1px solid #e2e8f0;">
+
+      <div class="subsection-title">Datos adicionales</div>
+      <div class="grid">
+        <label for="atencion_a">Atención a</label>
+        <input type="text" id="atencion_a" name="atencion_a">
+
+        <label for="cta_contable">Cta Contable</label>
+        <input type="text" id="cta_contable" name="cta_contable">
+
+        <label for="centro_costo">Centro Costo</label>
+        <input type="text" id="centro_costo" name="centro_costo">
+
+        <label for="glosa_contable">Glosa Contable</label>
+        <input type="text" id="glosa_contable" name="glosa_contable">
+
+        <label for="ref_doc">Ref. Doc.</label>
+        <input type="text" id="ref_doc" name="ref_doc">
+
+        <label for="ref_electr">Ref. Electr.</label>
+        <div class="row">
+          <input type="text" id="ref_electr" name="ref_electr">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="referencia_global" name="referencia_global">
+            <label for="referencia_global" style="margin:0;">Referencia Global</label>
+          </div>
+        </div>
+
+        <label for="razon_refe">Razón Refe.</label>
+        <input type="text" id="razon_refe" name="razon_refe">
+
+        <label for="caja_num">Caja Nº</label>
+        <div class="row">
+          <input type="text" id="caja_num" name="caja_num" placeholder="Caja Nº">
+          <input type="text" id="turno" name="turno" placeholder="Turno">
+          <input type="text" id="rut_mandante" name="rut_mandante" placeholder="Rut Mandante">
+        </div>
+
+        <label for="ref_no_iva">Ref no aplica IVA fuera de plazo.</label>
+        <input type="text" id="ref_no_iva" name="ref_no_iva">
+      </div>
+
+      <div style="margin-top:10px;">
+        <label for="observaciones" style="display:block; font-size:12px; color:#334155; margin-bottom:6px;">Observaciones</label>
+        <textarea id="observaciones" name="observaciones"></textarea>
+      </div>
+
+      <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+        <div class="subsection-title" style="margin:0;">Referencias a otros documentos</div>
+        <a href="#" class="link" onclick="alert('Abrir modal para ingresar referencias');return false;">Ingresar Referencias</a>
+      </div>
+
+      <div class="refs" style="margin-top:8px;">
+        <label for="oc_ref">OC Referencia</label>
+        <input type="text" id="oc_ref" name="oc_ref">
+        <label for="fecha_oc_ref">Fecha OC Referencia</label>
+        <input type="date" id="fecha_oc_ref" name="fecha_oc_ref">
+
+        <label for="hes_ref">HES Referencia</label>
+        <input type="text" id="hes_ref" name="hes_ref">
+        <label for="fecha_hes_ref">Fecha HES Referencia</label>
+        <input type="date" id="fecha_hes_ref" name="fecha_hes_ref">
+
+        <label for="guia_ref">Guía Despacho Ref</label>
+        <input type="text" id="guia_ref" name="guia_ref">
+        <label for="fecha_guia_ref">Fecha Guía Despacho Ref</label>
+        <input type="date" id="fecha_guia_ref" name="fecha_guia_ref">
+
+        <label for="contrato_ref">Nº Contrato</label>
+        <input type="text" id="contrato_ref" name="contrato_ref">
+        <label for="fecha_contrato">Fecha Contrato</label>
+        <input type="date" id="fecha_contrato" name="fecha_contrato">
+
+        <label for="pedido_ref">Nº Pedido (Nt de Vta)</label>
+        <input type="text" id="pedido_ref" name="pedido_ref">
+        <label for="fecha_pedido">Fecha Pedido (Nt de Vta)</label>
+        <input type="date" id="fecha_pedido" name="fecha_pedido">
+      </div>
+
+      <div class="actions">
+        <button type="submit">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <script type="text/javascript">
+    function agregarItem() {
+      var tb = document.getElementById('tabla-items').getElementsByTagName('tbody')[0];
+      var tr = document.createElement('tr');
+
+      function tdInput(name, extra) {
+        var td = document.createElement('td');
+        var inp = document.createElement('input');
+        inp.name = name;
+        inp.type = (extra && extra.type) ? extra.type : 'text';
+        if (extra && extra.className) inp.className = extra.className;
+        if (extra && extra.step) inp.step = extra.step;
+        td.appendChild(inp);
+        return td;
+      }
+
+      tr.appendChild(tdInput('itm_codigo[]'));
+      tr.appendChild(tdInput('itm_desc[]'));
+      tr.appendChild(tdInput('itm_cantidad[]', {type:'number', step:'0.01', className:'num'}));
+      tr.appendChild(tdInput('itm_precio[]', {type:'number', step:'0.01', className:'num'}));
+      tr.appendChild(tdInput('itm_descpct[]', {type:'number', step:'0.01', className:'num'}));
+
+      var tdAcc = document.createElement('td');
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.innerHTML = '×';
+      btn.title = 'Eliminar fila';
+      btn.onclick = function () { tb.removeChild(tr); };
+      tdAcc.appendChild(btn);
+      tr.appendChild(tdAcc);
+
+      tb.appendChild(tr);
+    }
+  </script>
+</body>
+</html>
