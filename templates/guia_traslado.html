@@ -1,0 +1,530 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Guía de Traslado</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: linear-gradient(to right, #00c0cb, #0057d1);
+      margin: 0; padding: 0; color: #333;
+    }
+    .container {
+      width: 95%; max-width: 1200px;
+      margin: 2em auto; background: #fff;
+      border-radius: 8px; padding: 1.5em;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    }
+    h1 {
+      text-align: center;
+      margin-top: 0;
+      color: #0057d1;
+    }
+
+    /* ── Cabecera con table layout ───────────────────────────── */
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5em;
+    }
+    .header-table td {
+      padding: 4px;
+      vertical-align: middle;
+    }
+    .header-table label {
+      display: inline-block;
+      width: 80px;
+      font-weight: bold;
+    }
+    .header-table input[type="text"],
+    .header-table input[type="date"],
+    .header-table select {
+      padding: 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .header-table .dual-input {
+      display: flex;
+      gap: 4px;
+    }
+    .header-table .dual-input .code {
+      width: 80px;
+    }
+    .header-table .dual-input .desc {
+      flex: 1;
+    }
+
+    /* ── Tabla de líneas ─────────────────────────────────────── */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5em;
+    }
+    .items-table th, .items-table td {
+      border: 1px solid #aaa;
+      padding: .5em;
+      text-align: left;
+      font-size: 14px;
+    }
+    .items-table th {
+      background: #0057d1;
+      color: #fff;
+    }
+    .items-table tbody tr:nth-child(even) {
+      background: #f7f7f7;
+    }
+
+    /* ── Sección Atención / Chofer / Observaciones ──────────── */
+    .form-row {
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+      margin-bottom: 1em;
+    }
+    .form-col {
+      flex: 1 1 200px;
+    }
+    .form-col.full {
+      flex: 1 1 100%;
+    }
+    .form-col label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: .3em;
+    }
+    .form-col input,
+    .form-col textarea {
+      width: 100%;
+      padding: .5em;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    /* ── Referencias a otros documentos ─────────────────────── */
+    .refs-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5em;
+    }
+    .refs-table td {
+      border: 1px solid #aaa;
+      padding: .5em;
+      vertical-align: middle;
+    }
+    .refs-table strong {
+      display: inline-block;
+      width: 140px;
+      font-weight: bold;
+    }
+
+    /* ── Panel inferior de controles ────────────────────────── */
+    .bottom-controls {
+      border-top: 1px solid #ccc;
+      padding-top: 1em;
+      font-size: 14px;
+    }
+    .bottom-controls .radio-group,
+    .bottom-controls .checkbox-group {
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+      margin-bottom: .8em;
+    }
+    .bottom-controls label {
+      display: flex;
+      align-items: center;
+      gap: .3em;
+    }
+    .bottom-controls button {
+      background: #0057d1;
+      color: #fff;
+      border: none;
+      padding: .5em 1em;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 1em;
+      font-size: 14px;
+    }
+    .bottom-controls .totals {
+      display: flex;
+      gap: 2em;
+      margin-top: 1em;
+      font-weight: bold;
+    }
+    .bottom-controls .footer-text {
+      margin-top: 1em;
+      text-align: right;
+      color: #666;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="container" style="max-width:800px; margin-top:1em;">
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ category }}" role="alert">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  <div class="container">
+    <h1>Guía de Traslado</h1>
+
+    <form method="POST" action="{{ url_for('guia_traslado') }}">
+      <!-- Cabecera -->
+      <table class="header-table">
+        <tr>
+          <td><label>G/D N°</label></td>
+          <td><input type="text" name="gr_numero" value=""></td> <!-- vacío por ahora -->
+          
+          <td><label>O/C N°</label></td>
+          <td><input type="text" name="oc_numero" value="{{ datos.get('Num. Ord .Compra', '') }}"></td>
+
+          <td><label>Fecha</label></td>
+          <td><input type="date" name="fecha" value="{{ datetime.utcnow().strftime('%Y-%m-%d') }}"></td>
+        </tr>
+
+        <tr>
+          <td><label>FAV a</label></td>
+          <td colspan="2">
+            <div class="dual-input">
+              <input class="code" type="text" name="fav_a_codigo" value="{{ datos.get('RUT', '') }}">
+              <input class="desc" type="text" name="fav_a_desc" value="{{ datos.get('Razón Social', '') }}">
+            </div>
+          </td>
+          <td><label>Tipo Desp.</label></td>
+          <td colspan="2">
+            <select name="tipo_desp">
+              <option value="">– Seleccionar –</option>
+              <option value="{{ datos.get('Canal', '') }}" selected>{{ datos.get('Canal', '') }}</option>
+            </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td><label>Desp. a</label></td>
+          <td colspan="2">
+            <div class="dual-input">
+              <input class="code" type="text" name="desp_a_codigo" value="">
+              <input class="desc" type="text" name="desp_a_desc" value="{{ datos.get('Razón Social', '') }}">
+            </div>
+          </td>
+          <td><label>Moneda</label></td>
+          <td>
+            <select name="moneda">
+              <option value="$" selected>$</option>
+              <option value="€">€</option>
+            </select>
+          </td>
+          <td><input type="number" step="0.0001" name="factor_moneda" value="1.0000" style="width:80px;"></td>
+        </tr>
+
+        <tr>
+          <td><label>Vendedor</label></td>
+          <td colspan="2">
+            <div class="dual-input">
+              <input class="code" type="text" name="vendedor_codigo" value="">
+              <input class="desc" type="text" name="vendedor_nombre" value="{{ datos.get('Nombre Vendedor N/V', '') }}">
+            </div>
+          </td>
+          <td><label>Descuento</label></td>
+          <td><input type="number" step="0.01" name="descuento" value="0.00" style="width:80px;"></td>
+          <td><label>%</label> <input type="checkbox" name="porc_descuento"></td>
+        </tr>
+
+        <tr>
+          <td><label>Entregar en</label></td>
+          <td colspan="2"><input type="text" name="entregar_en" value="{{ datos.get('Ciudad', '') }}"></td>
+          <td><label>Comisión</label></td>
+          <td><input type="number" step="0.01" name="comision" style="width:80px;"></td>
+          <td><label>%</label> <input type="checkbox" name="porc_comision"></td>
+        </tr>
+
+<tr>
+  <td><label>Sucursal</label></td>
+  <td colspan="2">
+    <div class="dual-input">
+      <input class="code" type="text" name="sucursal_codigo" value="">
+      <input class="desc" type="text" name="sucursal_desc" value="{{ datos.get('Ciudad', '') }}">
+    </div>
+  </td>
+  <td><label>Glosa Pag.</label></td>
+  <td><input type="text" name="glosa_pag" value="{{ datos.get('Forma de Pago', '') }}"></td>
+  <td>
+    <label>Pago a</label>
+    <input type="number" name="pago_a" value="30" style="width:50px;"> días
+  </td>
+</tr>
+
+        
+      </table>
+
+      <!-- Tabla de líneas -->
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>D%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for linea in lineas %}
+          <tr>
+            <td>{{ linea.codigo }}</td>
+            <td>{{ linea.descripcion }}</td>
+            <td>{{ linea.cantidad }}</td>
+            <td>{{ linea.precio }}</td>
+            <td>{{ linea.descuento }}</td>
+          </tr>
+          {% endfor %}
+          {% if not lineas %}
+          <tr>
+            <td colspan="5" style="text-align:center; color:#666; padding:2em;">
+              Sin ítems cargados.
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+      <!-- Atención / Chofer / Observaciones -->
+<div class="form-row">
+  <div class="form-col">
+    <label for="atencion_a">Atención a</label>
+    <input type="text" id="atencion_a" name="atencion_a"
+           value="{{ datos.get('atencion_a', '') }}">
+  </div>
+  <div class="form-col">
+    <label for="obra">Obra</label>
+    <input type="text" id="obra" name="obra"
+           value="{{ datos.get('obra', '') }}">
+  </div>
+</div>
+<div class="form-row">
+  <div class="form-col">
+    <label for="traslado_elect">Traslado Electr.</label>
+    <input type="text" id="traslado_elect" name="traslado_elect"
+           value="{{ datos.get('traslado_elect', '') }}">
+  </div>
+  <div class="form-col">
+    <label for="patente">Patente</label>
+    <input type="text" id="patente" name="patente"
+           value="{{ datos.get('patente', '') }}">
+  </div>
+  <div class="form-col">
+    <label for="rut_transportista">Rut Transportista</label>
+    <input type="text" id="rut_transportista" name="rut_transportista"
+           value="{{ datos.get('rut_transportista', '') }}">
+  </div>
+  <div class="form-col">
+    <label for="rut_chofer">Rut Chofer</label>
+    <input type="text" id="rut_chofer" name="rut_chofer"
+           value="{{ datos.get('rut_chofer', '') }}">
+  </div>
+</div>
+<div class="form-row">
+  <div class="form-col">
+    <label for="nombre_chofer">Nombre Chofer</label>
+    <input type="text" id="nombre_chofer" name="nombre_chofer"
+           value="{{ datos.get('nombre_chofer', '') }}">
+  </div>
+  <div class="form-col">
+    <label for="rut_mandante">Rut Mandante</label>
+    <input type="text" id="rut_mandante" name="rut_mandante"
+           value="{{ datos.get('rut_mandante', '') }}">
+  </div>
+</div>
+<div class="form-row">
+  <div class="form-col full">
+    <label for="observaciones1">Observaciones</label>
+    <textarea id="observaciones1" name="observaciones1" rows="4">{{ datos.get('observaciones1', '') }}</textarea>
+  </div>
+</div>
+<div class="form-row">
+  <div class="form-col full">
+    <label for="observaciones2">&nbsp;</label>
+    <textarea id="observaciones2" name="observaciones2" rows="4">{{ datos.get('observaciones2', '') }}</textarea>
+  </div>
+</div>
+
+<!-- Referencias a otros documentos -->
+<h2>Referencias a otros documentos</h2>
+<table class="refs-table">
+  <tbody>
+    <tr>
+      <td><strong>OC Referencia</strong></td>
+      <td>
+        <input type="text" name="oc_ref"
+               value="{{ datos.get('oc_ref', '') }}">
+      </td>
+      <td><strong>Fecha OC Referencia</strong></td>
+      <td>
+        <input type="date" name="fecha_oc_ref"
+               value="{{ datos.get('fecha_oc_ref', '') }}">
+      </td>
+    </tr>
+    <tr>
+      <td><strong>HES Referencia</strong></td>
+      <td>
+        <input type="text" name="hes_ref"
+               value="{{ datos.get('hes_ref', '') }}">
+      </td>
+      <td><strong>Fecha HES Referencia</strong></td>
+      <td>
+        <input type="date" name="fecha_hes_ref"
+               value="{{ datos.get('fecha_hes_ref', '') }}">
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Guía Despacho Ref</strong></td>
+      <td>
+        <input type="text" name="guia_desp_ref"
+               value="{{ datos.get('guia_desp_ref', '') }}">
+      </td>
+      <td><strong>Fecha Guía Despacho Ref</strong></td>
+      <td>
+        <input type="date" name="fecha_guia_desp_ref"
+               value="{{ datos.get('fecha_guia_desp_ref', '') }}">
+      </td>
+    </tr>
+    <tr>
+      <td><strong>N° Contrato</strong></td>
+      <td>
+        <input type="text" name="numero_contrato"
+               value="{{ datos.get('numero_contrato', '') }}">
+      </td>
+      <td><strong>Fecha Contrato</strong></td>
+      <td>
+        <input type="date" name="fecha_contrato"
+               value="{{ datos.get('fecha_contrato', '') }}">
+      </td>
+    </tr>
+    <tr>
+      <td><strong>N° Pedido (Nt de Vta)</strong></td>
+      <td>
+        <input type="text" name="numero_pedido"
+               value="{{ datos.get('numero_pedido', '') }}">
+      </td>
+      <td><strong>Fecha Pedido (Nt de Vta)</strong></td>
+      <td>
+        <input type="date" name="fecha_pedido"
+               value="{{ datos.get('fecha_pedido', '') }}">
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Panel inferior -->
+<div class="bottom-controls">
+  <div class="radio-group">
+    <label>
+      <input type="radio" name="modo_despacho" value="retira_cliente"
+             {% if datos.get('modo_despacho')=='retira_cliente' %}checked{% endif %}>
+      Retira Cliente
+    </label>
+    <label>
+      <input type="radio" name="modo_despacho" value="packing"
+             {% if datos.get('modo_despacho')=='packing' %}checked{% endif %}>
+      Despacho Packing
+    </label>
+    <label>
+      <input type="radio" name="modo_despacho" value="tercero"
+             {% if datos.get('modo_despacho')=='tercero' %}checked{% endif %}>
+      Despacho Tercero
+    </label>
+  </div>
+
+  <div class="radio-group" style="margin-bottom:1em;">
+    <span style="font-weight:bold; margin-right:.5em;">Emite Form Packing:</span>
+    <label>
+      <input type="radio" name="emite_packing" value="si"
+             {% if datos.get('emite_packing')=='si' %}checked{% endif %}>
+      Si
+    </label>
+    <label>
+      <input type="radio" name="emite_packing" value="no"
+             {% if datos.get('emite_packing')=='no' %}checked{% endif %}>
+      No
+    </label>
+  </div>
+
+  <div class="checkbox-group">
+    <label>
+      <input type="checkbox" name="facturable"
+             {% if datos.get('facturable') %}checked{% endif %}>
+      Facturable
+    </label>
+    <label>
+      <input type="checkbox" name="facturada"
+             {% if datos.get('facturada') %}checked{% endif %}>
+      Facturada
+    </label>
+    <label>
+      <input type="checkbox" name="vobo"
+             {% if datos.get('vobo') %}checked{% endif %}>
+      V°B°
+    </label>
+    <label>
+      <input type="checkbox" name="nula"
+             {% if datos.get('nula') %}checked{% endif %}>
+      Nula
+    </label>
+    <label>
+      <input type="checkbox" name="gd"
+             {% if datos.get('gd') %}checked{% endif %}>
+      G/D
+    </label>
+    <label>
+      <input type="checkbox" name="trasp_bodega"
+             {% if datos.get('trasp_bodega') %}checked{% endif %}>
+      Traspaso a bodega
+    </label>
+  </div>
+</div>
+
+
+        <div class="totals">
+          <div>Neto: {{ neto }}</div>
+          <div>Otros Imp.: {{ otros_imp }}</div>
+        </div>
+
+        <!-- Debe apuntar a exportar_xls, no a /guia_despacho -->
+      
+
+
+   
+
+
+        <div class="footer-text">
+          SUCURSAL Sucursal Santiago
+        </div>
+      </div>
+
+            <!-- Botón Guardar -->
+      <button name="action" value="guardar" class="btn btn-success">
+        Guardar Guía
+      </button>
+
+      <!-- Botón Descargar (aparece sólo si descarga_url no es None) -->
+      {% if descarga_url %}
+        <button name="action" value="export" class="btn btn-primary">
+          Descargar XLS
+        </button>
+      {% endif %}
+
+    </form>
+    
+  </div>
+</body>
+</html>
