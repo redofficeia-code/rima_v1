@@ -31,10 +31,11 @@ os.makedirs(GUIDE_FOLDER, exist_ok=True)
 UPLOADS_DIR  = os.path.join(DATA_DIR, 'uploads')
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-STOCK_FILE   = os.path.join(DATA_DIR, 'stock.csv')
-OC_FILE      = os.path.join(DATA_DIR, 'oc_pendientes.csv')
-NV_FILE      = os.path.join(DATA_DIR, 'nv.csv')      # Notas de venta
-MASTER_FILE  = os.path.join(DATA_DIR, 'productos_maestra.csv')
+STOCK_FILE    = os.path.join(DATA_DIR, 'stock.csv')
+OC_FILE       = os.path.join(DATA_DIR, 'oc_pendientes.csv')
+NV_FILE       = os.path.join(DATA_DIR, 'nv.csv')      # Notas de venta
+FACTURA_FILE  = os.path.join(DATA_DIR, 'facturas_compra.csv')
+MASTER_FILE   = os.path.join(DATA_DIR, 'productos_maestra.csv')
 
 ALLOWED_EXT  = {'csv', 'xls', 'xlsx'}
 FIELDNAMES   = ['codigo_producto', 'cantidad', 'ultima_actualizacion']
@@ -77,7 +78,20 @@ def devoluciones():
 
 @app.route('/devoluciones/ingreso', methods=['GET', 'POST'])
 def devolucion_ingreso():
-    return ingreso_core('devoluciones_ingreso.html', 'devolucion_ingreso')
+    return ingreso_core(
+        'devoluciones_ingreso.html',
+        'devolucion_ingreso',
+        data_file=FACTURA_FILE,
+        query_param='factura',
+        field_name='No. Factura',
+        label='Factura',
+        search_action='buscar_factura',
+        session_keys={'num': 'dev_current_factura',
+                      'guia': 'dev_current_guia',
+                      'items': 'dev_factura_items',
+                      'scanned': 'dev_scanned'},
+        context_keys={'num': 'factura', 'items': 'factura_items'}
+    )
 
 @app.route('/devoluciones_salida', methods=['GET', 'POST'])
 def devoluciones_salida():
@@ -436,62 +450,81 @@ def notas_preview():
 
 
 
-def ingreso_core(template, endpoint):
-    oc = session.get('current_oc')
-    guia_actual = session.get('current_guia', '')
-    oc_items = session.get('oc_items', [])
-    scanned_items = session.get('scanned', [])
+def ingreso_core(
+    template,
+    endpoint,
+    *,
+    data_file=OC_FILE,
+    query_param='oc',
+    field_name='No. OC',
+    label='OC',
+    search_action='buscar_oc',
+    session_keys=None,
+    context_keys=None
+):
+    session_keys = session_keys or {
+        'num': 'current_oc',
+        'guia': 'current_guia',
+        'items': 'oc_items',
+        'scanned': 'scanned'
+    }
+    context_keys = context_keys or {'num': 'oc', 'items': 'oc_items'}
 
-    # ───────────── GET con ?oc=XXXX ─────────────
-    if request.method == 'GET' and request.args.get('oc'):
-        oc = request.args.get('oc').strip()
-        session['current_oc'] = oc
-        session.pop('current_guia', None)
-        session.pop('scanned', None)
-        session.pop('oc_items', None)
+    numero = session.get(session_keys['num'])
+    guia_actual = session.get(session_keys['guia'], '')
+    items = session.get(session_keys['items'], [])
+    scanned_items = session.get(session_keys['scanned'], [])
 
-        if not os.path.exists(OC_FILE):
-            flash('Primero importa Órdenes de Compra.', 'warning')
+    # ───────────── GET con ?<query_param>=XXXX ─────────────
+    if request.method == 'GET' and request.args.get(query_param):
+        numero = request.args.get(query_param).strip()
+        session[session_keys['num']] = numero
+        session.pop(session_keys['guia'], None)
+        session.pop(session_keys['scanned'], None)
+        session.pop(session_keys['items'], None)
+
+        if not os.path.exists(data_file):
+            flash(f'Primero importa {label}s.', 'warning')
         else:
             try:
-                df = pd.read_csv(OC_FILE, dtype=str)
-                oc_items = df[df['No. OC'] == oc].to_dict('records')
-                session['oc_items'] = oc_items
-                if not oc_items:
-                    flash(f'La Orden de Compra {oc} no fue encontrada.', 'error')
+                df = pd.read_csv(data_file, dtype=str)
+                items = df[df[field_name] == numero].to_dict('records')
+                session[session_keys['items']] = items
+                if not items:
+                    flash(f'La {label} {numero} no fue encontrada.', 'error')
                 else:
-                    flash(f'La Orden de Compra {oc} encontrada con {len(oc_items)} líneas.', 'success')
+                    flash(f'La {label} {numero} encontrada con {len(items)} líneas.', 'success')
             except Exception as e:
-                logger.error(f'Error procesando OC desde parámetro: {e}')
-                flash(f'Error al procesar OC desde la URL: {e}', 'error')
+                logger.error(f'Error procesando {label} desde parámetro: {e}')
+                flash(f'Error al procesar {label} desde la URL: {e}', 'error')
 
     # ───────────── POST desde formulario ─────────────
     if request.method == 'POST':
         action = request.form.get('action')
 
-        if action == 'buscar_oc':
-            oc = request.form['oc'].strip()
-            session['current_oc'] = oc
-            session.pop('current_guia', None)
-            session.pop('scanned', None)
-            session.pop('oc_items', None)
+        if action == search_action:
+            numero = request.form[query_param].strip()
+            session[session_keys['num']] = numero
+            session.pop(session_keys['guia'], None)
+            session.pop(session_keys['scanned'], None)
+            session.pop(session_keys['items'], None)
 
-            if not oc:
-                flash('El No. OC es obligatorio.', 'warning')
-            elif not os.path.exists(OC_FILE):
-                flash('Primero importa Órdenes de Compra.', 'warning')
+            if not numero:
+                flash(f'El No. {label} es obligatorio.', 'warning')
+            elif not os.path.exists(data_file):
+                flash(f'Primero importa {label}s.', 'warning')
             else:
                 try:
-                    df = pd.read_csv(OC_FILE, dtype=str)
-                    oc_items = df[df['No. OC'] == oc].to_dict('records')
-                    session['oc_items'] = oc_items
-                    if not oc_items:
-                        flash(f'La OC {oc} no fue encontrada.', 'error')
+                    df = pd.read_csv(data_file, dtype=str)
+                    items = df[df[field_name] == numero].to_dict('records')
+                    session[session_keys['items']] = items
+                    if not items:
+                        flash(f'La {label} {numero} no fue encontrada.', 'error')
                     else:
-                        flash(f'OC {oc} encontrada con {len(oc_items)} líneas.', 'success')
+                        flash(f'{label} {numero} encontrada con {len(items)} líneas.', 'success')
                 except Exception as e:
-                    logger.error(f'Error procesando OC: {e}')
-                    flash(f'Error al procesar Órdenes de Compra: {e}', 'error')
+                    logger.error(f'Error procesando {label}: {e}')
+                    flash(f'Error al procesar {label}s: {e}', 'error')
             return redirect(url_for(endpoint))
 
         elif action == 'scan':
@@ -499,16 +532,16 @@ def ingreso_core(template, endpoint):
             codigo = request.form.get('codigo', '').strip()
             try:
                 cantidad = int(request.form.get('cantidad', 1))
-            except:
+            except Exception:
                 cantidad = 1
             ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             if guia and guia != guia_actual:
-                session['current_guia'] = guia
+                session[session_keys['guia']] = guia
                 guia_actual = guia
 
-            if not oc:
-                flash('Primero debes buscar una OC.', 'warning')
+            if not numero:
+                flash(f'Primero debes buscar una {label}.', 'warning')
                 return redirect(url_for(endpoint))
 
         elif action == 'finish':
@@ -518,22 +551,22 @@ def ingreso_core(template, endpoint):
 
             df_rep = pd.DataFrame(scanned_items)
             proveedor = rut = ""
-            if oc_items:
-                proveedor = oc_items[0].get("NombreProveedor") or oc_items[0].get("Razón Social") or ""
-                rut = oc_items[0].get("RUT") or oc_items[0].get("RUT Proveedor") or oc_items[0].get("RutProveedor") or ""
+            if items:
+                proveedor = items[0].get("NombreProveedor") or items[0].get("Razón Social") or ""
+                rut = items[0].get("RUT") or items[0].get("RUT Proveedor") or items[0].get("RutProveedor") or ""
                 df_rep["Razón Social"] = proveedor
                 df_rep["RUT"] = rut
 
-            nombre_informe = f"informe_{oc}_{guia_actual}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            nombre_informe = f"informe_{numero}_{guia_actual}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
             ruta_informe = os.path.join(DATA_DIR, nombre_informe)
             df_rep.to_excel(ruta_informe, index=False)
 
-            df_oc = pd.DataFrame(oc_items)
-            df_oc['Cantidad'] = pd.to_numeric(df_oc['Cantidad'], errors='coerce').fillna(0).astype(int)
+            df_doc = pd.DataFrame(items)
+            df_doc['Cantidad'] = pd.to_numeric(df_doc['Cantidad'], errors='coerce').fillna(0).astype(int)
             df_scan = pd.DataFrame(scanned_items)
             grouped = df_scan.groupby('codigo_producto')['cantidad'].sum().reset_index()
 
-            merged = df_oc.merge(grouped, left_on='Código', right_on='codigo_producto', how='left').fillna(0)
+            merged = df_doc.merge(grouped, left_on='Código', right_on='codigo_producto', how='left').fillna(0)
             merged['cantidad'] = merged['cantidad'].astype(int)
             merged['faltan'] = merged['Cantidad'] - merged['cantidad']
             diff = merged[merged['faltan'] > 0][['Código', 'Nombre', 'Cantidad', 'cantidad', 'faltan']]
@@ -543,20 +576,20 @@ def ingreso_core(template, endpoint):
             cols = ["Razón Social", "RUT"] + [c for c in diff.columns if c not in ("Razón Social", "RUT")]
             diff = diff[cols]
 
-            nombre_dif = f"diferencias_{oc}_{guia_actual}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            nombre_dif = f"diferencias_{numero}_{guia_actual}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
             ruta_dif = os.path.join(DATA_DIR, nombre_dif)
             diff.to_excel(ruta_dif, index=False)
 
             session['informe_path'] = ruta_informe
             session['diferencias_path'] = ruta_dif
 
-            for k in ('scanned', 'current_oc', 'current_guia', 'oc_items'):
+            for k in (session_keys['scanned'], session_keys['num'], session_keys['guia'], session_keys['items']):
                 session.pop(k, None)
 
             flash('Recepción finalizada correctamente.', 'success')
             return redirect(url_for('finalizar'))
 
-        if any(item.get('Código', '') == codigo for item in oc_items):
+        if any(item.get('Código', '') == codigo for item in items):
             found = False
             for s in scanned_items:
                 if s['guia'] == guia and s['codigo_producto'] == codigo:
@@ -571,15 +604,23 @@ def ingreso_core(template, endpoint):
                     'cantidad': cantidad,
                     'fecha_hora': ahora
                 })
-            session['scanned'] = scanned_items
-            flash(f'{cantidad} unidad(es) de {codigo} ' +
-                  ('sumadas' if found else 'registradas') + '.', 'success')
+            session[session_keys['scanned']] = scanned_items
+            flash(
+                f'{cantidad} unidad(es) de {codigo} ' + ('sumadas' if found else 'registradas') + '.',
+                'success'
+            )
         else:
-            flash(f'El código {codigo} no pertenece a la órden {oc}.', 'warning')
+            flash(
+                f'El código {codigo} no pertenece a la {label.lower()} {numero}.',
+                'warning'
+            )
         return redirect(url_for(endpoint))
 
-    if not oc or not oc_items:
-        return render_template(template, oc='', oc_items=[], scanned_items=[], guia='')
+    if not numero or not items:
+        return render_template(
+            template,
+            **{context_keys['num']: '', context_keys['items']: [], 'scanned_items': [], 'guia': ''}
+        )
 
     scanned_map = {}
     for s in scanned_items:
@@ -587,8 +628,8 @@ def ingreso_core(template, endpoint):
         if codigo:
             scanned_map[codigo] = scanned_map.get(codigo, 0) + s.get('cantidad', 0)
 
-    oc_display = []
-    for item in oc_items:
+    display_items = []
+    for item in items:
         try:
             qty_ord = int(item.get('Cantidad', '0'))
         except ValueError:
@@ -597,14 +638,16 @@ def ingreso_core(template, endpoint):
         faltan = qty_ord - scanned_qty
         item2 = item.copy()
         item2['Faltan'] = max(faltan, 0)
-        oc_display.append(item2)
+        display_items.append(item2)
 
     return render_template(
         template,
-        oc=oc,
-        oc_items=oc_display,
-        scanned_items=scanned_items,
-        guia=guia_actual
+        **{
+            context_keys['num']: numero,
+            context_keys['items']: display_items,
+            'scanned_items': scanned_items,
+            'guia': guia_actual
+        }
     )
 
 
