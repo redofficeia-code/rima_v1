@@ -875,55 +875,96 @@ def inventario():
 
         # ── 1) Cargar Inventario (esperado) ──────────────────────────────
         if action == 'cargar_inv':
-            # Leemos stock con header automático
-            df = pd.read_csv(
-                STOCK_FILE,
-                header=0,
-                dtype=str,
-                keep_default_na=False
-            )
-            # Normalizamos nombres y eliminamos Unnamed
-            df.columns = [c.strip() for c in df.columns]
-            df = df.loc[:, ~df.columns.str.match(r'^Unnamed', case=False)]
-            # Convertimos Cantidad a int
-            if 'Cantidad' in df.columns:
-                df['Cantidad'] = pd.to_numeric(df['Cantidad'],
-                                               errors='coerce').fillna(0).astype(int)
-            # Preparamos lista de dicts
-            expected_items = df[['Código','Nombre','Cantidad']].to_dict(orient='records')
-            session['expected_items'] = expected_items
-            session['scanned_inv']    = []
-            flash(f'Se cargaron {len(expected_items)} ítems de inventario.', 'success')
+            if not os.path.exists(STOCK_FILE):
+                flash('No se encontró el archivo de stock.', 'error')
+            else:
+                try:
+                    df = pd.read_csv(
+                        STOCK_FILE,
+                        header=0,
+                        dtype=str,
+                        keep_default_na=False
+                    )
+                    df.columns = [c.strip() for c in df.columns]
+                    df = df.loc[:, ~df.columns.str.match(r'^Unnamed', case=False)]
+                    if 'Cantidad' in df.columns:
+                        df['Cantidad'] = pd.to_numeric(
+                            df['Cantidad'], errors='coerce'
+                        ).fillna(0).astype(int)
+                    expected_items = df[['Código', 'Nombre', 'Cantidad']].to_dict(
+                        orient='records'
+                    )
+                    session['expected_items'] = expected_items
+                    session['scanned_inv'] = []
+                    flash(
+                        f'Se cargaron {len(expected_items)} ítems de inventario.',
+                        'success'
+                    )
+                except Exception as e:
+                    app.logger.error(f"Error al leer stock: {e}")
+                    flash('Error al leer el archivo de stock.', 'error')
 
         # ── 2) Registrar Conteo ───────────────────────────────────────────
         elif action == 'scan_inv':
-            codigo   = (request.form.get('codigo') or '').strip()
+            codigo = (request.form.get('codigo') or '').strip()
             try:
-                contado = int(request.form.get('contado', 0))
+                contado = int(request.form.get('contado', 1))
             except ValueError:
-                contado = 0
+                contado = 1
 
             ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            # Busco en expected
-            if any(item['Código']==codigo for item in expected_items):
-                # Acumulo en scanned_items
+            if any(item['Código'] == codigo for item in expected_items):
                 found = False
                 for s in scanned_items:
-                    if s['Código']==codigo:
-                        s['Contado'] = contado
-                        s['Hora']    = ahora
+                    if s['Código'] == codigo:
+                        s['Contado'] += contado
+                        s['Hora'] = ahora
+                        total = s['Contado']
                         found = True
                         break
                 if not found:
+                    total = contado
                     scanned_items.append({
                         'Código': codigo,
-                        'Contado': contado,
+                        'Contado': total,
                         'Hora': ahora
                     })
                 session['scanned_inv'] = scanned_items
-                flash(f'Conteo para {codigo} registrado: {contado}', 'success')
+                flash(
+                    f'Conteo para {codigo} incrementado en {contado}. Total: {total}',
+                    'success'
+                )
             else:
-                flash(f'Código {codigo} no está en el inventario esperado.', 'warning')
+                flash(
+                    f'Código {codigo} no está en el inventario esperado.',
+                    'warning'
+                )
+
+        # ── 3) Exportar resultados ────────────────────────────────────────
+        elif action == 'export_inv':
+            results = []
+            for exp in expected_items:
+                cnt = next((s['Contado'] for s in scanned_items if s['Código'] == exp['Código']), 0)
+                results.append({
+                    'Código': exp['Código'],
+                    'Nombre': exp['Nombre'],
+                    'Esperado': exp['Cantidad'],
+                    'Contado': cnt,
+                    'Diferencia': cnt - exp['Cantidad']
+                })
+            if results:
+                output = io.StringIO()
+                writer = csv.DictWriter(output, fieldnames=['Código', 'Nombre', 'Esperado', 'Contado', 'Diferencia'])
+                writer.writeheader()
+                writer.writerows(results)
+                output.seek(0)
+                return send_file(
+                    io.BytesIO(output.getvalue().encode('utf-8-sig')),
+                    mimetype='text/csv',
+                    as_attachment=True,
+                    download_name='inventario_resultados.csv'
+                )
+            flash('No hay datos de inventario para exportar.', 'warning')
 
         # ── 3) Exportar resultados ────────────────────────────────────────
         elif action == 'export_inv':
