@@ -4,19 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Devolución Ingreso de Mercancía – WMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0; padding: 0;
-      font-family: sans-serif;
+      font-family: 'Roboto', sans-serif;
       background: linear-gradient(to right, #00c0cb, #0057d1);
       color: #333;
       text-align: center;
+      text-transform: uppercase;
     }
+    input, button, select, textarea { font-family: inherit; }
     .container {
-      width: 95%; max-width: 1650px;
-      margin: 1em auto;
-      background: white;
+      width: 80%; max-width: 1200px;
+      margin: 2em auto;
+      background: #cce5ff;
       border-radius: 8px;
       padding: 1em;
       box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
@@ -30,6 +33,28 @@
     }
     button { background:#0057d1; color:white; cursor:pointer; }
     button:hover { background:#00c0cb; color:#0057d1; }
+    .search-form {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:0.5em;
+    }
+    .search-form label {
+      margin:0;
+    }
+    .search-form input[type="text"] {
+      width:auto;
+      flex:0 0 300px;
+    }
+    .search-form button {
+      width:auto;
+      background:#0057d1;
+      color:white;
+    }
+    .search-form button:hover {
+      background:#00c0cb;
+      color:#0057d1;
+    }
     .tables {
       display:flex; flex-wrap:wrap; gap:2em; justify-content:space-between;
     }
@@ -84,9 +109,6 @@
   gap: 1em;
 }
 
-
-
-
     #toast button {
       background: none;
       border: none;
@@ -109,7 +131,7 @@
   </style>
 </head>
 <body onload="focusScan();">
-  <a href="{{ url_for('index') }}" style="display:inline-block;margin-bottom:1em;background:#0057d1;color:white;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Inicio</a>
+  <a href="{{ url_for('index') }}" style="display:inline-block;margin:1.5em 0;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Inicio</a>
   <div class="container">
     <h1>Devolución Ingreso de Mercancía</h1>
 
@@ -122,7 +144,7 @@
     {% endwith %}
 
 
-    <form method="post">
+    <form method="post" class="search-form">
       <input type="hidden" name="action" value="buscar_factura">
       <label for="factura">No. Factura:</label>
       <input id="factura" name="factura" type="text" value="{{ request.args.get('factura') or factura or '' }}" required autocomplete="off">
