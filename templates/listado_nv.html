@@ -117,7 +117,7 @@
             {% for fila in ordenes %}
             <tr>
               {% for col in columns %}
-                <td>{{ fila[col] }}</td>
+                <td{% if col == 'Terminado' %} style="color:{% if fila[col]|upper == 'NO' %}red{% elif fila[col]|upper == 'SI' %}green{% else %}inherit{% endif %};"{% endif %}>{{ fila[col] }}</td>
               {% endfor %}
             </tr>
             {% endfor %}
