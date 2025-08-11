@@ -40,6 +40,10 @@
     </form>
 
     {% if expected %}
+    <form method="POST">
+      <input type="hidden" name="action" value="export_inv">
+      <button type="submit">Exportar Resultado</button>
+    </form>
     <div class="row">
       <!-- 2) Tabla de resultados: esperado vs contado -->
       <div class="col">
