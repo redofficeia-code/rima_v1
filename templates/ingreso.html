@@ -4,20 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ingreso de Mercancía – WMS </title>
-<<<<<<< ours
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-=======
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
->>>>>>> theirs
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0; padding: 0;
-<<<<<<< ours
-      font-family: 'JetBrains Mono', monospace;
-=======
       font-family: 'Roboto', sans-serif;
->>>>>>> theirs
       background: linear-gradient(to right, #00c0cb, #0057d1);
       color: #333;
       text-align: center;
@@ -157,9 +149,9 @@
 
     <form method="post" class="search-form">
       <input type="hidden" name="action" value="buscar_oc">
-      <label for="oc">No. OC:</label>
+      <label for="oc">N° Orden de Compra:</label>
       <input id="oc" name="oc" type="text" value="{{ request.args.get('oc') or oc or '' }}" required autocomplete="off">
-      <button type="submit">Buscar OC</button>
+      <button type="submit">Buscar</button>
     </form>
 
     {% if oc_items %}
