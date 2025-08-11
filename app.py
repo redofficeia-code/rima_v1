@@ -390,6 +390,11 @@ def listado_nv():
         }
         df = df[[c for c in df.columns if c not in ocultar]]
 
+        # 5.5) Eliminar columnas de detalle y agrupar por Num. Nota y RUT
+        df = df[[c for c in df.columns if c not in {"Código", "Descriptor"}]]
+        if {"Num. Nota", "RUT"}.issubset(df.columns):
+            df = df.groupby(["Num. Nota", "RUT"], as_index=False).first()
+
         # aquí salvamos la lista de columnas para el template
         columns = df.columns.tolist()
 
