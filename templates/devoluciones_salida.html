@@ -70,20 +70,20 @@
       {% endif %}
     {% endwith %}
 
-    <!-- ── Buscar Nota de Venta ───────────────────────────────────────── -->
+    <!-- ── Buscar Factura de Compra ──────────────────────────────────── -->
     <form method="POST">
-      <input type="hidden" name="action" value="buscar_nv">
-      <label><strong>N° Nota de Venta:</strong>
-        <input type="text" name="nv" value="{{ nota|e }}" autofocus>
+      <input type="hidden" name="action" value="buscar_factura">
+      <label><strong>N° Factura de Compra:</strong>
+        <input type="text" name="factura" value="{{ factura|e }}" autofocus>
       </label>
-      <button type="submit">Buscar Nota</button>
+      <button type="submit">Buscar Factura</button>
     </form>
 
-    {% if nv_items %}
+    {% if factura_items %}
     <div class="row">
-      <!-- ── IZQUIERDA: Nota de Venta ───────────────────────────────── -->
+      <!-- ── IZQUIERDA: Factura de Compra ───────────────────────────── -->
       <div class="col">
-        <h2>Nota de Venta {{ nota }}</h2>
+        <h2>Factura de Compra {{ factura }}</h2>
         <table>
           <thead>
             <tr>
@@ -96,7 +96,7 @@
             </tr>
           </thead>
           <tbody>
-            {% for item in nv_items %}
+            {% for item in factura_items %}
             <tr class="
               {% if item.scanned == 0 %}
                 red-row
