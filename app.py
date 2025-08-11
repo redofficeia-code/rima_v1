@@ -95,46 +95,46 @@ def devolucion_ingreso():
 
 @app.route('/devoluciones_salida', methods=['GET', 'POST'])
 def devoluciones_salida():
-    """Permite cargar una Nota de Venta para gestionar devoluciones.
+    """Permite cargar una Factura de Compra para gestionar devoluciones.
 
-    La vista replica el comportamiento de ``salida``: se busca una NV,
+    La vista replica el comportamiento de ``salida``: se busca una factura,
     se muestra su detalle junto al stock disponible y se pueden escanear
     códigos para registrar la devolución.
     """
     # Recuperar datos desde sesión
-    nota         = session.get('dev_current_nv', '')
+    factura      = session.get('dev_current_factura', '')
     guia_actual  = session.get('dev_current_guia', '')
-    nv_items     = session.get('dev_nv_items', [])
+    factura_items = session.get('dev_factura_items', [])
     salida_items = session.get('dev_salida_items', [])
 
     if request.method == 'POST':
-        action = request.form.get('action', 'buscar_nv')
+        action = request.form.get('action', 'buscar_factura')
 
-        if action == 'buscar_nv':
-            nota = (request.form.get('nv') or '').strip()
-            session['dev_current_nv'] = nota
-            session.pop('dev_nv_items', None)
+        if action == 'buscar_factura':
+            factura = (request.form.get('factura') or '').strip()
+            session['dev_current_factura'] = factura
+            session.pop('dev_factura_items', None)
             session.pop('dev_salida_items', None)
 
-            if not nota:
-                flash('Debes ingresar un número de Nota de Venta.', 'warning')
+            if not factura:
+                flash('Debes ingresar un número de Factura de Compra.', 'warning')
                 return redirect(url_for('devoluciones_salida'))
-            if not os.path.exists(NV_FILE):
-                flash('No se ha importado ninguna Nota de Venta.', 'warning')
+            if not os.path.exists(FACTURA_FILE):
+                flash('No se ha importado ninguna Factura de Compra.', 'warning')
                 return redirect(url_for('devoluciones_salida'))
 
             try:
-                df_nv = pd.read_csv(NV_FILE, header=0, dtype=str, keep_default_na=False)
+                df_nv = pd.read_csv(FACTURA_FILE, header=0, dtype=str, keep_default_na=False)
                 df_nv.columns = [c.strip() for c in df_nv.columns]
                 df_nv = df_nv.loc[:, ~df_nv.columns.str.match(r'^Unnamed', case=False)]
 
-                if 'Num. Nota' not in df_nv.columns:
-                    flash("La columna 'Num. Nota' no está en el archivo de NV.", 'error')
+                if 'No. Factura' not in df_nv.columns:
+                    flash("La columna 'No. Factura' no está en el archivo de Facturas.", 'error')
                     return redirect(url_for('devoluciones_salida'))
 
-                df_nv = df_nv[df_nv['Num. Nota'] == nota]
+                df_nv = df_nv[df_nv['No. Factura'] == factura]
                 if df_nv.empty:
-                    flash(f'No se encontró la Nota de Venta {nota}.', 'error')
+                    flash(f'No se encontró la Factura {factura}.', 'error')
                     return redirect(url_for('devoluciones_salida'))
 
                 df_nv['Cantidad'] = pd.to_numeric(df_nv.get('Cantidad','0'), errors='coerce').fillna(0).astype(int)
@@ -144,13 +144,13 @@ def devoluciones_salida():
                 df_show.columns = ['Código','Nombre','Cant.','Prec.Unit.']
                 df_show['Faltan'] = df_show['Cant.']
 
-                nv_items = df_show.to_dict(orient='records')
-                session['dev_nv_items'] = nv_items
+                factura_items = df_show.to_dict(orient='records')
+                session['dev_factura_items'] = factura_items
                 session['dev_salida_items'] = []
-                flash(f'Nota {nota} cargada con {len(nv_items)} líneas.', 'success')
+                flash(f'Factura {factura} cargada con {len(factura_items)} líneas.', 'success')
             except Exception as e:
-                app.logger.error(f"Error al leer NV en devoluciones: {e}")
-                flash(f"Error al leer Nota de Venta: {e}", 'error')
+                app.logger.error(f"Error al leer Factura en devoluciones: {e}")
+                flash(f"Error al leer Factura: {e}", 'error')
                 return redirect(url_for('devoluciones_salida'))
 
         elif action == 'scan':
@@ -186,7 +186,7 @@ def devoluciones_salida():
 
         elif action == 'terminar_salida':
             session['items_para_guia'] = salida_items
-            session['nv_para_guia']    = nota
+            session['nv_para_guia']    = factura
             session['guia_para_guia']  = guia_actual
             flash("Productos escaneados preparados para la Guía de Despacho.", "info")
             return redirect(url_for('finalizar_salida'))
@@ -225,12 +225,12 @@ def devoluciones_salida():
     stock_items = []
     scanned_totals = {}
 
-    if nv_items:
+    if factura_items:
         for s in salida_items:
             k = str(s['codigo']).strip()
             scanned_totals[k] = scanned_totals.get(k, 0) + s['cantidad']
 
-        for item in nv_items:
+        for item in factura_items:
             code = str(item['Código']).strip()
             total = int(item['Cant.'])
             esc = scanned_totals.get(code, 0)
@@ -238,7 +238,7 @@ def devoluciones_salida():
             item['scanned'] = esc
             item['Faltan'] = falta
 
-        for line in nv_items:
+        for line in factura_items:
             code = str(line['Código']).strip()
             orig = stock_map.get(code, {}).get('Cantidad', 0)
             remain = max(orig - line['scanned'], 0)
@@ -250,9 +250,9 @@ def devoluciones_salida():
 
     return render_template(
         'devoluciones_salida.html',
-        nota=nota,
+        factura=factura,
         guia=guia_actual,
-        nv_items=nv_items,
+        factura_items=factura_items,
         salida_items=salida_items,
         stock_items=stock_items
     )
