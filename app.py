@@ -1091,7 +1091,8 @@ os.makedirs(EXPORT_DIR, exist_ok=True)
 
 # Alias para que exista un endpoint 'guia_despacho' que invoque la misma lógica que 'salida'
 @app.route('/guia_despacho', methods=['GET', 'POST'])
-def guia_despacho():
+def guia_despacho(template_name: str = 'guia_despacho.html',
+                  flash_msg: str = 'Guía de despacho guardada correctamente.'):
     """Genera la vista de la Guía de Despacho.
 
     Lee los datos desde ``nv.csv`` y los traspasa a la guía. Se hace un
@@ -1205,7 +1206,7 @@ def guia_despacho():
             fpath = os.path.join(EXPORT_DIR, secure_filename(fname))
             df.to_excel(fpath, index=False)
             session['guia_file'] = fpath
-            flash("Guía de despacho guardada correctamente.", "success")
+            flash(flash_msg, "success")
 
         elif request.form.get('action') == 'export':
             return redirect(url_for('descargar_xls'))
@@ -1217,11 +1218,24 @@ def guia_despacho():
         descarga_url = url_for('descargar_xls')
 
     return render_template(
-        'guia_despacho.html',
+        template_name,
         datos=datos_nv,
         lineas=lineas,
         descarga_url=descarga_url,
         datetime=datetime
+    )
+
+
+@app.route('/guia_traslado', methods=['GET', 'POST'])
+def guia_traslado():
+    """Genera la vista de la Guía de Traslado reutilizando la lógica de
+    :func:`guia_despacho`.
+
+    Solo cambia la plantilla y el mensaje de confirmación.
+    """
+    return guia_despacho(
+        template_name='guia_traslado.html',
+        flash_msg='Guía de traslado guardada correctamente.'
     )
 
 
