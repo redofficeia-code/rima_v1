@@ -30,6 +30,18 @@
     }
     button { background:#0057d1; color:white; cursor:pointer; }
     button:hover { background:#00c0cb; color:#0057d1; }
+    .search-form {
+      display:flex;
+      align-items:center;
+      gap:0.5em;
+    }
+    .search-form input[type="text"] {
+      width:auto;
+      flex:0 0 300px;
+    }
+    .search-form button {
+      width:auto;
+    }
     .tables {
       display:flex; flex-wrap:wrap; gap:2em; justify-content:space-between;
     }
@@ -109,7 +121,7 @@
   </style>
 </head>
 <body onload="focusScan();">
-  <a href="{{ url_for('index') }}" style="display:inline-block;margin-bottom:1em;background:#0057d1;color:white;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Inicio</a>
+  <a href="{{ url_for('index') }}" style="display:inline-block;margin-bottom:1em;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Inicio</a>
   <div class="container">
     <h1>Ingreso de Mercancía</h1>
 
@@ -122,7 +134,7 @@
     {% endwith %}
 
 
-    <form method="post">
+    <form method="post" class="search-form">
       <input type="hidden" name="action" value="buscar_oc">
       <label for="oc">No. OC:</label>
       <input id="oc" name="oc" type="text" value="{{ request.args.get('oc') or oc or '' }}" required autocomplete="off">
