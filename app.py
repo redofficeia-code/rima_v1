@@ -320,7 +320,7 @@ def listado_oc():
 @app.route('/listados/nv')
 def listado_nv():
     page        = int(request.args.get('page', 1))
-    per_page    = 100
+    per_page    = 25
     ordenes     = []
     columns     = []        # ← inicializamos aquí
     total_pages = 1
