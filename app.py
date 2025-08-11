@@ -449,6 +449,12 @@ def notas_preview():
     return render_template('notas_preview.html')
 
 
+@app.route('/nota_credito')
+def nota_credito():
+    """Renderiza la página de Nota de Crédito."""
+    return render_template('nota_credito.html')
+
+
 
 def ingreso_core(
     template,
