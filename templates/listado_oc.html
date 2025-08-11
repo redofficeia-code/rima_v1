@@ -100,12 +100,8 @@
       font-size: 0.75rem;
     }
 
-    .back {
-      display: inline-block;
+    .back-button {
       margin-top: 1em;
-      color: #0057d1;
-      text-decoration: none;
-      font-size: 0.8rem;
     }
 
     .ver-detalle-link {
@@ -178,7 +174,7 @@
       <p>No hay órdenes pendientes cargadas.</p>
     {% endif %}
 
-    <a href="{{ url_for('listados') }}" class="back">← Volver a Listados</a>
+    <button type="button" class="back-button" onclick="window.location.href='{{ url_for('listados') }}'">Volver</button>
   </div>
 
   <!-- Script para ocultar duplicados -->

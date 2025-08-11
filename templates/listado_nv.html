@@ -35,6 +35,16 @@
       margin-top: 0;
     }
 
+    button {
+      padding: 0.3em 0.6em;
+      font-size: 0.85rem;
+      background: #0057d1;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
     .table-wrap {
       overflow-x: auto;
       margin-top: 1em;
@@ -81,12 +91,8 @@
       font-size: 0.75rem;
     }
 
-    .back {
-      display: inline-block;
+    .back-button {
       margin-top: 1em;
-      color: #0057d1;
-      text-decoration: none;
-      font-size: 0.8rem;
     }
   </style>
 </head>
@@ -141,7 +147,7 @@
       {% endif %}
     {% endif %}
 
-    <a href="{{ url_for('listados') }}" class="back">← Volver a Listados</a>
+    <button type="button" class="back-button" onclick="window.location.href='{{ url_for('listados') }}'">Volver</button>
   </div>
 </body>
 </html>
