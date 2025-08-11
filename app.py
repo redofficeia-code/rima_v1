@@ -942,14 +942,6 @@ def inventario():
 
 
 # ─── Ruta /importar ─────────────────────────────────────────────────────────
-from flask import (
-    Flask, request, redirect, url_for,
-    flash, render_template, session
-)
-import os
-import pandas as pd
-from datetime import datetime
-from werkzeug.utils import secure_filename
 
 # Asume que ya tienes definidos:
 # UPLOADS_DIR, DATA_DIR, allowed_file, OC_FILE, NV_FILE, MASTER_FILE, STOCK_FILE
@@ -1070,10 +1062,9 @@ def importar():
 
 
 
-@app.route('/finalizar.html')
+@app.route('/finalizar')
 def finalizar():
-        return render_template('finalizar.html')
-from flask import session, render_template, redirect, url_for
+    return render_template('finalizar.html')
 
 @app.route('/finalizar_salida')
 def finalizar_salida():
