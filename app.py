@@ -744,11 +744,16 @@ def ingreso_core(
                 grouped = pd.DataFrame({'codigo_producto': [], 'cantidad': []})
 
             merged = df_doc.merge(
-                grouped, left_on='_code_norm', right_on='codigo_producto', how='left'
+                grouped,
+                left_on='_code_norm',
+                right_on='codigo_producto',
+                how='left',
+                suffixes=("", "_scan"),
             ).fillna(0)
-            merged['cantidad'] = merged['cantidad'].astype(int)
-            merged['faltan'] = merged[qty_key] - merged['cantidad']
-            diff = merged[merged['faltan'] > 0][[code_key, name_key, qty_key, 'cantidad', 'faltan']]
+            merged['cantidad_scan'] = merged['cantidad_scan'].astype(int)
+            merged['faltan'] = merged[qty_key] - merged['cantidad_scan']
+            diff = merged[merged['faltan'] > 0][[code_key, name_key, qty_key, 'cantidad_scan', 'faltan']]
+            diff = diff.rename(columns={'cantidad_scan': 'cantidad'})
 
             diff["Razón Social"] = proveedor
             diff["RUT"] = rut
