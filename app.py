@@ -749,16 +749,25 @@ def ingreso_core(
         if codigo:
             scanned_map[codigo] = scanned_map.get(codigo, 0) + s.get('cantidad', 0)
 
+    def _to_qty(val):
+        # Convierte "1.000000" o "1,000000" a 1; valores raros -> 0
+        s = str(val).strip().replace(',', '.')
+        try:
+            return int(round(float(s)))
+        except Exception:
+            import re
+            m = re.search(r'\d+', s)
+            return int(m.group(0)) if m else 0
+
     display_items = []
     for item in items:
-        try:
-            qty_ord = int(item.get(qty_key, '0'))
-        except ValueError:
-            qty_ord = 0
+        qty_ord = _to_qty(item.get(qty_key, 0))
         scanned_qty = scanned_map.get(item.get(code_key, ''), 0)
-        faltan = qty_ord - scanned_qty
+        faltan = max(qty_ord - scanned_qty, 0)
+
         item2 = item.copy()
-        item2['Faltan'] = max(faltan, 0)
+        item2['QtyInt'] = qty_ord      # <-- para usar en la plantilla
+        item2['Faltan'] = faltan
         display_items.append(item2)
 
     return render_template(
