@@ -20,6 +20,19 @@
     form { margin-top:1em; }
     input[type="text"], button { padding:6px; width:100%; box-sizing:border-box; }
     button { background:#0057d1; color:#fff; border:none; cursor:pointer; }
+    .start-btn {
+      width:80%;
+      max-width:300px;
+      margin:2em auto;
+      display:block;
+      padding:1em 0;
+      font-size:1.2em;
+      font-weight:bold;
+      border-radius:12px;
+      box-shadow:2px 2px 5px rgba(0,0,0,0.3);
+      transition:background .2s, color .2s;
+    }
+    .start-btn:hover { background:#00c0cb; color:#0057d1; }
   </style>
 </head>
 <body>
@@ -33,69 +46,76 @@
       {% endfor %}
     {% endwith %}
 
-    <!-- 1) Botón para cargar todo el inventario -->
-    <form method="POST">
-      <input type="hidden" name="action" value="cargar_inv">
-      <button type="submit">Cargar Inventario Esperado</button>
-    </form>
+    {% if not inv_sesion_id or inv_estado != 'EN_PROCESO' %}
+      <form method="POST">
+        <input type="hidden" name="action" value="crear_sesion">
+        <button type="submit" class="start-btn">Comenzar Inventariado</button>
+      </form>
+    {% else %}
+      <!-- 1) Botón para cargar todo el inventario -->
+      <form method="POST">
+        <input type="hidden" name="action" value="cargar_inv">
+        <button type="submit">Cargar Inventario Esperado</button>
+      </form>
 
-    {% if expected %}
-    <form method="POST">
-      <input type="hidden" name="action" value="export_inv">
-      <button type="submit">Exportar Resultado</button>
-    </form>
-    <div class="row">
-      <!-- 2) Tabla de resultados: esperado vs contado -->
-      <div class="col">
-        <table>
-          <thead>
-            <tr>
-              <th>Código</th><th>Nombre</th>
-              <th>Esperado</th><th>Contado</th><th>Diferencia</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in results %}
-            <tr class="{% if r.Diferencia>0 %}diff-pos{% elif r.Diferencia<0 %}diff-neg{% endif %}">
-              <td>{{ r.Código }}</td>
-              <td>{{ r.Nombre }}</td>
-              <td>{{ r.Esperado }}</td>
-              <td>{{ r.Contado }}</td>
-              <td>{{ r.Diferencia }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      {% if expected %}
+      <form method="POST">
+        <input type="hidden" name="action" value="export_inv">
+        <button type="submit">Exportar Resultado</button>
+      </form>
+      <div class="row">
+        <!-- 2) Tabla de resultados: esperado vs contado -->
+        <div class="col">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th><th>Nombre</th>
+                <th>Esperado</th><th>Contado</th><th>Diferencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in results %}
+              <tr class="{% if r.Diferencia>0 %}diff-pos{% elif r.Diferencia<0 %}diff-neg{% endif %}">
+                <td>{{ r.Código }}</td>
+                <td>{{ r.Nombre }}</td>
+                <td>{{ r.Esperado }}</td>
+                <td>{{ r.Contado }}</td>
+                <td>{{ r.Diferencia }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 3) Formulario para registrar un conteo -->
+        <div class="col">
+          <h2>Registrar Conteo</h2>
+          <form method="POST">
+            <input type="hidden" name="action" value="scan_inv">
+            <label>Código:<input type="text" name="codigo" autofocus></label>
+            <label>Contado:<input type="text" name="contado" value="1"></label>
+            <button type="submit">Registrar</button>
+          </form>
+
+          <!-- tabla de últimos escaneos -->
+          {% if scanned %}
+          <h3>Últimos Escaneos</h3>
+          <table>
+            <thead><tr><th>Código</th><th>Contado</th><th>Hora</th></tr></thead>
+            <tbody>
+              {% for s in scanned %}
+              <tr>
+                <td>{{ s.Código }}</td>
+                <td>{{ s.Contado }}</td>
+                <td>{{ s.Hora }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% endif %}
+        </div>
       </div>
-
-      <!-- 3) Formulario para registrar un conteo -->
-      <div class="col">
-        <h2>Registrar Conteo</h2>
-        <form method="POST">
-          <input type="hidden" name="action" value="scan_inv">
-          <label>Código:<input type="text" name="codigo" autofocus></label>
-          <label>Contado:<input type="text" name="contado" value="1"></label>
-          <button type="submit">Registrar</button>
-        </form>
-
-        <!-- tabla de últimos escaneos -->
-        {% if scanned %}
-        <h3>Últimos Escaneos</h3>
-        <table>
-          <thead><tr><th>Código</th><th>Contado</th><th>Hora</th></tr></thead>
-          <tbody>
-            {% for s in scanned %}
-            <tr>
-              <td>{{ s.Código }}</td>
-              <td>{{ s.Contado }}</td>
-              <td>{{ s.Hora }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% endif %}
-      </div>
-    </div>
+      {% endif %}
     {% endif %}
   </div>
 </body>

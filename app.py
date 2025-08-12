@@ -37,6 +37,8 @@ NV_FILE       = os.path.join(DATA_DIR, 'nv.csv')      # Notas de venta
 FACTURA_FILE  = os.path.join(DATA_DIR, 'facturas_compra.csv')
 MASTER_FILE   = os.path.join(DATA_DIR, 'productos_maestra.csv')
 
+INV_SESIONES_FILE = os.path.join(DATA_DIR, 'inv_sesiones.csv')
+
 ALLOWED_EXT  = {'csv', 'xls', 'xlsx'}
 FIELDNAMES   = ['codigo_producto', 'cantidad', 'ultima_actualizacion']
 
@@ -64,6 +66,30 @@ def append_guide_entry(guia, codigo, cantidad, timestamp):
         if not exists:
             w.writerow(['guia','codigo_producto','cantidad','fecha_hora'])
         w.writerow([guia, codigo, cantidad, timestamp])
+
+
+def inv_create_session():
+    """Crea un registro de sesión de inventario y retorna su ID."""
+    now = datetime.now().strftime('%Y%m%d%H%M%S')
+    record = {'id': now, 'estado': 'EN_PROCESO', 'creado': datetime.now().isoformat()}
+    exists = os.path.exists(INV_SESIONES_FILE)
+    with open(INV_SESIONES_FILE, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=['id', 'estado', 'creado'])
+        if not exists:
+            writer.writeheader()
+        writer.writerow(record)
+    return record['id']
+
+
+def inv_get_session(sid):
+    """Obtiene la información de una sesión de inventario por ID."""
+    if not os.path.exists(INV_SESIONES_FILE):
+        return None
+    with open(INV_SESIONES_FILE, newline='', encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            if row.get('id') == sid:
+                return row
+    return None
 
 # --- Rutas ---
 @app.route('/')
@@ -865,15 +891,28 @@ def salida():
 from pandas.errors import EmptyDataError
 
 @app.route('/inventario', methods=['GET', 'POST'])
-def inventario():
-    # Variables en sesión
+@app.route('/inventario/sesion/<sesion_id>', methods=['GET', 'POST'])
+def inventario(sesion_id=None):
+    if sesion_id:
+        session['inv_sesion_id'] = sesion_id
+
+    inv_id = session.get('inv_sesion_id')
+    inv_data = inv_get_session(inv_id) if inv_id else None
+    inv_estado = inv_data.get('estado') if inv_data else None
+
     expected_items = session.get('expected_items', [])
     scanned_items  = session.get('scanned_inv', [])
 
     if request.method == 'POST':
         action = request.form.get('action')
 
-        # ── 1) Cargar Inventario (esperado) ──────────────────────────────
+        if action == 'crear_sesion':
+            new_id = inv_create_session()
+            session['inv_sesion_id'] = new_id
+            session.pop('expected_items', None)
+            session.pop('scanned_inv', None)
+            return redirect(url_for('inventario', sesion_id=new_id))
+
         if action == 'cargar_inv':
             if not os.path.exists(STOCK_FILE):
                 flash('No se encontró el archivo de stock.', 'error')
@@ -904,7 +943,6 @@ def inventario():
                     app.logger.error(f"Error al leer stock: {e}")
                     flash('Error al leer el archivo de stock.', 'error')
 
-        # ── 2) Registrar Conteo ───────────────────────────────────────────
         elif action == 'scan_inv':
             codigo = (request.form.get('codigo') or '').strip()
             try:
@@ -940,7 +978,6 @@ def inventario():
                     'warning'
                 )
 
-        # ── 3) Exportar resultados ────────────────────────────────────────
         elif action == 'export_inv':
             results = []
             for exp in expected_items:
@@ -966,36 +1003,8 @@ def inventario():
                 )
             flash('No hay datos de inventario para exportar.', 'warning')
 
-        # ── 3) Exportar resultados ────────────────────────────────────────
-        elif action == 'export_inv':
-            results = []
-            for exp in expected_items:
-                cnt = next((s['Contado'] for s in scanned_items if s['Código'] == exp['Código']), 0)
-                results.append({
-                    'Código': exp['Código'],
-                    'Nombre': exp['Nombre'],
-                    'Esperado': exp['Cantidad'],
-                    'Contado': cnt,
-                    'Diferencia': cnt - exp['Cantidad']
-                })
-            if results:
-                output = io.StringIO()
-                writer = csv.DictWriter(output, fieldnames=['Código', 'Nombre', 'Esperado', 'Contado', 'Diferencia'])
-                writer.writeheader()
-                writer.writerows(results)
-                output.seek(0)
-                return send_file(
-                    io.BytesIO(output.getvalue().encode('utf-8-sig')),
-                    mimetype='text/csv',
-                    as_attachment=True,
-                    download_name='inventario_resultados.csv'
-                )
-            flash('No hay datos de inventario para exportar.', 'warning')
+        return redirect(url_for('inventario', sesion_id=inv_id) if inv_id else url_for('inventario'))
 
-        return redirect(url_for('inventario'))
-
-    # ── Render ────────────────────────────────────────────────────────────
-    # Junto a la lista esperada, computamos diferencias:
     results = []
     for exp in expected_items:
         cnt = next((s['Contado'] for s in scanned_items if s['Código']==exp['Código']), None)
@@ -1010,7 +1019,9 @@ def inventario():
     return render_template('inventario.html',
                            expected=expected_items,
                            scanned=scanned_items,
-                           results=results)
+                           results=results,
+                           inv_sesion_id=inv_id,
+                           inv_estado=inv_estado)
 
 
 # ─── Ruta /importar ─────────────────────────────────────────────────────────
