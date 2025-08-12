@@ -679,10 +679,24 @@ def ingreso_core(
             df_doc = pd.DataFrame(items)
             if qty_key and qty_key in df_doc.columns:
                 df_doc[qty_key] = pd.to_numeric(df_doc[qty_key], errors='coerce').fillna(0).astype(int)
-            df_scan = pd.DataFrame(scanned_items)
-            grouped = df_scan.groupby('codigo_producto')['cantidad'].sum().reset_index()
 
-            merged = df_doc.merge(grouped, left_on=code_key, right_on='codigo_producto', how='left').fillna(0)
+            df_scan = pd.DataFrame(scanned_items)
+
+            # Normalizar ambos lados
+            df_doc['_code_norm'] = (
+                df_doc[code_key].astype(str).str.strip().str.strip('*').str.upper()
+            )
+            if not df_scan.empty:
+                df_scan['codigo_producto'] = (
+                    df_scan['codigo_producto'].astype(str).str.strip().str.strip('*').str.upper()
+                )
+                grouped = df_scan.groupby('codigo_producto')['cantidad'].sum().reset_index()
+            else:
+                grouped = pd.DataFrame({'codigo_producto': [], 'cantidad': []})
+
+            merged = df_doc.merge(
+                grouped, left_on='_code_norm', right_on='codigo_producto', how='left'
+            ).fillna(0)
             merged['cantidad'] = merged['cantidad'].astype(int)
             merged['faltan'] = merged[qty_key] - merged['cantidad']
             diff = merged[merged['faltan'] > 0][[code_key, name_key, qty_key, 'cantidad', 'faltan']]
@@ -749,9 +763,9 @@ def ingreso_core(
 
     scanned_map = {}
     for s in scanned_items:
-        codigo = s.get('codigo_producto')
-        if codigo:
-            scanned_map[codigo] = scanned_map.get(codigo, 0) + s.get('cantidad', 0)
+        c = norm_code(s.get('codigo_producto'))
+        if c:
+            scanned_map[c] = scanned_map.get(c, 0) + int(s.get('cantidad', 0))
 
     def _to_qty(val):
         # Convierte "1.000000" o "1,000000" a 1; valores raros -> 0
@@ -766,7 +780,8 @@ def ingreso_core(
     display_items = []
     for item in items:
         qty_ord = _to_qty(item.get(qty_key, 0))
-        scanned_qty = scanned_map.get(item.get(code_key, ''), 0)
+        item_code = norm_code(item.get(code_key, ''))
+        scanned_qty = scanned_map.get(item_code, 0)
         faltan = max(qty_ord - scanned_qty, 0)
 
         item2 = item.copy()

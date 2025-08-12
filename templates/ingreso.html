@@ -177,9 +177,10 @@
             <tbody>
               {% for item in oc_items %}
                 {% set faltan = item.Faltan %}
+                {% set qtyint = item.QtyInt %}
                 <tr class="
                   {% if faltan == 0 %}scanned-total
-                  {% elif faltan == item.QtyInt %}scanned-none
+                  {% elif faltan == qtyint %}scanned-none
                   {% else %}scanned-partial
                   {% endif %}">
                   <td>{{ item[code_key] }}</td>
