@@ -177,10 +177,9 @@
             <tbody>
               {% for item in oc_items %}
                 {% set faltan = item.Faltan %}
-                {% set solicitadas = item[qty_key] %}
                 <tr class="
                   {% if faltan == 0 %}scanned-total
-                  {% elif faltan == solicitadas %}scanned-none
+                  {% elif faltan == item.QtyInt %}scanned-none
                   {% else %}scanned-partial
                   {% endif %}">
                   <td>{{ item[code_key] }}</td>
@@ -190,6 +189,7 @@
                   <td>{{ item.Faltan }}</td>
                 </tr>
               {% endfor %}
+
             </tbody>
           </table>
         </div>

@@ -63,6 +63,10 @@ def fetch_oc_items(num_oc):
     ])
     return df, guia
 
+def norm_code(x):
+    # quita espacios y * de Code39; pasa a mayúsculas
+    return str(x).strip().strip('*').upper()
+
 # --- Funciones auxiliares ---
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
@@ -640,7 +644,7 @@ def ingreso_core(
 
         elif action == 'scan':
             guia = request.form.get('guia', '').strip() or guia_actual
-            codigo = request.form.get('codigo', '').strip()
+            codigo = norm_code(request.form.get('codigo', ''))
             try:
                 cantidad = int(request.form.get('cantidad', 1))
             except Exception:
@@ -701,7 +705,7 @@ def ingreso_core(
             flash('Recepción finalizada correctamente.', 'success')
             return redirect(url_for('finalizar'))
 
-        if any(item.get(code_key, '') == codigo for item in items):
+        if any(norm_code(item.get(code_key, '')) == codigo for item in items):
             found = False
             for s in scanned_items:
                 if s['guia'] == guia and s['codigo_producto'] == codigo:
