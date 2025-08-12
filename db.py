@@ -77,3 +77,33 @@ def get_docu_por_numorden(num_oc: str) -> pd.DataFrame:
 def get_numguia_por_numorden(num_oc: str) -> str | None:
     df = query_df("SELECT TOP 1 NUMGUIAF FROM DOCU_DB WHERE NUMORDEN = :num_oc", {"num_oc": num_oc})
     return (df["NUMGUIAF"].iloc[0] if not df.empty and "NUMGUIAF" in df.columns else None)
+
+
+def get_oc_items(num_oc: str) -> tuple[pd.DataFrame, str | None]:
+    """Obtiene líneas de una OC directamente desde la base de datos.
+
+    Devuelve un ``DataFrame`` con las columnas ``Código``, ``Nombre``,
+    ``Cantidad`` y ``Prec.Unit.``.  Además retorna el número de guía
+    asociado a la OC (si existe).
+    """
+    sql = """
+        SELECT
+            a.CODIGO2,
+            a.NOMBRE,
+            d.CANTIDAD,
+            d.RPECUNIT
+        FROM DOCDE_DB d
+        JOIN ART_DB a ON a.CODIGO = d.CODIGO
+        WHERE d.NUMORDEN = :num_oc
+        ORDER BY d.ITEM
+    """
+    df = query_df(sql, {"num_oc": num_oc})
+    if not df.empty:
+        df = df.rename(columns={
+            "CODIGO2": "Código",
+            "NOMBRE": "Nombre",
+            "CANTIDAD": "Cantidad",
+            "RPECUNIT": "Prec.Unit."
+        })
+    num_guia = get_numguia_por_numorden(num_oc)
+    return df, num_guia

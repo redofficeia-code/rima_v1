@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import re
 import unicodedata
+from db import get_oc_items
 
 # --- Configuración de logging ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -497,7 +498,8 @@ def ingreso_core(
     label='OC',
     search_action='buscar_oc',
     session_keys=None,
-    context_keys=None
+    context_keys=None,
+    db_fetcher=None
 ):
     session_keys = session_keys or {
         'num': 'current_oc',
@@ -520,20 +522,36 @@ def ingreso_core(
         session.pop(session_keys['scanned'], None)
         session.pop(session_keys['items'], None)
 
-        if not os.path.exists(data_file):
-            flash(f'Primero importa {label}s.', 'warning')
-        else:
+        if db_fetcher:
             try:
-                df = pd.read_csv(data_file, dtype=str)
-                items = df[df[field_name] == numero].to_dict('records')
+                df, guia_db = db_fetcher(numero)
+                items = df.to_dict('records')
                 session[session_keys['items']] = items
+                if guia_db:
+                    session[session_keys['guia']] = guia_db
+                    guia_actual = guia_db
                 if not items:
                     flash(f'La {label} {numero} no fue encontrada.', 'error')
                 else:
                     flash(f'La {label} {numero} encontrada con {len(items)} líneas.', 'success')
             except Exception as e:
-                logger.error(f'Error procesando {label} desde parámetro: {e}')
-                flash(f'Error al procesar {label} desde la URL: {e}', 'error')
+                logger.error(f'Error obteniendo {label} desde DB: {e}')
+                flash(f'Error al obtener {label} desde la base de datos: {e}', 'error')
+        else:
+            if not os.path.exists(data_file):
+                flash(f'Primero importa {label}s.', 'warning')
+            else:
+                try:
+                    df = pd.read_csv(data_file, dtype=str)
+                    items = df[df[field_name] == numero].to_dict('records')
+                    session[session_keys['items']] = items
+                    if not items:
+                        flash(f'La {label} {numero} no fue encontrada.', 'error')
+                    else:
+                        flash(f'La {label} {numero} encontrada con {len(items)} líneas.', 'success')
+                except Exception as e:
+                    logger.error(f'Error procesando {label} desde parámetro: {e}')
+                    flash(f'Error al procesar {label} desde la URL: {e}', 'error')
 
     # ───────────── POST desde formulario ─────────────
     if request.method == 'POST':
@@ -548,6 +566,21 @@ def ingreso_core(
 
             if not numero:
                 flash(f'El No. {label} es obligatorio.', 'warning')
+            elif db_fetcher:
+                try:
+                    df, guia_db = db_fetcher(numero)
+                    items = df.to_dict('records')
+                    session[session_keys['items']] = items
+                    if guia_db:
+                        session[session_keys['guia']] = guia_db
+                        guia_actual = guia_db
+                    if not items:
+                        flash(f'La {label} {numero} no fue encontrada.', 'error')
+                    else:
+                        flash(f'{label} {numero} encontrada con {len(items)} líneas.', 'success')
+                except Exception as e:
+                    logger.error(f'Error obteniendo {label} desde DB: {e}')
+                    flash(f'Error al obtener {label} desde la base de datos: {e}', 'error')
             elif not os.path.exists(data_file):
                 flash(f'Primero importa {label}s.', 'warning')
             else:
@@ -690,7 +723,7 @@ def ingreso_core(
 
 @app.route('/ingreso', methods=['GET', 'POST'])
 def ingreso():
-    return ingreso_core('ingreso.html', 'ingreso')
+    return ingreso_core('ingreso.html', 'ingreso', db_fetcher=get_oc_items)
 
 
 
