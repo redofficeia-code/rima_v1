@@ -67,6 +67,49 @@ def norm_code(x):
     # quita espacios y * de Code39; pasa a mayúsculas
     return str(x).strip().strip('*').upper()
 
+def group_by_code(df):
+    """Agrupa filas por código de producto sumando sus cantidades.
+
+    Se detectan las columnas típicas de código, nombre, cantidad y precio
+    unitario y se combinan las filas duplicadas del mismo producto para que
+    se muestren apiladas en lugar de repetidas.
+    """
+    if df is None or df.empty:
+        return df
+
+    cols = {c.lower(): c for c in df.columns}
+    code_col = cols.get('codigo') or cols.get('código')
+    if not code_col:
+        return df
+
+    name_col = cols.get('nombre')
+    qty_col = cols.get('cantidad') or cols.get('cant.') or cols.get('cant')
+    price_col = (
+        cols.get('prec_unit') or cols.get('precio unitario') or cols.get('prec.unit.')
+    )
+
+    if qty_col:
+        df[qty_col] = pd.to_numeric(df[qty_col], errors='coerce').fillna(0)
+
+    agg = {qty_col: 'sum'} if qty_col else {}
+    if name_col:
+        agg[name_col] = 'first'
+    if price_col:
+        agg[price_col] = 'first'
+
+    if agg:
+        df = df.groupby(code_col, as_index=False).agg(agg)
+
+    cols_order = [code_col]
+    if name_col:
+        cols_order.append(name_col)
+    if qty_col:
+        cols_order.append(qty_col)
+    if price_col:
+        cols_order.append(price_col)
+
+    return df[cols_order]
+
 # --- Funciones auxiliares ---
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
@@ -566,6 +609,7 @@ def ingreso_core(
         if db_fetcher:
             try:
                 df, guia_db = db_fetcher(numero)
+                df = group_by_code(df)
                 items = df.to_dict('records')
                 session[session_keys['items']] = items
                 if items:
@@ -586,7 +630,9 @@ def ingreso_core(
             else:
                 try:
                     df = pd.read_csv(data_file, dtype=str)
-                    items = df[df[field_name] == numero].to_dict('records')
+                    df = df[df[field_name] == numero]
+                    df = group_by_code(df)
+                    items = df.to_dict('records')
                     session[session_keys['items']] = items
                     if not items:
                         flash(f'La {label} {numero} no fue encontrada.', 'error')
@@ -612,6 +658,7 @@ def ingreso_core(
             elif db_fetcher:
                 try:
                     df, guia_db = db_fetcher(numero)
+                    df = group_by_code(df)
                     items = df.to_dict('records')
                     session[session_keys['items']] = items
                     if items:
@@ -631,7 +678,9 @@ def ingreso_core(
             else:
                 try:
                     df = pd.read_csv(data_file, dtype=str)
-                    items = df[df[field_name] == numero].to_dict('records')
+                    df = df[df[field_name] == numero]
+                    df = group_by_code(df)
+                    items = df.to_dict('records')
                     session[session_keys['items']] = items
                     if not items:
                         flash(f'La {label} {numero} no fue encontrada.', 'error')
