@@ -84,9 +84,15 @@
       color: #999;
       cursor: not-allowed;
     }
-    .faltan-0 { background-color: #8ce0a1; }
-    .faltan-menor { background-color: #f8bc63; }
-    .faltan-total { background-color: #f6b8b8; }
+    /*
+      Color coding for product rows based on scan progress
+      - .scanned-total   : requested quantity fully scanned (green)
+      - .scanned-partial : some units still missing (yellow)
+      - .scanned-none    : nothing scanned yet (red)
+    */
+    .scanned-total  { background-color: #8ce0a1; }
+    .scanned-partial{ background-color: #f8bc63; }
+    .scanned-none   { background-color: #f6b8b8; }
 
     #toast {
   position: fixed;
@@ -172,9 +178,9 @@
               {% for item in oc_items %}
                 {% set faltan = item.Faltan|int %}
                 <tr class="
-                  {% if faltan == item[qty_key]|int %}faltan-total
-                  {% elif faltan > 0 %}faltan-menor
-                  {% else %}faltan-0
+                  {% if faltan == 0 %}scanned-total
+                  {% elif faltan == item[qty_key]|int %}scanned-none
+                  {% else %}scanned-partial
                   {% endif %}">
                   <td>{{ item[code_key] }}</td>
                   <td>{{ item[name_key] }}</td>
