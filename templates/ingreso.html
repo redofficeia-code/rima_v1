@@ -172,14 +172,14 @@
               {% for item in oc_items %}
                 {% set faltan = item.Faltan|int %}
                 <tr class="
-                  {% if faltan == item['Cantidad']|int %}faltan-total
+                  {% if faltan == item[qty_key]|int %}faltan-total
                   {% elif faltan > 0 %}faltan-menor
                   {% else %}faltan-0
                   {% endif %}">
-                  <td>{{ item['Código'] }}</td>
-                  <td>{{ item['Nombre'] }}</td>
-                  <td>{{ item['Cantidad'] }}</td>
-                  <td>{{ item['Prec.Unit.'] }}</td>
+                  <td>{{ item[code_key] }}</td>
+                  <td>{{ item[name_key] }}</td>
+                  <td>{{ item[qty_key] }}</td>
+                  <td>{{ item[price_key] }}</td>
                   <td>{{ item.Faltan }}</td>
                 </tr>
               {% endfor %}

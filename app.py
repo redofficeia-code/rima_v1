@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import re
 import unicodedata
-from db import get_oc_items
+from db_utils import get_oc_detalle
 
 # --- Configuración de logging ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -42,6 +42,26 @@ INV_SESIONES_FILE = os.path.join(DATA_DIR, 'inv_sesiones.csv')
 
 ALLOWED_EXT  = {'csv', 'xls', 'xlsx'}
 FIELDNAMES   = ['codigo_producto', 'cantidad', 'ultima_actualizacion']
+
+# --- Integración con la base de datos ---
+def fetch_oc_items(num_oc):
+    """Obtiene detalle de una OC usando db_utils.get_oc_detalle.
+
+    Retorna un DataFrame con columnas estandarizadas y el número de guía
+    si está disponible.
+    """
+    rows = get_oc_detalle(num_oc)
+    guia = rows[0].get('num_guia') if rows else None
+    df = pd.DataFrame([
+        {
+            'codigo': r.get('codigo'),
+            'nombre': r.get('nombre'),
+            'cantidad': r.get('cantidad'),
+            'prec_unit': r.get('prec_unit'),
+        }
+        for r in rows
+    ])
+    return df, guia
 
 # --- Funciones auxiliares ---
 def allowed_file(filename):
@@ -514,6 +534,23 @@ def ingreso_core(
     items = session.get(session_keys['items'], [])
     scanned_items = session.get(session_keys['scanned'], [])
 
+    def detect_keys(sample):
+        def pick(options, default):
+            for opt in options:
+                if opt in sample:
+                    return opt
+            return default
+        return (
+            pick(['codigo', 'Código'], 'codigo'),
+            pick(['nombre', 'Nombre'], 'nombre'),
+            pick(['cantidad', 'Cantidad', 'Cant.'], 'cantidad'),
+            pick(['prec_unit', 'Prec.Unit.', 'Precio Unitario'], 'prec_unit'),
+        )
+
+    code_key = name_key = qty_key = price_key = None
+    if items:
+        code_key, name_key, qty_key, price_key = detect_keys(items[0])
+
     # ───────────── GET con ?<query_param>=XXXX ─────────────
     if request.method == 'GET' and request.args.get(query_param):
         numero = request.args.get(query_param).strip()
@@ -527,6 +564,8 @@ def ingreso_core(
                 df, guia_db = db_fetcher(numero)
                 items = df.to_dict('records')
                 session[session_keys['items']] = items
+                if items:
+                    code_key, name_key, qty_key, price_key = detect_keys(items[0])
                 if guia_db:
                     session[session_keys['guia']] = guia_db
                     guia_actual = guia_db
@@ -571,6 +610,8 @@ def ingreso_core(
                     df, guia_db = db_fetcher(numero)
                     items = df.to_dict('records')
                     session[session_keys['items']] = items
+                    if items:
+                        code_key, name_key, qty_key, price_key = detect_keys(items[0])
                     if guia_db:
                         session[session_keys['guia']] = guia_db
                         guia_actual = guia_db
@@ -632,14 +673,15 @@ def ingreso_core(
             df_rep.to_excel(ruta_informe, index=False)
 
             df_doc = pd.DataFrame(items)
-            df_doc['Cantidad'] = pd.to_numeric(df_doc['Cantidad'], errors='coerce').fillna(0).astype(int)
+            if qty_key and qty_key in df_doc.columns:
+                df_doc[qty_key] = pd.to_numeric(df_doc[qty_key], errors='coerce').fillna(0).astype(int)
             df_scan = pd.DataFrame(scanned_items)
             grouped = df_scan.groupby('codigo_producto')['cantidad'].sum().reset_index()
 
-            merged = df_doc.merge(grouped, left_on='Código', right_on='codigo_producto', how='left').fillna(0)
+            merged = df_doc.merge(grouped, left_on=code_key, right_on='codigo_producto', how='left').fillna(0)
             merged['cantidad'] = merged['cantidad'].astype(int)
-            merged['faltan'] = merged['Cantidad'] - merged['cantidad']
-            diff = merged[merged['faltan'] > 0][['Código', 'Nombre', 'Cantidad', 'cantidad', 'faltan']]
+            merged['faltan'] = merged[qty_key] - merged['cantidad']
+            diff = merged[merged['faltan'] > 0][[code_key, name_key, qty_key, 'cantidad', 'faltan']]
 
             diff["Razón Social"] = proveedor
             diff["RUT"] = rut
@@ -659,7 +701,7 @@ def ingreso_core(
             flash('Recepción finalizada correctamente.', 'success')
             return redirect(url_for('finalizar'))
 
-        if any(item.get('Código', '') == codigo for item in items):
+        if any(item.get(code_key, '') == codigo for item in items):
             found = False
             for s in scanned_items:
                 if s['guia'] == guia and s['codigo_producto'] == codigo:
@@ -689,7 +731,16 @@ def ingreso_core(
     if not numero or not items:
         return render_template(
             template,
-            **{context_keys['num']: '', context_keys['items']: [], 'scanned_items': [], 'guia': ''}
+            **{
+                context_keys['num']: '',
+                context_keys['items']: [],
+                'scanned_items': [],
+                'guia': '',
+                'code_key': 'codigo',
+                'name_key': 'nombre',
+                'qty_key': 'cantidad',
+                'price_key': 'prec_unit',
+            }
         )
 
     scanned_map = {}
@@ -701,10 +752,10 @@ def ingreso_core(
     display_items = []
     for item in items:
         try:
-            qty_ord = int(item.get('Cantidad', '0'))
+            qty_ord = int(item.get(qty_key, '0'))
         except ValueError:
             qty_ord = 0
-        scanned_qty = scanned_map.get(item.get('Código', ''), 0)
+        scanned_qty = scanned_map.get(item.get(code_key, ''), 0)
         faltan = qty_ord - scanned_qty
         item2 = item.copy()
         item2['Faltan'] = max(faltan, 0)
@@ -716,14 +767,18 @@ def ingreso_core(
             context_keys['num']: numero,
             context_keys['items']: display_items,
             'scanned_items': scanned_items,
-            'guia': guia_actual
+            'guia': guia_actual,
+            'code_key': code_key,
+            'name_key': name_key,
+            'qty_key': qty_key,
+            'price_key': price_key,
         }
     )
 
 
 @app.route('/ingreso', methods=['GET', 'POST'])
 def ingreso():
-    return ingreso_core('ingreso.html', 'ingreso', db_fetcher=get_oc_items)
+    return ingreso_core('ingreso.html', 'ingreso', db_fetcher=fetch_oc_items)
 
 
 
