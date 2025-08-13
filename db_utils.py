@@ -89,3 +89,30 @@ def get_nota_detalle(num_nota: str) -> pd.DataFrame:
         # df["cantidad"] = df["cantidad"].clip(lower=0)
 
     return df
+
+
+def get_stock_actual() -> pd.DataFrame:
+    """Obtiene el stock físico de los productos desde la BBDD.
+
+    Une ``STOCK_DB`` con ``ART_DB`` para entregar código visible,
+    nombre y stock disponible.
+    """
+    sql = text(
+        """
+        SELECT
+            art.CODIGO2   AS codigo,
+            art.NOMBRE    AS nombre,
+            stk.STK_FISICO AS cantidad
+        FROM dbo.STOCK_DB AS stk
+        JOIN dbo.ART_DB   AS art
+            ON art.NREGUIST = stk.ARTICULO
+        """
+    )
+
+    with ENGINE.begin() as conn:
+        df = pd.read_sql(sql, conn)
+
+    if not df.empty:
+        df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
+
+    return df
