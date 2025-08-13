@@ -929,7 +929,7 @@ def salida():
                         "num_nota": "N° Nota",
                         "codigo":   "Código",
                         "nombre":   "Nombre",
-                        "cantidad": "Cant.",      # <- pendiente (CANTIDAD - CANTDESP)
+                        "cantidad": "Cant.",      # cantidad pendiente (CANTIDAD - CANTDESP)
                         "prec_unit":"Prec.Unit"
                     }).to_dict(orient='records')
 
