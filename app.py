@@ -1013,11 +1013,36 @@ def salida():
             return redirect(url_for('salida'))
 
     # GET
+    # Calcular cantidades escaneadas y faltantes para cada ítem de la NV
+    scanned_map = {}
+    for si in salida_items:
+        try:
+            code = str(si.get('Código'))
+            qty = int(si.get('Cant.Salida', 0))
+        except Exception:
+            # Valores inesperados se tratan como 0
+            code, qty = str(si.get('Código')), 0
+        scanned_map[code] = scanned_map.get(code, 0) + qty
+
+    display_nv_items = []
+    for it in nv_items:
+        orig = 0
+        try:
+            orig = int(it.get('Cant.', 0))
+        except Exception:
+            orig = 0
+        code = str(it.get('Código'))
+        scanned_qty = scanned_map.get(code, 0)
+        item2 = it.copy()
+        item2['scanned'] = scanned_qty
+        item2['Faltan'] = max(orig - scanned_qty, 0)
+        display_nv_items.append(item2)
+
     return render_template(
         'salida.html',
         nota=nota,
         guia_actual=guia_actual,
-        nv_items=nv_items,
+        nv_items=display_nv_items,
         salida_items=salida_items
     )
 
