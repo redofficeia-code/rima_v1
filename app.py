@@ -286,35 +286,19 @@ def devoluciones_salida():
             flash("Productos escaneados preparados para la Guía de Despacho.", "info")
             return redirect(url_for('finalizar_salida'))
 
-    # Cargar Stock igual que en salida
+    # Cargar Stock desde la BBDD
     stock_map = {}
-    if os.path.exists(STOCK_FILE):
-        try:
-            df_st = pd.read_csv(STOCK_FILE, header=0, dtype=str, keep_default_na=False, encoding='utf-8-sig', sep=',')
-            df_st.columns = [c.strip().replace("\ufeff", "") for c in df_st.columns]
-            df_st = df_st.rename(columns={
-                'CÃ³digo':          'Código',
-                'Codigo':           'Código',
-                'codigo_producto':  'Código',
-                'Cantidad':         'Cantidad',
-                'cantidad':         'Cantidad',
-                'Nombre':           'Nombre',
-                'nombre':           'Nombre'
-            })
-
-            if all(col in df_st.columns for col in ('Código','Nombre','Cantidad')):
-                df_st['Cantidad'] = pd.to_numeric(df_st['Cantidad'], errors='coerce').fillna(0).astype(int)
-                for _, row in df_st.iterrows():
-                    key = str(row['Código']).strip()
-                    stock_map[key] = {
-                        'Nombre':   row['Nombre'].strip(),
-                        'Cantidad': row['Cantidad']
-                    }
-        except Exception as e:
-            app.logger.error(f"Error al leer Stock: {e}")
-            flash(f"Error al leer Stock: {e}", 'error')
-    else:
-        flash(f"DEBUG: no existe STOCK_FILE en '{STOCK_FILE}'", 'warning')
+    try:
+        df_st = db_utils.get_stock_actual()
+        for _, row in df_st.iterrows():
+            key = str(row.get('codigo', '')).strip()
+            stock_map[key] = {
+                'Nombre': row.get('nombre', '').strip(),
+                'Cantidad': int(row.get('cantidad', 0))
+            }
+    except Exception as e:
+        app.logger.error(f"Error al consultar Stock: {e}")
+        flash(f"Error al consultar Stock: {e}", 'error')
 
     # Construir stock_items restando escaneos
     stock_items = []
@@ -1041,12 +1025,44 @@ def salida():
         item2['Faltan'] = max(orig - scanned_qty, 0)
         display_nv_items.append(item2)
 
+    # Cargar stock actual desde la BBDD y restar escaneos
+    stock_items = []
+    if display_nv_items:
+        stock_map = {}
+        try:
+            df_st = db_utils.get_stock_actual()
+            for _, row in df_st.iterrows():
+                key = str(row.get('codigo', '')).strip()
+                stock_map[key] = {
+                    'Nombre': row.get('nombre', '').strip(),
+                    'Cantidad': int(row.get('cantidad', 0))
+                }
+        except Exception as e:
+            app.logger.error(f"Error al consultar Stock: {e}")
+            flash(f"Error al consultar Stock: {e}", 'error')
+
+        scanned_totals = {}
+        for s in salida_items:
+            k = str(s.get('Código')).strip()
+            scanned_totals[k] = scanned_totals.get(k, 0) + int(s.get('Cant.Salida', 0))
+
+        for line in display_nv_items:
+            code = str(line.get('Código')).strip()
+            orig = stock_map.get(code, {}).get('Cantidad', 0)
+            remain = max(orig - scanned_totals.get(code, 0), 0)
+            stock_items.append({
+                'Código': code,
+                'Nombre': stock_map.get(code, {}).get('Nombre', line.get('Nombre')),
+                'Cantidad': remain
+            })
+
     return render_template(
         'salida.html',
         nota=nota,
         guia_actual=guia_actual,
         nv_items=display_nv_items,
-        salida_items=salida_items
+        salida_items=salida_items,
+        stock_items=stock_items
     )
 
 
