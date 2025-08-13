@@ -58,7 +58,7 @@ def get_nota_detalle(num_nota: str) -> pd.DataFrame:
       - num_nota  -> NOTV_DB.NUMNOTA
       - codigo    -> ART_DB.CODIGO2 (fallback: NOTDE_DB.NCODART)
       - nombre    -> NOTDE_DB.DESCRIP
-      - cantidad  -> (NOTDE_DB.CANTIDAD - NOTDE_DB.CANTDESP)  [pendiente]
+      - cantidad  -> (NOTDE_DB.CANTIDAD - NOTDE_DB.CANTDESP)
       - prec_unit -> NOTDE_DB.PRECUNIT
     """
     sql = text(
@@ -67,7 +67,7 @@ def get_nota_detalle(num_nota: str) -> pd.DataFrame:
             nv.NUMNOTA                                             AS num_nota,
             COALESCE(art.CODIGO2, CAST(nd.NCODART AS VARCHAR(50))) AS codigo,
             nd.DESCRIP                                             AS nombre,
-            (nd.CANTIDAD - nd.CANTDESP)                            AS cantidad,
+            (nd.CANTIDAD - COALESCE(nd.CANTDESP, 0))               AS cantidad,
             nd.PRECUNIT                                            AS prec_unit
         FROM dbo.NOTV_DB  AS nv
         JOIN dbo.NOTDE_DB AS nd
