@@ -52,23 +52,23 @@ ENGINE = create_engine(
 
 
 def get_nota_detalle(num_nota: str) -> pd.DataFrame:
-    """Retorna el detalle de una Nota de Venta desde la BBDD.
+    """Trae detalle de NV desde la BBDD.
 
-    Mapea:
-      - N° Nota:   NOTV_DB.NUMNOTA
-      - Código:    ART_DB.CODIGO2 (fallback NCODART)
-      - Nombre:    NOTDE_DB.DESCRIP
-      - Cant.:     NOTDE_DB.CANTIDAD
-      - Prec.Unit: NOTDE_DB.PRECUNIT
+    Mapas:
+      - num_nota  -> NOTV_DB.NUMNOTA
+      - codigo    -> ART_DB.CODIGO2 (fallback: NOTDE_DB.NCODART)
+      - nombre    -> NOTDE_DB.DESCRIP
+      - cantidad  -> (NOTDE_DB.CANTIDAD - NOTDE_DB.CANTDESP)  [pendiente]
+      - prec_unit -> NOTDE_DB.PRECUNIT
     """
     sql = text(
         """
         SELECT
-            nv.NUMNOTA                                                AS num_nota,
-            COALESCE(art.CODIGO2, CAST(nd.NCODART AS VARCHAR(50)))    AS codigo,
-            nd.DESCRIP                                                AS nombre,
-            nd.CANTIDAD                                               AS cantidad,
-            nd.PRECUNIT                                               AS prec_unit
+            nv.NUMNOTA                                             AS num_nota,
+            COALESCE(art.CODIGO2, CAST(nd.NCODART AS VARCHAR(50))) AS codigo,
+            nd.DESCRIP                                             AS nombre,
+            (nd.CANTIDAD - nd.CANTDESP)                            AS cantidad,
+            nd.PRECUNIT                                            AS prec_unit
         FROM dbo.NOTV_DB  AS nv
         JOIN dbo.NOTDE_DB AS nd
             ON nd.NUMRECOR = nv.NUMREG
@@ -82,6 +82,10 @@ def get_nota_detalle(num_nota: str) -> pd.DataFrame:
     with ENGINE.begin() as conn:
         df = pd.read_sql(sql, conn, params={"num_nota": num_nota})
 
-    df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
-    df["prec_unit"] = pd.to_numeric(df["prec_unit"], errors="coerce").fillna(0.0)
+    if not df.empty:
+        df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
+        df["prec_unit"] = pd.to_numeric(df["prec_unit"], errors="coerce").fillna(0.0)
+        # (Opcional) Evitar negativos:
+        # df["cantidad"] = df["cantidad"].clip(lower=0)
+
     return df
