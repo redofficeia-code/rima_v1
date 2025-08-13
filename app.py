@@ -954,7 +954,10 @@ def salida():
                 return redirect(url_for('salida'))
 
             base = pd.DataFrame(nv_items)
-            match = base[base['Código'].astype(str) == codigo]
+            codigos = (
+                base["Código"].astype(str).str.strip().str.replace(r"\.0$", "", regex=True)
+            )
+            match = base[codigos == codigo]
             if match.empty:
                 flash(f'El código {codigo} no está en la Nota de Venta {nota}.', 'warning')
                 return redirect(url_for('salida'))
