@@ -941,7 +941,7 @@ def salida():
             return redirect(url_for('salida'))
 
         # 2) Escanear (agregar item a salida)
-        elif action == 'escanear':
+        elif action in ('escanear', 'scan'):
             codigo = (request.form.get('codigo') or '').strip()
             cant   = request.form.get('cantidad') or '1'
             try:
