@@ -12,7 +12,8 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import re
 import unicodedata
-from db_utils import get_oc_detalle, get_nota_detalle
+import db_utils
+from db_utils import get_oc_detalle
 
 # --- Configuración de logging ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -896,157 +897,132 @@ def download_guia():
 
 @app.route('/salida', methods=['GET', 'POST'])
 def salida():
-    # 1) Recuperar sesión
+    # Estado
     nota         = session.get('current_nv', '')
     guia_actual  = session.get('current_guia', '')
-    nv_items     = session.get('nv_items', [])
-    salida_items = session.get('salida_items', [])
+    nv_items     = session.get('nv_items', [])        # detalle NV (desde BBDD)
+    salida_items = session.get('salida_items', [])    # items para salida/escaneo
 
-    # 2) POST: buscar nota, escanear o terminar salida
     if request.method == 'POST':
-        session['guia_datos'] = request.form.to_dict()
         action = request.form.get('action', 'buscar_nv')
+        session['guia_datos'] = request.form.to_dict()
 
+        # 1) Buscar NV en BBDD
         if action == 'buscar_nv':
             nota = (request.form.get('nv') or '').strip()
             session['current_nv'] = nota
             session.pop('nv_items', None)
             session.pop('salida_items', None)
+            nv_items, salida_items = [], []
 
             if not nota:
                 flash('Debes ingresar un número de Nota de Venta.', 'warning')
                 return redirect(url_for('salida'))
 
             try:
-                df = get_nota_detalle(nota)
+                df = db_utils.get_nota_detalle(nota)
                 if df.empty:
                     flash(f'No se encontró detalle para la Nota de Venta {nota}.', 'warning')
                 else:
+                    # Normaliza columnas a los alias que usa la plantilla
                     nv_items = df.rename(columns={
-                        'num_nota': 'N° Nota',
-                        'codigo': 'Código',
-                        'nombre': 'Nombre',
-                        'cantidad': 'Cant.',
-                        'prec_unit': 'Prec.Unit'
+                        "num_nota": "N° Nota",
+                        "codigo":   "Código",
+                        "nombre":   "Nombre",
+                        "cantidad": "Cant.",      # <- pendiente (CANTIDAD - CANTDESP)
+                        "prec_unit":"Prec.Unit"
                     }).to_dict(orient='records')
+
                     session['nv_items'] = nv_items
-                    session['salida_items'] = []
-                    flash(f'Nota {nota} cargada con {len(nv_items)} líneas.', 'success')
+                    session['salida_items'] = salida_items
             except Exception as e:
-                app.logger.error(f"Error al consultar Nota de Venta: {e}")
-                flash(f"Error al consultar Nota de Venta: {e}", 'error')
+                flash(f'Error al consultar la BBDD: {e}', 'danger')
 
             return redirect(url_for('salida'))
 
-        elif action == 'scan':
+        # 2) Escanear (agregar item a salida)
+        elif action == 'escanear':
             codigo = (request.form.get('codigo') or '').strip()
+            cant   = request.form.get('cantidad') or '1'
             try:
-                cantidad = int(request.form.get('cantidad', 1))
-            except ValueError:
-                cantidad = 1
-            ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                cant = int(cant)
+            except:
+                cant = 1
 
-            guia = guia_actual
-            if (g := request.form.get('guia', '').strip()):
-                guia = g
-                session['current_guia'] = guia
+            if not nv_items:
+                flash('Primero busca una Nota de Venta.', 'warning')
+                return redirect(url_for('salida'))
 
-            found = False
-            for s in salida_items:
-                if s['guia'] == guia and s['codigo'] == codigo:
-                    s['cantidad'] += cantidad
-                    s['hora'] = ahora
-                    found = True
+            base = pd.DataFrame(nv_items)
+            match = base[base['Código'].astype(str) == codigo]
+            if match.empty:
+                flash(f'El código {codigo} no está en la Nota de Venta {nota}.', 'warning')
+                return redirect(url_for('salida'))
+
+            row = match.iloc[0].to_dict()
+
+            # Agrega o acumula
+            updated = False
+            for it in salida_items:
+                if str(it['Código']) == str(row['Código']):
+                    it['Cant.Salida'] = int(it.get('Cant.Salida', 0)) + cant
+                    updated = True
                     break
-            if not found:
+            if not updated:
                 salida_items.append({
-                    'guia': guia, 'codigo': codigo,
-                    'cantidad': cantidad, 'hora': ahora
+                    'N° Nota':     row['N° Nota'],
+                    'Código':      row['Código'],
+                    'Nombre':      row['Nombre'],
+                    'Prec.Unit':   row['Prec.Unit'],
+                    'Cant.NV':     int(row.get('Cant.', 0)),   # pendiente permitido por NV
+                    'Cant.Salida': cant
                 })
+
             session['salida_items'] = salida_items
-            flash(f'{cantidad} unidad(es) de {codigo} ' + ('sumadas' if found else 'registradas') + '.', 'success')
             return redirect(url_for('salida'))
 
-        elif action == 'terminar_salida':
-            # ─── Guardar datos escaneados para usar en Guía ────────
-            session['items_para_guia'] = salida_items
-            session['nv_para_guia']    = nota
-            session['guia_para_guia']  = guia_actual
-            flash("Productos escaneados preparados para la Guía de Despacho.", "info")
-            return redirect(url_for('finalizar_salida'))
+        # 3) Eliminar item
+        elif action == 'eliminar_item':
+            codigo = request.form.get('codigo') or ''
+            salida_items = [it for it in salida_items if str(it.get('Código','')) != str(codigo)]
+            session['salida_items'] = salida_items
+            return redirect(url_for('salida'))
 
-    # 3) Cargar Stock
-    stock_map = {}
-    if os.path.exists(STOCK_FILE):
-        try:
-            df_st = pd.read_csv(STOCK_FILE, header=0, dtype=str, keep_default_na=False, encoding='utf-8-sig', sep=',')
-            df_st.columns = [c.strip().replace("\ufeff", "") for c in df_st.columns]
-            df_st = df_st.rename(columns={
-                'CÃ³digo':          'Código',
-                'Codigo':           'Código',
-                'codigo_producto':  'Código',
-                'Cantidad':         'Cantidad',
-                'cantidad':         'Cantidad',
-                'Nombre':           'Nombre',
-                'nombre':           'Nombre'
-            })
+        # 4) Finalizar salida (validaciones básicas)
+        elif action == 'finalizar_salida':
+            if not salida_items:
+                flash('No hay ítems en la salida.', 'warning')
+                return redirect(url_for('salida'))
 
-            if all(col in df_st.columns for col in ('Código','Nombre','Cantidad')):
-                df_st['Cantidad'] = pd.to_numeric(df_st['Cantidad'], errors='coerce').fillna(0).astype(int)
-                for _, row in df_st.iterrows():
-                    key = str(row['Código']).strip()
-                    stock_map[key] = {
-                        'Nombre':   row['Nombre'].strip(),
-                        'Cantidad': row['Cantidad']
-                    }
-        except Exception as e:
-            app.logger.error(f"Error al leer Stock: {e}")
-            flash(f"Error al leer Stock: {e}", 'error')
-    else:
-        flash(f"DEBUG: no existe STOCK_FILE en '{STOCK_FILE}'", 'warning')
+            base = pd.DataFrame(nv_items)
+            sal  = pd.DataFrame(salida_items)
+            base['Cant.']        = pd.to_numeric(base['Cant.'], errors='coerce').fillna(0).astype(int)
+            sal['Cant.Salida']   = pd.to_numeric(sal['Cant.Salida'], errors='coerce').fillna(0).astype(int)
 
-    # 4) Construir stock_items restando escaneos:
-    stock_items = []
-    scanned_totals = {}
+            # Validación: no permitir sobrepasar pendiente
+            merged = sal.merge(base[['Código','Cant.']], on='Código', how='left')
+            merged['Exceso'] = (merged['Cant.Salida'] - merged['Cant.']).clip(lower=0)
+            if (merged['Exceso'] > 0).any():
+                cods = merged.loc[merged['Exceso'] > 0, 'Código'].unique().tolist()
+                flash(f'Cantidad de salida supera lo pendiente para: {", ".join(map(str, cods))}.', 'danger')
+                return redirect(url_for('salida'))
 
-    if nv_items:
-        for s in salida_items:
-            k = str(s['codigo']).strip()
-            scanned_totals[k] = scanned_totals.get(k, 0) + s['cantidad']
+            # Si todo OK: (aquí podrías insertar movimiento, generar GD, etc.)
+            session.pop('salida_items', None)
+            flash('Salida finalizada correctamente.', 'success')
+            return redirect(url_for('salida'))
 
-        for item in nv_items:
-            code = str(item['Código']).strip()
-            total = int(item['Cant.'])
-            esc = scanned_totals.get(code, 0)
-            falta = max(total - esc, 0)
-            item['scanned'] = esc
-            item['Faltan'] = falta
-
-        for line in nv_items:
-            code = str(line['Código']).strip()
-            orig = stock_map.get(code, {}).get('Cantidad', 0)
-            remain = max(orig - line['scanned'], 0)
-            stock_items.append({
-                'Código':  code,
-                'Nombre':  stock_map.get(code, {}).get('Nombre', line['Nombre']),
-                'Cantidad': remain
-            })
-
-    # 5) Renderizar
+    # GET
     return render_template(
         'salida.html',
         nota=nota,
-        guia=guia_actual,
+        guia_actual=guia_actual,
         nv_items=nv_items,
-        salida_items=salida_items,
-        stock_items=stock_items
+        salida_items=salida_items
     )
 
 
 
-
-
-from pandas.errors import EmptyDataError
 
 @app.route('/inventario', methods=['GET', 'POST'])
 @app.route('/inventario/sesion/<sesion_id>', methods=['GET', 'POST'])
