@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import re
 import unicodedata
-from db_utils import get_oc_detalle
+from db_utils import get_oc_detalle, get_nota_detalle
 
 # --- Configuración de logging ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -916,39 +916,27 @@ def salida():
             if not nota:
                 flash('Debes ingresar un número de Nota de Venta.', 'warning')
                 return redirect(url_for('salida'))
-            if not os.path.exists(NV_FILE):
-                flash('No se ha importado ninguna Nota de Venta.', 'warning')
-                return redirect(url_for('salida'))
 
             try:
-                df_nv = pd.read_csv(NV_FILE, header=0, dtype=str, keep_default_na=False)
-                df_nv.columns = [c.strip() for c in df_nv.columns]
-                df_nv = df_nv.loc[:, ~df_nv.columns.str.match(r'^Unnamed', case=False)]
-
-                if 'Num. Nota' not in df_nv.columns:
-                    flash("La columna 'Num. Nota' no está en el archivo de NV.", 'error')
-                    return redirect(url_for('salida'))
-
-                df_nv = df_nv[df_nv['Num. Nota'] == nota]
-                if df_nv.empty:
-                    flash(f'No se encontró la Nota de Venta {nota}.', 'error')
-                    return redirect(url_for('salida'))
-
-                df_nv['Cantidad'] = pd.to_numeric(df_nv.get('Cantidad','0'), errors='coerce').fillna(0).astype(int)
-                df_nv['Precio Unitario'] = pd.to_numeric(df_nv.get('Precio Unitario','0'), errors='coerce').fillna(0).astype(int)
-
-                df_show = df_nv[['Código','Descriptor','Cantidad','Precio Unitario']].copy()
-                df_show.columns = ['Código','Nombre','Cant.','Prec.Unit.']
-                df_show['Faltan'] = df_show['Cant.']
-
-                nv_items = df_show.to_dict(orient='records')
-                session['nv_items'] = nv_items
-                session['salida_items'] = []
-                flash(f'Nota {nota} cargada con {len(nv_items)} líneas.', 'success')
+                df = get_nota_detalle(nota)
+                if df.empty:
+                    flash(f'No se encontró detalle para la Nota de Venta {nota}.', 'warning')
+                else:
+                    nv_items = df.rename(columns={
+                        'num_nota': 'N° Nota',
+                        'codigo': 'Código',
+                        'nombre': 'Nombre',
+                        'cantidad': 'Cant.',
+                        'prec_unit': 'Prec.Unit'
+                    }).to_dict(orient='records')
+                    session['nv_items'] = nv_items
+                    session['salida_items'] = []
+                    flash(f'Nota {nota} cargada con {len(nv_items)} líneas.', 'success')
             except Exception as e:
-                app.logger.error(f"Error al leer NV en salida: {e}")
-                flash(f"Error al leer Nota de Venta: {e}", 'error')
-                return redirect(url_for('salida'))
+                app.logger.error(f"Error al consultar Nota de Venta: {e}")
+                flash(f"Error al consultar Nota de Venta: {e}", 'error')
+
+            return redirect(url_for('salida'))
 
         elif action == 'scan':
             codigo = (request.form.get('codigo') or '').strip()
