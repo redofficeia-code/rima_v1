@@ -184,10 +184,10 @@
       <table class="header-table">
         <tr>
           <td><label>G/D N°</label></td>
-          <td><input type="text" name="gr_numero" value=""></td> <!-- vacío por ahora -->
-          
+          <td><input type="text" name="gd_num" value="{{ header.GD_NUM or '' }}" readonly></td>
+
           <td><label>O/C N°</label></td>
-          <td><input type="text" name="oc_numero" value="{{ datos.get('Num. Ord .Compra', '') }}"></td>
+          <td><input type="text" name="oc_num" value="{{ header.OC_NUM or '' }}"></td>
 
           <td><label>Fecha</label></td>
           <td><input type="date" name="fecha" value="{{ datetime.utcnow().strftime('%Y-%m-%d') }}"></td>
@@ -197,8 +197,8 @@
           <td><label>FAV a</label></td>
           <td colspan="2">
             <div class="dual-input">
-              <input class="code" type="text" name="fav_a_codigo" value="{{ datos.get('RUT', '') }}">
-              <input class="desc" type="text" name="fav_a_desc" value="{{ datos.get('Razón Social', '') }}">
+              <input class="code" type="text" name="fav_a_codigo" value="{{ header.FAV_A or '' }}">
+              <input class="desc" type="text" name="fav_a_desc" value="{{ header.FAV_A or '' }}">
             </div>
           </td>
           <td><label>Tipo Desp.</label></td>
@@ -214,8 +214,8 @@
           <td><label>Desp. a</label></td>
           <td colspan="2">
             <div class="dual-input">
-              <input class="code" type="text" name="desp_a_codigo" value="">
-              <input class="desc" type="text" name="desp_a_desc" value="{{ datos.get('Razón Social', '') }}">
+              <input class="code" type="text" name="desp_a_codigo" value="{{ header.DESP_A or '' }}">
+              <input class="desc" type="text" name="desp_a_desc" value="{{ header.DESP_A or '' }}">
             </div>
           </td>
           <td><label>Moneda</label></td>
@@ -232,20 +232,20 @@
           <td><label>Vendedor</label></td>
           <td colspan="2">
             <div class="dual-input">
-              <input class="code" type="text" name="vendedor_codigo" value="">
-              <input class="desc" type="text" name="vendedor_nombre" value="{{ datos.get('Nombre Vendedor N/V', '') }}">
+              <input class="code" type="text" name="vendedor_codigo" value="{{ header.VENDEDOR or '' }}">
+              <input class="desc" type="text" name="vendedor_nombre" value="{{ header.VENDEDOR or '' }}">
             </div>
           </td>
           <td><label>Descuento</label></td>
-          <td><input type="number" step="0.01" name="descuento" value="0.00" style="width:80px;"></td>
+          <td><input type="number" step="0.01" name="descuento" value="{{ header.DESCUENTO_UNICO_LINEAS or '' }}" style="width:80px;"></td>
           <td><label>%</label> <input type="checkbox" name="porc_descuento"></td>
         </tr>
 
         <tr>
           <td><label>Entregar en</label></td>
-          <td colspan="2"><input type="text" name="entregar_en" value="{{ datos.get('Ciudad', '') }}"></td>
+          <td colspan="2"><input type="text" name="entregar_en" value="{{ header.ENTREGAR_EN or '' }}"></td>
           <td><label>Comisión</label></td>
-          <td><input type="number" step="0.01" name="comision" style="width:80px;"></td>
+          <td><input type="number" step="0.01" name="comision" value="{{ header.COMISION or '' }}" style="width:80px;"></td>
           <td><label>%</label> <input type="checkbox" name="porc_comision"></td>
         </tr>
 
@@ -253,12 +253,12 @@
   <td><label>Sucursal</label></td>
   <td colspan="2">
     <div class="dual-input">
-      <input class="code" type="text" name="sucursal_codigo" value="">
-      <input class="desc" type="text" name="sucursal_desc" value="{{ datos.get('Ciudad', '') }}">
+      <input class="code" type="text" name="sucursal_codigo" value="{{ header.SUCURSAL or '' }}">
+      <input class="desc" type="text" name="sucursal_desc" value="{{ header.SUCURSAL or '' }}">
     </div>
   </td>
   <td><label>Glosa Pag.</label></td>
-  <td><input type="text" name="glosa_pag" value="{{ datos.get('Forma de Pago', '') }}"></td>
+  <td><input type="text" name="glosa_pag" value="{{ header.GLOSA_PAG or '' }}"></td>
   <td>
     <label>Pago a</label>
     <input type="number" name="pago_a" value="30" style="width:50px;"> días
@@ -280,22 +280,22 @@
           </tr>
         </thead>
         <tbody>
-          {% for linea in lineas %}
+        {% for it in detalles %}
           <tr>
-            <td>{{ linea.codigo }}</td>
-            <td>{{ linea.descripcion }}</td>
-            <td>{{ linea.cantidad }}</td>
-            <td>{{ linea.precio }}</td>
-            <td>{{ linea.descuento }}</td>
+            <td>{{ it.Codigo }}</td>
+            <td>{{ it.Descripcion }}</td>
+            <td class="t-right">{{ it.Cantidad }}</td>
+            <td class="t-right">{{ it.Precio }}</td>
+            <td class="t-right">{{ it['D%'] }}</td>
           </tr>
-          {% endfor %}
-          {% if not lineas %}
+        {% endfor %}
+        {% if not detalles %}
           <tr>
             <td colspan="5" style="text-align:center; color:#666; padding:2em;">
               Sin ítems cargados.
             </td>
           </tr>
-          {% endif %}
+        {% endif %}
         </tbody>
       </table>
 
