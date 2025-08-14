@@ -1329,13 +1329,24 @@ def finalizar():
 
 @app.route('/finalizar_salida')
 def finalizar_salida():
-    # (Opcional) Limpiar sesión de salida para comenzar de cero si es necesario
+    """Pantalla de fin del flujo de salida.
+
+    Se aprovecha de esta vista para ofrecer la generación de la guía de despacho
+    prellenada con los datos de la Nota de Venta trabajada. Para ello se toma el
+    ``num_nota`` almacenado en la sesión antes de limpiar el resto del estado y
+    se pasa como parámetro a la plantilla.
+    """
+
+    num_nota = session.get('current_nv', '')
+
+    # Limpiar el estado de la sesión para comenzar de cero si es necesario
     session.pop('nv_items', None)
     session.pop('salida_items', None)
     session.pop('current_nv', None)
     session.pop('current_guia', None)
-    # Renderiza una plantilla nueva (puedes clonar tu 'finalizar.html')
-    return render_template('finalizar_salida.html')
+
+    # Renderiza la plantilla final pasando el número de nota
+    return render_template('finalizar_salida.html', num_nota=num_nota)
 
 
 EXPORT_DIR = os.path.join(os.getcwd(), 'exports')
