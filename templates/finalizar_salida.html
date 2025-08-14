@@ -67,6 +67,7 @@
 
 
     <form method="GET" action="{{ url_for('guia_despacho') }}">
+        <input type="hidden" name="num_nota" value="{{ num_nota }}">
         <button type="submit">🚚 Guía de Despacho</button>
     </form>
 
