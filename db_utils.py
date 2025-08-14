@@ -129,9 +129,11 @@ def get_guia_desde_nv(num_nota: str):
         SELECT
             CAST(NULL AS VARCHAR(50))       AS GD_NUM,      -- DOCU_DB.NUMGUIAF al crear la guía
             nv.NUMORD                       AS OC_NUM,
-            nv.NRUTCLIE                     AS FAV_A,
+            nv.RUTFACT                      AS FAV_RUT,
+            c.RAZSOC                        AS FAV_RAZSOC,
             nv.NRUTCLIE                     AS DESP_A,
-            nv.CODVEND                      AS VENDEDOR,
+            p.CODIGO                        AS VEND_CODIGO,
+            CONCAT(p.NOMBRE, ' ', p.APELLIDO) AS VEND_NOMBRE,
             nv.DIRDESP                      AS ENTREGAR_EN,
             nv.COMISION                     AS COMISION,
             nv.SUCUR                        AS SUCURSAL,
@@ -141,9 +143,11 @@ def get_guia_desde_nv(num_nota: str):
                  ELSE NULL
             END                             AS DESCUENTO_UNICO_LINEAS
         FROM dbo.NOTV_DB  nv
+        LEFT JOIN dbo.CLIEN_DB c  ON c.NREGUIST = nv.NRUTCLIE
+        LEFT JOIN dbo.PERSO_DB p  ON p.NUMREG   = nv.CODVEND
         JOIN dbo.NOTDE_DB nd ON nd.NUMRECOR = nv.NUMREG
         WHERE nv.NUMNOTA = :num_nota
-        GROUP BY nv.NUMORD, nv.NRUTCLIE, nv.CODVEND, nv.DIRDESP, nv.COMISION, nv.SUCUR, nv.GLOSACON
+        GROUP BY nv.NUMORD, nv.RUTFACT, c.RAZSOC, nv.NRUTCLIE, p.CODIGO, p.NOMBRE, p.APELLIDO, nv.DIRDESP, nv.COMISION, nv.SUCUR, nv.GLOSACON
         """
     )
 
