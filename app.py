@@ -1342,9 +1342,8 @@ EXPORT_DIR = os.path.join(os.getcwd(), 'exports')
 os.makedirs(EXPORT_DIR, exist_ok=True)
 
 # Alias para que exista un endpoint 'guia_despacho' que invoque la misma lógica que 'salida'
-@app.route('/guia_despacho', methods=['GET', 'POST'])
-def guia_despacho(template_name: str = 'guia_despacho.html',
-                  flash_msg: str = 'Guía de despacho guardada correctamente.'):
+def guia_despacho_view(template_name: str = 'guia_despacho.html',
+                       flash_msg: str = 'Guía de despacho guardada correctamente.'):
     """Genera la vista de la Guía de Despacho.
 
     Lee los datos desde ``nv.csv`` y los traspasa a la guía. Se hace un
@@ -1478,6 +1477,29 @@ def guia_despacho(template_name: str = 'guia_despacho.html',
     )
 
 
+@app.route('/guia-despacho')
+def guia_despacho():
+    """
+    Prellena la Guía de Despacho con datos de la Nota de Venta (num_nota).
+    Parámetro: ?num_nota=xxxxx
+    """
+    num_nota = (request.args.get('num_nota') or '').strip()
+    if not num_nota:
+        flash('Falta el parámetro num_nota.', 'warning')
+        return redirect(url_for('salida'))
+
+    try:
+        header, detalles = db_utils.get_guia_desde_nv(num_nota)
+        if not header:
+            flash(f'No se encontró información para la Nota de Venta {num_nota}.', 'warning')
+            return redirect(url_for('salida'))
+    except Exception as e:
+        flash(f'Error al consultar la BBDD: {e}', 'danger')
+        return redirect(url_for('salida'))
+
+    return render_template('guia_despacho.html', header=header, detalles=detalles, num_nota=num_nota, datos={}, datetime=datetime)
+
+
 @app.route('/guia_traslado', methods=['GET', 'POST'])
 def guia_traslado():
     """Genera la vista de la Guía de Traslado reutilizando la lógica de
@@ -1485,7 +1507,7 @@ def guia_traslado():
 
     Solo cambia la plantilla y el mensaje de confirmación.
     """
-    return guia_despacho(
+    return guia_despacho_view(
         template_name='guia_traslado.html',
         flash_msg='Guía de traslado guardada correctamente.'
     )
