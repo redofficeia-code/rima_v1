@@ -11,19 +11,27 @@ DRIVER   = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
 SERVER   = os.getenv("DB_SERVER", "localhost")
 DATABASE = os.getenv("DB_DATABASE", "")
 AUTH     = os.getenv("DB_AUTH", "sql").lower()
-TRUST    = os.getenv("DB_TRUST_CERT", "yes")
+def _env_bool(value: str) -> bool:
+    value = value.strip().lower()
+    if value in {"yes", "true", "1"}:
+        return True
+    if value in {"no", "false", "0"}:
+        return False
+    return True
+
+TRUST_CERT = _env_bool(os.getenv("DB_TRUST_CERT", "yes"))
 
 if AUTH == "windows":
     odbc = (
         f"DRIVER={{{DRIVER}}};SERVER={SERVER};DATABASE={DATABASE};"
-        f"Trusted_Connection=yes;Encrypt=yes;TrustServerCertificate={'yes' if TRUST=='yes' else 'no'};"
+        f"Trusted_Connection=yes;Encrypt=yes;TrustServerCertificate={'yes' if TRUST_CERT else 'no'};"
     )
 else:
     USER = os.getenv("DB_USER", "")
     PWD  = os.getenv("DB_PASSWORD", "")
     odbc = (
         f"DRIVER={{{DRIVER}}};SERVER={SERVER};DATABASE={DATABASE};UID={USER};PWD={PWD};"
-        f"Encrypt=yes;TrustServerCertificate={'yes' if TRUST=='yes' else 'no'};"
+        f"Encrypt=yes;TrustServerCertificate={'yes' if TRUST_CERT else 'no'};"
     )
 
 params = urllib.parse.quote_plus(odbc)
