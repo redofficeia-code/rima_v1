@@ -207,11 +207,7 @@ def get_guia_desde_nv(num_nota: str) -> tuple[dict, list[dict]]:
         LEFT JOIN dbo.PERSO_DB p  ON p.NUMREG   = nv.CODVEND
         JOIN dbo.NOTDE_DB nd ON nd.NUMRECOR = nv.NUMREG
         WHERE nv.NUMNOTA = :num_nota
-<<<<<<< ours
-        GROUP BY nv.NUMORDC, nv.RUTFACT, c.RAZSOC, nv.NRUTCLIE, p.CODIGO, p.NOMBRE, p.APELLIDO, nv.DIRDESP, nv.COMISION, nv.SUCUR, nv.GLOSACON
-=======
         GROUP BY nv.NUMORDC, nv.RUTFACT, c.RAZSOC, nv.NRUTCLIE, p.CODIGO, p.NOMBRE, p.APELLIDO, c.DIR, nv.COMISION, nv.SUCUR, nv.GLOSACON
->>>>>>> theirs
     """
     detail_sql = """
         SELECT
