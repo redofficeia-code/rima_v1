@@ -12,22 +12,10 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import re
 import unicodedata
-<<<<<<< ours
-<<<<<<< ours
-=======
-=======
->>>>>>> theirs
 try:
-    import sqlalchemy  # noqa: F401 - ensure dependency is present
+    import sqlalchemy  # noqa: F401
 except ModuleNotFoundError as exc:
     raise ModuleNotFoundError(
-<<<<<<< ours
-        "No module named 'sqlalchemy'. Install it with 'pip install SQLAlchemy'."
-    ) from exc
-import db_utils
->>>>>>> theirs
-from db_utils import get_oc_detalle
-=======
         "Missing dependency 'sqlalchemy'. Install it with 'pip install SQLAlchemy'."
     ) from exc
 
@@ -36,9 +24,8 @@ try:
     from db_utils import get_oc_detalle
 except ModuleNotFoundError as exc:
     raise ModuleNotFoundError(
-        "Could not import required module 'db_utils'. Ensure 'db_utils.py' exists in the project."
+        "Could not import required module 'db_utils'. Ensure 'db_utils.py' exists."
     ) from exc
->>>>>>> theirs
 
 # --- Configuración de logging ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
