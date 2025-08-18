@@ -12,6 +12,16 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import re
 import unicodedata
+<<<<<<< ours
+=======
+try:
+    import sqlalchemy  # noqa: F401 - ensure dependency is present
+except ModuleNotFoundError as exc:
+    raise ModuleNotFoundError(
+        "No module named 'sqlalchemy'. Install it with 'pip install SQLAlchemy'."
+    ) from exc
+import db_utils
+>>>>>>> theirs
 from db_utils import get_oc_detalle
 
 # --- Configuración de logging ---
