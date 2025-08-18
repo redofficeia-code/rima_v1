@@ -1,7 +1,9 @@
 import os
+import logging
 import pyodbc
 import pandas as pd
 from sqlalchemy import create_engine, text
+import sqlalchemy.exc as sa_exc
 
 def _env_bool(value: str) -> bool:
     """Normalize common textual boolean values."""
@@ -12,7 +14,21 @@ def _env_bool(value: str) -> bool:
         return False
     return True
 
+logger = logging.getLogger(__name__)
+
 trust_cert = _env_bool(os.getenv("DB_TRUST_CERT", "yes"))
+
+
+def _handle_connection_error(exc: Exception) -> None:
+    """Raise a helpful error when the database can't be reached."""
+    msg = str(getattr(exc, "orig", exc))
+    if "[53]" in msg or "could not open a connection" in msg.lower():
+        server = os.getenv("DB_SERVER")
+        logger.error("Unable to connect to DB_SERVER=%s", server)
+        raise ConnectionError(
+            "Could not open a connection to SQL Server. "
+            "Verify DB_SERVER, port, network reachability, and SQL Server configuration."
+        ) from exc
 
 def get_oc_detalle(num_oc):
     conn_str = (
@@ -39,10 +55,14 @@ def get_oc_detalle(num_oc):
         ORDER BY d.ITEM
     """
 
-    with pyodbc.connect(conn_str) as conn:
-        cursor = conn.cursor()
-        cursor.execute(query, (num_oc,))
-        rows = cursor.fetchall()
+    try:
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (num_oc,))
+            rows = cursor.fetchall()
+    except pyodbc.OperationalError as exc:
+        _handle_connection_error(exc)
+        raise
 
     # Convertir a lista de diccionarios
     columnas = [col[0] for col in cursor.description]
@@ -90,8 +110,12 @@ def get_nota_detalle(num_nota: str) -> pd.DataFrame:
         """
     )
 
-    with ENGINE.begin() as conn:
-        df = pd.read_sql(sql, conn, params={"num_nota": num_nota})
+    try:
+        with ENGINE.begin() as conn:
+            df = pd.read_sql(sql, conn, params={"num_nota": num_nota})
+    except sa_exc.OperationalError as exc:
+        _handle_connection_error(exc)
+        raise
 
     if not df.empty:
         df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
@@ -120,8 +144,12 @@ def get_stock_actual() -> pd.DataFrame:
         """
     )
 
-    with ENGINE.begin() as conn:
-        df = pd.read_sql(sql, conn)
+    try:
+        with ENGINE.begin() as conn:
+            df = pd.read_sql(sql, conn)
+    except sa_exc.OperationalError as exc:
+        _handle_connection_error(exc)
+        raise
 
     if not df.empty:
         df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
@@ -179,9 +207,13 @@ def get_guia_desde_nv(num_nota: str):
         """
     )
 
-    with ENGINE.begin() as conn:
-        df_h = pd.read_sql(header_sql, conn, params={"num_nota": num_nota})
-        df_d = pd.read_sql(detail_sql, conn,  params={"num_nota": num_nota})
+    try:
+        with ENGINE.begin() as conn:
+            df_h = pd.read_sql(header_sql, conn, params={"num_nota": num_nota})
+            df_d = pd.read_sql(detail_sql, conn,  params={"num_nota": num_nota})
+    except sa_exc.OperationalError as exc:
+        _handle_connection_error(exc)
+        raise
 
     header = (df_h.iloc[0].to_dict() if not df_h.empty else {})
     detalles = df_d.to_dict(orient="records")
