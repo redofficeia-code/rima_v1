@@ -3,6 +3,17 @@ import pyodbc
 import pandas as pd
 from sqlalchemy import create_engine, text
 
+def _env_bool(value: str) -> bool:
+    """Normalize common textual boolean values."""
+    value = value.strip().lower()
+    if value in {"yes", "true", "1"}:
+        return True
+    if value in {"no", "false", "0"}:
+        return False
+    return True
+
+trust_cert = _env_bool(os.getenv("DB_TRUST_CERT", "yes"))
+
 def get_oc_detalle(num_oc):
     conn_str = (
         f"DRIVER={{{os.getenv('DB_DRIVER')}}};"
@@ -10,7 +21,7 @@ def get_oc_detalle(num_oc):
         f"DATABASE={os.getenv('DB_DATABASE')};"
         f"UID={os.getenv('DB_USER')};"
         f"PWD={os.getenv('DB_PASSWORD')};"
-        f"TrustServerCertificate={os.getenv('DB_TRUST_CERT')};"
+        f"TrustServerCertificate={'yes' if trust_cert else 'no'};"
     )
 
     query = f"""
@@ -47,7 +58,7 @@ _driver_enc = _driver.replace(' ', '+')
 ENGINE = create_engine(
     f"mssql+pyodbc://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@"
     f"{os.getenv('DB_SERVER')}/{os.getenv('DB_DATABASE')}?"  # type: ignore
-    f"driver={_driver_enc}&TrustServerCertificate={os.getenv('DB_TRUST_CERT')}"
+    f"driver={_driver_enc}&TrustServerCertificate={'yes' if trust_cert else 'no'}"
 )
 
 
