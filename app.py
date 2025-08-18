@@ -20,11 +20,10 @@ except ModuleNotFoundError as exc:
     ) from exc
 
 try:
-    import db_utils
-    from db_utils import get_oc_detalle
+    import db
 except ModuleNotFoundError as exc:
     raise ModuleNotFoundError(
-        "Could not import required module 'db_utils'. Ensure 'db_utils.py' exists."
+        "Could not import required module 'db'. Ensure 'db.py' exists."
     ) from exc
 
 # --- Configuración de logging ---
@@ -58,12 +57,12 @@ FIELDNAMES   = ['codigo_producto', 'cantidad', 'ultima_actualizacion']
 
 # --- Integración con la base de datos ---
 def fetch_oc_items(num_oc):
-    """Obtiene detalle de una OC usando db_utils.get_oc_detalle.
+    """Obtiene detalle de una OC usando db.get_oc_detalle.
 
     Retorna un DataFrame con columnas estandarizadas y el número de guía
     si está disponible.
     """
-    rows = get_oc_detalle(num_oc)
+    rows = db.get_oc_detalle(num_oc)
     guia = rows[0].get('num_guia') if rows else None
     df = pd.DataFrame([
         {
@@ -301,7 +300,7 @@ def devoluciones_salida():
     # Cargar Stock desde la BBDD
     stock_map = {}
     try:
-        df_st = db_utils.get_stock_actual()
+        df_st = db.get_stock_actual()
         for _, row in df_st.iterrows():
             key = str(row.get('codigo', '')).strip()
             stock_map[key] = {
@@ -916,7 +915,7 @@ def salida():
                 return redirect(url_for('salida'))
 
             try:
-                df = db_utils.get_nota_detalle(nota)
+                df = db.get_nota_detalle(nota)
                 if df.empty:
                     flash(f'No se encontró detalle para la Nota de Venta {nota}.', 'warning')
                 else:
@@ -1042,7 +1041,7 @@ def salida():
     if display_nv_items:
         stock_map = {}
         try:
-            df_st = db_utils.get_stock_actual()
+            df_st = db.get_stock_actual()
             for _, row in df_st.iterrows():
                 key = str(row.get('codigo', '')).strip()
                 stock_map[key] = {
@@ -1512,7 +1511,7 @@ def guia_despacho():
         return redirect(url_for('salida'))
 
     try:
-        header, detalles = db_utils.get_guia_desde_nv(num_nota)
+        header, detalles = db.get_guia_desde_nv(num_nota)
         if not header:
             flash(f'No se encontró información para la Nota de Venta {num_nota}.', 'warning')
             return redirect(url_for('salida'))
