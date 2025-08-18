@@ -12,7 +12,6 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import re
 import unicodedata
-import db_utils
 from db_utils import get_oc_detalle
 
 # --- Configuración de logging ---
