@@ -188,7 +188,7 @@ def get_guia_desde_nv(num_nota: str) -> tuple[dict, list[dict]]:
     header_sql = """
         SELECT
             CAST(NULL AS VARCHAR(50))       AS GD_NUM,
-            nv.NUMORD                       AS OC_NUM,
+            nv.NUMORDC                      AS OC_NUM,
             nv.RUTFACT                      AS FAV_RUT,
             c.RAZSOC                        AS FAV_RAZSOC,
             nv.NRUTCLIE                     AS DESP_A,
@@ -207,7 +207,7 @@ def get_guia_desde_nv(num_nota: str) -> tuple[dict, list[dict]]:
         LEFT JOIN dbo.PERSO_DB p  ON p.NUMREG   = nv.CODVEND
         JOIN dbo.NOTDE_DB nd ON nd.NUMRECOR = nv.NUMREG
         WHERE nv.NUMNOTA = :num_nota
-        GROUP BY nv.NUMORD, nv.RUTFACT, c.RAZSOC, nv.NRUTCLIE, p.CODIGO, p.NOMBRE, p.APELLIDO, nv.DIRDESP, nv.COMISION, nv.SUCUR, nv.GLOSACON
+        GROUP BY nv.NUMORDC, nv.RUTFACT, c.RAZSOC, nv.NRUTCLIE, p.CODIGO, p.NOMBRE, p.APELLIDO, nv.DIRDESP, nv.COMISION, nv.SUCUR, nv.GLOSACON
     """
     detail_sql = """
         SELECT
