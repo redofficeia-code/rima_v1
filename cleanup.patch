@@ -1,0 +1,39 @@
+diff --git a/test_db.py b/test_db.py
+index e69de29..abc1234 100644
+--- a/test_db.py
++++ b/test_db.py
+@@ -0,0 +1,20 @@
++from sqlalchemy import text
++from db import ENGINE  # usa el ENGINE centralizado
++
++
++def smoke_test():
++    try:
++        with ENGINE.connect() as conn:
++            print("✅ Conexión exitosa a SQL Server")
++            result = conn.execute(text("SELECT TOP 5 NOMBRE FROM ART_DB"))
++            for row in result:
++                print("Producto:", row[0])
++    except Exception as e:
++        print("❌ Error de conexión:", e)
++
++
++if __name__ == "__main__":
++    smoke_test()
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@ -1,5 +1,15 @@
+ import os
+ import re
++import unicodedata
++
++
++# ─── Normalización centralizada ────────────────────────────────
++def _norm(txt: str) -> str:
++    s = unicodedata.normalize("NFKD", str(txt))
++    s = s.encode("ascii", "ignore").decode().lower()
++    return re.sub(r"[^a-z0-9]", "", s)
++
++
+ # otros imports...
