@@ -78,9 +78,6 @@
       text-align:left;
     }
     th { background:#eee; }
-    td:nth-child(1), th:nth-child(1) {
-      width:120px;
-    }
     td:nth-child(2), th:nth-child(2) {
       max-width:200px;
       overflow:hidden;
@@ -100,106 +97,7 @@
 
     .form-row { display:flex; gap:1em; flex-wrap:wrap; }
     .form-col { flex:1 1 180px; }
-
-    .button-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px 80px;
-      max-width: 400px;
-      margin: 10px auto;
-    }
-
-    .button-grid button {
-      background: #0057d1;
-      border: none;
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-      border-radius: 12px;
-      box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-      color: white;
-      cursor: pointer;
-      font-size: 1.5em;
-      font-weight: bold;
-      width: 100%;
-      aspect-ratio: 1 / 1;
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-      border-radius: 8px;
-      box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-      color: white;
-      cursor: pointer;
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-      font-size: 1.2em;
-      font-weight: bold;
-      width: 100%;
-      height: 60px;
->>>>>>> theirs
-=======
-      font-size: 1.4em;
-      font-weight: bold;
-      width: 100%;
-      height: 80px;
->>>>>>> theirs
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-      font-size: 1.6em;
-      font-weight: bold;
-      width: 100%;
-      height: 100px;
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-      transition: background .2s;
-    }
-
-    .button-grid button:hover {
-      background: #00c0cb;
-      color: #0057d1;
-    }
-
-    @media (max-width: 600px) {
-<<<<<<< ours
-    .button-grid {
-      gap: 15px;
-      max-width: 100%;
-=======
-      .button-grid {
-        gap: 15px;
-        max-width: 100%;
-      }
->>>>>>> theirs
-    }
-  }
-</style>
+  </style>
 </head>
 <body>
   <a href="{{ url_for('index') }}" style="display:inline-block;margin:1.5em 0;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Inicio</a>
@@ -207,14 +105,6 @@
     <h1>Salida de Mercancía</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-<<<<<<< ours
-@media (max-width: 600px) {
-  .button-grid {
-    gap: 10px;
-    max-width: 100%;
-  }
-}
-=======
       {% if messages %}
         {% for cat, msg in messages %}
           <div class="flash-message flash-{{ cat }}">{{ msg }}</div>
@@ -229,32 +119,34 @@
       <input id="nv" type="text" name="nv" value="{{ nota|e }}" autofocus>
       <button type="submit">Buscar</button>
     </form>
-  </div>
 
-  <div class="button-grid">
-    <button type="button">1</button>
-    <button type="button">2</button>
-    <button type="button">3</button>
-    <button type="button">4</button>
-    <button type="button">5</button>
->>>>>>> theirs
-    <button type="button">6</button>
-  </div>
-
-  {% if nv_items %}
-  <div class="container">
+    {% if nv_items %}
     <div class="row">
       <!-- ── IZQUIERDA: Nota de Venta ───────────────────────────────── -->
       <div class="col">
         <h2>Nota de Venta {{ nota }}</h2>
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% endwith %}
-</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Cant.</th>
+              <th>Prec.Unit</th>
+              <th>Escaneado</th>
+              <th>Faltan</th>
             </tr>
           </thead>
           <tbody>
             {% for item in nv_items %}
-            <tr class="{% if item.scanned == 0 %}red-row{% elif item.scanned < item['Cant.'] %}yellow-row{% else %}green-row{% endif %}">
+            <tr class="
+              {% if item.scanned == 0 %}
+                red-row
+              {% elif item.scanned < item['Cant.'] %}
+                yellow-row
+              {% else %}
+                green-row
+              {% endif %}
+            ">
               <td>{{ item['Código'] }}</td>
               <td>{{ item['Nombre'] }}</td>
               <td>{{ item['Cant.'] }}</td>
@@ -313,7 +205,7 @@
     <form method="GET" action="{{ url_for('finalizar_salida') }}">
       <button type="submit">Terminar Proceso</button>
     </form>
+    {% endif %}
   </div>
-  {% endif %}
 </body>
 </html>
