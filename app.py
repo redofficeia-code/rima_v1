@@ -550,6 +550,12 @@ def nota_credito():
     return render_template('nota_credito.html')
 
 
+@app.route('/factura_nv')
+def factura_nv():
+    """Renderiza la página de Factura NV."""
+    return render_template('factura_nv.html')
+
+
 
 def ingreso_core(
     template,
