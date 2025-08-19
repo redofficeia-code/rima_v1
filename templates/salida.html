@@ -117,9 +117,15 @@
       box-shadow:2px 2px 5px rgba(0,0,0,0.3);
       position:relative;
       transition:background .2s;
+<<<<<<< ours
       width:30%;
       padding-bottom:30%;
       font-size:1.2em;
+=======
+      width:22%;
+      padding-bottom:22%;
+      font-size:1em;
+>>>>>>> theirs
     }
 
     .button-grid a span {
@@ -138,9 +144,14 @@
 
     @media (max-width: 600px) {
       .button-grid a {
+<<<<<<< ours
         width:40%;
         padding-bottom:40%;
         padding-top:2%;
+=======
+        width:35%;
+        padding-bottom:35%;
+>>>>>>> theirs
       }
     }
   </style>
@@ -165,7 +176,18 @@
       <input id="nv" type="text" name="nv" value="{{ nota|e }}" autofocus>
       <button type="submit">Buscar</button>
     </form>
+  </div>
 
+  <div class="button-grid">
+    <a href="#"><span>BOTÓN 1</span></a>
+    <a href="#"><span>BOTÓN 2</span></a>
+    <a href="#"><span>BOTÓN 3</span></a>
+    <a href="#"><span>BOTÓN 4</span></a>
+    <a href="#"><span>BOTÓN 5</span></a>
+    <a href="#"><span>BOTÓN 6</span></a>
+  </div>
+
+<<<<<<< ours
     <div class="button-grid">
       <a href="#"><span>BOTÓN 1</span></a>
       <a href="#"><span>BOTÓN 2</span></a>
@@ -176,6 +198,10 @@
     </div>
 
     {% if nv_items %}
+=======
+  {% if nv_items %}
+  <div class="container">
+>>>>>>> theirs
     <div class="row">
       <!-- ── IZQUIERDA: Nota de Venta ───────────────────────────────── -->
       <div class="col">
@@ -260,7 +286,7 @@
     <form method="GET" action="{{ url_for('finalizar_salida') }}">
       <button type="submit">Terminar Proceso</button>
     </form>
-    {% endif %}
   </div>
+  {% endif %}
 </body>
 </html>
