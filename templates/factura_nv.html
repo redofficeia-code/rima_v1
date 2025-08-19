@@ -1,0 +1,194 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factura de Venta – WMS</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(to right, #00c0cb, #0057d1);
+      color: #333;
+    }
+    .invoice-container {
+      width: 90%;
+      max-width: 1200px;
+      margin: 1em auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 1em 1.5em;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    }
+    h1 { text-align:center; margin-top:0; }
+    form { font-size: 0.9em; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.5em 1em;
+      margin-bottom: 1em;
+      align-items: center;
+    }
+    .grid label {
+      font-weight: bold;
+      text-align: right;
+      padding-right: 0.5em;
+    }
+    .grid input, .grid select {
+      width: 100%;
+      padding: 0.3em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.4em;
+      text-align: left;
+    }
+    th { background: #f0f0f0; }
+    .footer-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1em;
+      margin: 1em 0;
+    }
+    .footer-options label {
+      font-weight: normal;
+    }
+    textarea {
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 0.5em;
+      resize: vertical;
+    }
+    .ref-section {
+      background: #f9f9f9;
+      padding: 1em;
+      border-radius: 4px;
+      margin-top: 2em;
+    }
+    .ref-section h2 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice-container">
+    <h1>Factura de Venta</h1>
+    <form>
+      <div class="grid">
+        <label for="fav">FAV Nº</label>
+        <input id="fav" name="fav" type="text">
+        <label for="fav_a">FAV A</label>
+        <input id="fav_a" name="fav_a" type="text">
+        <label for="fecha">Fecha</label>
+        <input id="fecha" name="fecha" type="date">
+        <label for="vencimiento">Vencimiento</label>
+        <input id="vencimiento" name="vencimiento" type="date">
+        <label for="aceptacion">Fec. Aceptación</label>
+        <input id="aceptacion" name="aceptacion" type="date">
+        <label for="glosa_pago">Glosa Pago</label>
+        <input id="glosa_pago" name="glosa_pago" type="text">
+        <label for="moneda">Moneda</label>
+        <input id="moneda" name="moneda" type="text" value="0.0000">
+      </div>
+
+      <div class="grid">
+        <label for="cliente">Cliente</label>
+        <input id="cliente" name="cliente" type="text">
+        <label for="condicion">Condición</label>
+        <input id="condicion" name="condicion" type="text">
+        <label for="vendedor">Vendedor</label>
+        <input id="vendedor" name="vendedor" type="text">
+        <label for="comisionista">Comisionista</label>
+        <input id="comisionista" name="comisionista" type="text">
+        <label for="sucursal">Sucursal</label>
+        <input id="sucursal" name="sucursal" type="text">
+        <label for="tipo_venta">Tipo Venta</label>
+        <input id="tipo_venta" name="tipo_venta" type="text">
+        <label for="giro">Giro</label>
+        <input id="giro" name="giro" type="text">
+        <label for="descuento">Descuento</label>
+        <input id="descuento" name="descuento" type="text">
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><input type="text" name="code1"></td>
+            <td><input type="text" name="desc1"></td>
+            <td><input type="number" name="qty1" min="0"></td>
+            <td><input type="number" name="price1" step="0.01" min="0"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="footer-options">
+        <label><input type="radio" name="tipo_despacho" value="cliente" checked> Retira Cliente</label>
+        <label><input type="radio" name="tipo_despacho" value="packing"> Despacho Packing</label>
+        <label><input type="radio" name="tipo_despacho" value="tercero"> Despacho Tercero</label>
+      </div>
+
+      <div class="footer-options">
+        <label><input type="checkbox" name="rebaja_stock"> Rebaja Stock</label>
+        <label><input type="checkbox" name="forma_pago"> Forma de Pago</label>
+        <label><input type="checkbox" name="afecto_fijo"> Afecto Fijo</label>
+        <label><input type="checkbox" name="tipo_transaccion"> Tipo Transacción</label>
+      </div>
+
+      <div class="grid">
+        <label for="atencion">Atención a</label>
+        <input id="atencion" name="atencion" type="text">
+        <label for="cta_contable">Cta Contable</label>
+        <input id="cta_contable" name="cta_contable" type="text">
+        <label for="cliente2">Clientes</label>
+        <input id="cliente2" name="cliente2" type="text">
+        <label for="ot">OT N°</label>
+        <input id="ot" name="ot" type="text">
+        <label for="proceso">Proceso N°</label>
+        <input id="proceso" name="proceso" type="text">
+        <label for="glosa">Glosa</label>
+        <input id="glosa" name="glosa" type="text">
+        <label for="caja">Caja N°</label>
+        <input id="caja" name="caja" type="text">
+        <label for="rut_transportista">Rut Transportista</label>
+        <input id="rut_transportista" name="rut_transportista" type="text">
+        <label for="rut_mandante">Rut Mandante</label>
+        <input id="rut_mandante" name="rut_mandante" type="text">
+      </div>
+
+      <label for="observaciones">Observaciones</label>
+      <textarea id="observaciones" name="observaciones" rows="4"></textarea>
+
+      <div class="ref-section">
+        <h2>Referencias a otros documentos</h2>
+        <div class="grid" style="grid-template-columns:repeat(4, 1fr);">
+          <label for="orden_compra">Orden de Compra N°</label>
+          <input id="orden_compra" name="orden_compra" type="text">
+          <label for="guia_despacho">Guía Despacho</label>
+          <input id="guia_despacho" name="guia_despacho" type="text">
+          <label for="fec_oc">Fec. OC</label>
+          <input id="fec_oc" name="fec_oc" type="date">
+          <label for="fec_gd">Fec. GD</label>
+          <input id="fec_gd" name="fec_gd" type="date">
+        </div>
+      </div>
+    </form>
+  </div>
+</body>
+</html>
