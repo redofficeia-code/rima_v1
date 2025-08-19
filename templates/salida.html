@@ -97,6 +97,30 @@
 
     .form-row { display:flex; gap:1em; flex-wrap:wrap; }
     .form-col { flex:1 1 180px; }
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1em;
+      max-width: 400px;
+      margin: 2em auto;
+    }
+    .options-grid a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border: 2px solid #0057d1;
+      border-radius: 8px;
+      padding: 2em 0;
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #0057d1;
+      text-decoration: none;
+    }
+    .options-grid a:hover {
+      background: #0057d1;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -119,6 +143,17 @@
       <input id="nv" type="text" name="nv" value="{{ nota|e }}" autofocus>
       <button type="submit">Buscar</button>
     </form>
+
+    {% if not nv_items %}
+    <div class="options-grid">
+      <a href="#">1</a>
+      <a href="#">2</a>
+      <a href="#">3</a>
+      <a href="#">4</a>
+      <a href="#">5</a>
+      <a href="#">6</a>
+    </div>
+    {% endif %}
 
     {% if nv_items %}
     <div class="row">
