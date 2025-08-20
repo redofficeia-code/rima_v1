@@ -30,23 +30,31 @@
       margin-bottom: 1em;
       align-items: center;
     }
-    .grid-double {
-      display: grid;
-      grid-template-columns: repeat(2, auto 80px 1fr);
-      gap: 0.5em 1em;
-      margin-bottom: 1em;
-      align-items: center;
-    }
-    .grid label, .grid-double label {
+    .grid label {
       font-weight: bold;
       text-align: right;
       padding-right: 0.5em;
     }
-    .grid input, .grid select, .grid-double input, .grid-double select {
+    .grid input, .grid select {
       width: 100%;
       padding: 0.3em;
       border: 1px solid #ccc;
       border-radius: 4px;
+    }
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1em;
+    }
+    .header-table th,
+    .header-table td {
+      border: 1px solid #ccc;
+      padding: 0.3em;
+    }
+    .header-table .label {
+      font-weight: bold;
+      background: #f9f9f9;
+      white-space: nowrap;
     }
     table {
       width: 100%;
@@ -90,56 +98,54 @@
   <div class="invoice-container">
     <h1>Factura de Venta</h1>
     <form>
-      <div class="grid">
-        <label for="fav">FAV Nº</label>
-        <input id="fav" name="fav" type="text">
-        <label for="fav_a">FAV A</label>
-        <input id="fav_a" name="fav_a" type="text" value="{{ header.FAV_A or '' }}">
-        <label for="fecha">Fecha</label>
-        <input id="fecha" name="fecha" type="date">
-        <label for="vencimiento">Vencimiento</label>
-        <input id="vencimiento" name="vencimiento" type="date">
-        <label for="aceptacion">Fec. Aceptación</label>
-        <input id="aceptacion" name="aceptacion" type="date">
-        <label for="glosa_pago">Glosa Pago</label>
-        <input id="glosa_pago" name="glosa_pago" type="text">
-        <label for="moneda">Moneda</label>
-        <input id="moneda" name="moneda" type="text" value="0.0000">
-      </div>
-
-      <div class="grid-double">
-        <label for="cliente_codigo">Cliente</label>
-        <input id="cliente_codigo" name="cliente_codigo" type="text">
-        <input id="cliente_nombre" name="cliente_nombre" type="text">
-
-        <label for="condicion_codigo">Condición</label>
-        <input id="condicion_codigo" name="condicion_codigo" type="text">
-        <input id="condicion_nombre" name="condicion_nombre" type="text">
-
-        <label for="vendedor_codigo">Vendedor</label>
-        <input id="vendedor_codigo" name="vendedor_codigo" type="text" value="{{ header.VEND_CODIGO or '' }}">
-        <input id="vendedor_nombre" name="vendedor_nombre" type="text" value="{{ header.VEND_NOMBRE or '' }}">
-
-        <label for="comisionista_codigo">Comisionista</label>
-        <input id="comisionista_codigo" name="comisionista_codigo" type="text">
-        <input id="comisionista_nombre" name="comisionista_nombre" type="text">
-
-        <label for="sucursal_codigo">Sucursal</label>
-        <input id="sucursal_codigo" name="sucursal_codigo" type="text">
-        <input id="sucursal_nombre" name="sucursal_nombre" type="text">
-
-        <label for="tipo_venta_codigo">Tipo Venta</label>
-        <input id="tipo_venta_codigo" name="tipo_venta_codigo" type="text">
-        <input id="tipo_venta_nombre" name="tipo_venta_nombre" type="text">
-
-        <label for="giro_codigo">Giro</label>
-        <input id="giro_codigo" name="giro_codigo" type="text">
-        <input id="giro_nombre" name="giro_nombre" type="text">
-
-        <label for="descuento_codigo">Descuento</label>
-        <input id="descuento_codigo" name="descuento_codigo" type="text">
-        <input id="descuento_nombre" name="descuento_nombre" type="text">
-      </div>
+      <table class="header-table">
+        <tr>
+          <td class="label">FAV Nº</td>
+          <td><input id="fav" name="fav" type="text"></td>
+          <td class="label">Fecha</td>
+          <td><input id="fecha" name="fecha" type="date"></td>
+          <td class="label">Vencimiento</td>
+          <td><input id="vencimiento" name="vencimiento" type="date"></td>
+        </tr>
+        <tr>
+          <td class="label">FAV A</td>
+          <td><input id="fav_a" name="fav_a" type="text" value="{{ header.FAV_A or '' }}"></td>
+          <td class="label">Fec. Aceptación</td>
+          <td><input id="aceptacion" name="aceptacion" type="date"></td>
+          <td class="label">Glosa Pago</td>
+          <td><input id="glosa_pago" name="glosa_pago" type="text"></td>
+        </tr>
+        <tr>
+          <td class="label">Cliente</td>
+          <td><input id="cliente_codigo" name="cliente_codigo" type="text"></td>
+          <td colspan="2"><input id="cliente_nombre" name="cliente_nombre" type="text"></td>
+          <td class="label">Moneda</td>
+          <td><input id="moneda" name="moneda" type="text" value="0.0000"></td>
+        </tr>
+        <tr>
+          <td class="label">Comisionista</td>
+          <td><input id="comisionista_codigo" name="comisionista_codigo" type="text"></td>
+          <td class="label">Vendedor</td>
+          <td><input id="vendedor_codigo" name="vendedor_codigo" type="text" value="{{ header.VEND_CODIGO or '' }}"></td>
+          <td class="label">Comisión %</td>
+          <td><input id="comision_pct" name="comision_pct" type="number" step="0.01"></td>
+        </tr>
+        <tr>
+          <td class="label">GD Nº</td>
+          <td><input id="gd" name="gd" type="text"></td>
+          <td class="label">O/C Nº</td>
+          <td><input id="oc" name="oc" type="text"></td>
+          <td class="label">Tipo Venta</td>
+          <td><input id="tipo_venta" name="tipo_venta" type="text"></td>
+        </tr>
+        <tr>
+          <td class="label">Sucursal</td>
+          <td><input id="sucursal_codigo" name="sucursal_codigo" type="text"></td>
+          <td colspan="2"><input id="sucursal_nombre" name="sucursal_nombre" type="text"></td>
+          <td class="label">Descuento</td>
+          <td><input id="descuento" name="descuento" type="number" step="0.01">%</td>
+        </tr>
+      </table>
 
       <table>
         <thead>
