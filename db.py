@@ -244,3 +244,12 @@ def get_factura_desde_nv(num_nota: str) -> dict:
     """
     df = query_df(sql, {"num_nota": num_nota})
     return df.iloc[0].to_dict() if not df.empty else {}
+
+
+# --- Ejecutar SQL no-SELECT (INSERT/UPDATE/MERGE/DDL) ---
+from sqlalchemy import text  # ya debería estar importado arriba; si no, déjalo
+
+
+def execute(sql: str, params: dict | None = None) -> None:
+    with ENGINE.begin() as conn:
+        conn.execute(text(sql), params or {})
