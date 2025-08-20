@@ -97,7 +97,7 @@
 
     <div class="secondary">
       <a href="{{ url_for('listados') }}">
-        <span>LISTADOS</span>
+        <span>{{ 'GESTIONAR LISTADOS' if session.get('role') in ['admin','cargar'] else 'LISTADOS' }}</span>
       </a>
       <a href="{{ url_for('inventario') }}">
         <span>INVENTARIO</span>
