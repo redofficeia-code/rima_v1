@@ -238,12 +238,9 @@
 
   {% if not nv_items %}
   <div class="options-grid">
-    <a href="#">La Serena</a>
-    <a href="#">Puerto Montt</a>
-    <a href="#">Santiago</a>
-    <a href="#">Los Vilos</a>
-    <a href="#">Copiapó</a>
-    <a href="#">Linares</a>
+    {% for h in hubs %}
+      <a class="btn-hub" href="{{ url_for('salida_por_hub', hub_id=h.ID) }}">{{ h.NOMBRE }}</a>
+    {% endfor %}
   </div>
   {% endif %}
 </body>
