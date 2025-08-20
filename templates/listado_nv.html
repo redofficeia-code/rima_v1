@@ -120,6 +120,14 @@
     {% if not ordenes %}
       <p>No hay notas de venta pendientes para mostrar.</p>
     {% else %}
+      {% if session.get('role') in ['admin','cargar'] %}
+        <div style="text-align:right;margin:8px 0 12px;">
+          <a href="{{ url_for('nv_gestionar') }}"
+             style="background:#0057d1;color:#fff;padding:6px 12px;border-radius:8px;text-decoration:none;">
+            Gestionar
+          </a>
+        </div>
+      {% endif %}
       <div class="table-wrap">
         <table>
           <thead>
