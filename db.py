@@ -229,3 +229,18 @@ def get_guia_desde_nv(num_nota: str) -> tuple[dict, list[dict]]:
     header = df_h.iloc[0].to_dict() if not df_h.empty else {}
     detalles = df_d.to_dict(orient="records")
     return header, detalles
+
+
+def get_factura_desde_nv(num_nota: str) -> dict:
+    """Obtiene datos para prellenar la Factura de Venta desde una Nota de Venta."""
+    sql = """
+        SELECT
+            nv.RUTFAC                       AS FAV_A,
+            p.CODIGO                        AS VEND_CODIGO,
+            CONCAT(p.NOMBRE, ' ', p.APELLIDO) AS VEND_NOMBRE
+        FROM dbo.NOTV_DB nv
+        LEFT JOIN dbo.PERSO_DB p ON p.NUMREG = nv.CODVEND
+        WHERE nv.NUMNOTA = :num_nota
+    """
+    df = query_df(sql, {"num_nota": num_nota})
+    return df.iloc[0].to_dict() if not df.empty else {}
