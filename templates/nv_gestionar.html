@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Gestionar Notas de Venta</title>
+  <style>
+    body { font-family: sans-serif; background: #f7f9fc; margin: 0; }
+    .wrap { max-width: 1200px; margin: 24px auto; background:#fff; padding:16px; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.06); }
+    h2 { margin: 0 0 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #e9edf3; font-size: 14px; }
+    th { text-align: left; background: #f0f4fa; }
+    .row-actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+    .btn { padding: 6px 10px; border: 0; border-radius: 8px; cursor: pointer; }
+    .btn-prim { background:#0d6efd; color:#fff; }
+    .btn-sec  { background:#e9edf3; color:#111; }
+    select.hub-select { display:none; padding:6px 8px; border:1px solid #cfd6e4; border-radius:8px; }
+    .hub-visible { display:inline-block !important; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <h2>Gestionar Notas de Venta</h2>
+    <a class="btn btn-sec" href="{{ url_for('listado_nv') }}">← Volver</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Num. Nota</th>
+        <th>RUT</th>
+        <th>Ciudad</th>
+        <th>Razón Social</th>
+        <th>Fecha Entrega</th>
+        <th>Cantidad</th>
+        <th>Cant. Desp.</th>
+        <th>Precio Unitario</th>
+        <th>Pendiente</th>
+        <th>Terminado</th>
+        <th style="text-align:right;">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r['Num. Nota'] }}</td>
+        <td>{{ r['RUT'] }}</td>
+        <td>{{ r['Ciudad'] }}</td>
+        <td>{{ r['Razón Social'] }}</td>
+        <td>{{ r['Fecha Entrega'] }}</td>
+        <td>{{ r['Cantidad'] }}</td>
+        <td>{{ r['Cant. Desp.'] }}</td>
+        <td>{{ r['Precio Unitario'] }}</td>
+        <td>{{ r['Pendiente'] }}</td>
+        <td>{{ r['Terminado'] }}</td>
+        <td>
+          <div class="row-actions">
+            <!-- APROBAR + ASIGNAR -->
+            <form method="post" action="{{ url_for('nv_gestionar_accion') }}" style="display:inline-flex;align-items:center;gap:8px;">
+              <input type="hidden" name="numnota" value="{{ r['Num. Nota'] }}">
+              <input type="hidden" name="accion" value="aprobar">
+              <button type="button" class="btn btn-prim btn-aprobar">Aprobar</button>
+              <select name="hub_id" class="hub-select">
+                <option value="">— Seleccionar hub —</option>
+                {% for h in hubs %}
+                  <option value="{{ h.ID }}">{{ h.NOMBRE }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-prim btn-assign" style="display:none;">Asignar</button>
+            </form>
+
+            <!-- PENDIENTE -->
+            <form method="post" action="{{ url_for('nv_gestionar_accion') }}" style="display:inline-flex;">
+              <input type="hidden" name="numnota" value="{{ r['Num. Nota'] }}">
+              <input type="hidden" name="accion" value="pendiente">
+              <button type="submit" class="btn btn-sec">Pendiente</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  // "Aprobar" => muestra select de hub y el botón "Asignar"
+  document.querySelectorAll('.btn-aprobar').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const row = e.target.closest('.row-actions');
+      const select = row.querySelector('select.hub-select');
+      const assignBtn = row.querySelector('.btn-assign');
+      select.classList.add('hub-visible');
+      assignBtn.style.display = 'inline-block';
+      select.focus();
+    });
+  });
+</script>
+</body>
+</html>
