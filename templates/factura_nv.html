@@ -30,12 +30,19 @@
       margin-bottom: 1em;
       align-items: center;
     }
-    .grid label {
+    .grid-double {
+      display: grid;
+      grid-template-columns: repeat(2, auto 80px 1fr);
+      gap: 0.5em 1em;
+      margin-bottom: 1em;
+      align-items: center;
+    }
+    .grid label, .grid-double label {
       font-weight: bold;
       text-align: right;
       padding-right: 0.5em;
     }
-    .grid input, .grid select {
+    .grid input, .grid select, .grid-double input, .grid-double select {
       width: 100%;
       padding: 0.3em;
       border: 1px solid #ccc;
@@ -100,23 +107,38 @@
         <input id="moneda" name="moneda" type="text" value="0.0000">
       </div>
 
-      <div class="grid">
-        <label for="cliente">Cliente</label>
-        <input id="cliente" name="cliente" type="text">
-        <label for="condicion">Condición</label>
-        <input id="condicion" name="condicion" type="text">
-        <label for="vendedor">Vendedor</label>
-        <input id="vendedor" name="vendedor" type="text">
-        <label for="comisionista">Comisionista</label>
-        <input id="comisionista" name="comisionista" type="text">
-        <label for="sucursal">Sucursal</label>
-        <input id="sucursal" name="sucursal" type="text">
-        <label for="tipo_venta">Tipo Venta</label>
-        <input id="tipo_venta" name="tipo_venta" type="text">
-        <label for="giro">Giro</label>
-        <input id="giro" name="giro" type="text">
-        <label for="descuento">Descuento</label>
-        <input id="descuento" name="descuento" type="text">
+      <div class="grid-double">
+        <label for="cliente_codigo">Cliente</label>
+        <input id="cliente_codigo" name="cliente_codigo" type="text">
+        <input id="cliente_nombre" name="cliente_nombre" type="text">
+
+        <label for="condicion_codigo">Condición</label>
+        <input id="condicion_codigo" name="condicion_codigo" type="text">
+        <input id="condicion_nombre" name="condicion_nombre" type="text">
+
+        <label for="vendedor_codigo">Vendedor</label>
+        <input id="vendedor_codigo" name="vendedor_codigo" type="text">
+        <input id="vendedor_nombre" name="vendedor_nombre" type="text">
+
+        <label for="comisionista_codigo">Comisionista</label>
+        <input id="comisionista_codigo" name="comisionista_codigo" type="text">
+        <input id="comisionista_nombre" name="comisionista_nombre" type="text">
+
+        <label for="sucursal_codigo">Sucursal</label>
+        <input id="sucursal_codigo" name="sucursal_codigo" type="text">
+        <input id="sucursal_nombre" name="sucursal_nombre" type="text">
+
+        <label for="tipo_venta_codigo">Tipo Venta</label>
+        <input id="tipo_venta_codigo" name="tipo_venta_codigo" type="text">
+        <input id="tipo_venta_nombre" name="tipo_venta_nombre" type="text">
+
+        <label for="giro_codigo">Giro</label>
+        <input id="giro_codigo" name="giro_codigo" type="text">
+        <input id="giro_nombre" name="giro_nombre" type="text">
+
+        <label for="descuento_codigo">Descuento</label>
+        <input id="descuento_codigo" name="descuento_codigo" type="text">
+        <input id="descuento_nombre" name="descuento_nombre" type="text">
       </div>
 
       <table>
