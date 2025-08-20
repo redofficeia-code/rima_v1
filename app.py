@@ -552,8 +552,17 @@ def nota_credito():
 
 @app.route('/factura_nv')
 def factura_nv():
-    """Renderiza la página de Factura NV."""
-    return render_template('factura_nv.html')
+    """Prellena la Factura de Venta con datos de una Nota de Venta."""
+    num_nota = (request.args.get('num_nota') or '').strip()
+    header = {}
+    if num_nota:
+        try:
+            header = db.get_factura_desde_nv(num_nota)
+            if not header:
+                flash(f'No se encontró información para la Nota de Venta {num_nota}.', 'warning')
+        except Exception as e:
+            flash(f'Error al consultar la BBDD: {e}', 'danger')
+    return render_template('factura_nv.html', header=header, num_nota=num_nota, datetime=datetime)
 
 
 
