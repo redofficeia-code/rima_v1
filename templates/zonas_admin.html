@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Gestionar Zonas</title>
+  <style>
+    body { font-family: sans-serif; background:#f7f9fc; margin:0; }
+    .wrap { max-width: 900px; margin: 24px auto; background:#fff; padding:16px; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.06); }
+    h2 { margin: 0 0 16px; }
+    form.inline { display:flex; gap:8px; align-items:center; }
+    input[type="text"] { padding:8px 10px; border:1px solid #cfd6e4; border-radius:8px; width: 320px; }
+    button { padding:8px 12px; border:0; border-radius:8px; cursor:pointer; }
+    .btn-prim { background:#0d6efd; color:#fff; }
+    .btn-del  { background:#ff4d4f; color:#fff; }
+    table { width:100%; border-collapse: collapse; margin-top:16px; }
+    th, td { padding:8px 10px; border-bottom:1px solid #e9edf3; font-size:14px; }
+    th { text-align:left; background:#f0f4fa; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    a.btn-back { text-decoration:none; background:#e9edf3; color:#111; padding:8px 12px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <h2>Gestionar Zonas</h2>
+      <a class="btn-back" href="{{ url_for('listados') }}">← Volver</a>
+    </div>
+
+    <form class="inline" method="post" action="{{ url_for('zonas_admin_add') }}">
+      <label for="nombre">Nueva zona:</label>
+      <input id="nombre" name="nombre" type="text" placeholder="Ej: La Serena" required>
+      <button type="submit" class="btn-prim">Agregar</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre de zona</th>
+          <th style="text-align:right;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for z in zonas %}
+        <tr>
+          <td>{{ z.ID }}</td>
+          <td>{{ z.NOMBRE }}</td>
+          <td style="text-align:right;">
+            <form method="post" action="{{ url_for('zonas_admin_delete') }}" onsubmit="return confirm('¿Eliminar la zona {{ z.NOMBRE }}?');" style="display:inline;">
+              <input type="hidden" name="hub_id" value="{{ z.ID }}">
+              <button type="submit" class="btn-del">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if zonas|length == 0 %}
+        <tr><td colspan="3" style="color:#666;">No hay zonas registradas.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
