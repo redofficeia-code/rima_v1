@@ -83,7 +83,13 @@
   <div class="container">
     <header>Listados</header>
     <ul class="menu">
-      <li><a href="{{ url_for('listado_oc') }}"><span>Órdenes de Compra</span></a></li>
+      <li>
+        {% if session.get('role') in ['admin','cargar'] %}
+          <a href="{{ url_for('zonas_admin') }}"><span>Gestionar zonas</span></a>
+        {% else %}
+          <a href="{{ url_for('listado_oc') }}"><span>Órdenes de Compra</span></a>
+        {% endif %}
+      </li>
       <li><a href="{{ url_for('listado_nv') }}"><span>Notas de Venta</span></a></li>
     </ul>
     <a href="{{ url_for('index') }}" style="display:inline-block;margin:1.5em 0;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Inicio</a>
