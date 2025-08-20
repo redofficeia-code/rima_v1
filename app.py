@@ -26,12 +26,23 @@ except ModuleNotFoundError as exc:
         "Could not import required module 'db'. Ensure 'db.py' exists."
     ) from exc
 
+
+def is_admin_or_cargar():
+    return session.get('role') in ('admin', 'cargar')
+
 # --- Configuración de logging ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = 'CAMBIAR_POR_CLAVE_SECRETA'  # necesario para session
+
+
+@app.route('/_debug/role/<rol>')
+def _debug_set_role(rol):
+    session['role'] = rol
+    flash(f'Rol seteado a: {rol}', 'info')
+    return redirect(url_for('index'))
 
 # --- Directorios y rutas de archivos ---
 BASE_DIR     = os.path.dirname(__file__)
@@ -54,6 +65,88 @@ INV_SESIONES_FILE = os.path.join(DATA_DIR, 'inv_sesiones.csv')
 
 ALLOWED_EXT  = {'csv', 'xls', 'xlsx'}
 FIELDNAMES   = ['codigo_producto', 'cantidad', 'ultima_actualizacion']
+
+
+def _nv_rows_for_gestion():
+    """
+    Lee NV desde NV_FILE detectando la fila de cabecera y devuelve
+    las columnas pedidas para gestión:
+    Num. Nota, RUT, Ciudad, Razón Social, Fecha Entrega,
+    Cantidad, Cant. Desp., Precio Unitario, Pendiente, Terminado
+    """
+    if not os.path.exists(NV_FILE) or os.path.getsize(NV_FILE) == 0:
+        return []
+
+    # 1) Detectar cabecera
+    df_raw = pd.read_csv(NV_FILE, header=None, dtype=str, keep_default_na=False)
+
+    expected = {'ciudad','fecha','numnota','rut','razonsocial','canal','fechaentrega','formadepago'}
+
+    def _norm(txt: str) -> str:
+        s = unicodedata.normalize("NFKD", str(txt))
+        s = s.encode("ascii", "ignore").decode().lower()
+        return re.sub(r'[^a-z0-9]', '', s)
+
+    header_idx = 0
+    for i, row in df_raw.iterrows():
+        norms = {_norm(cell) for cell in row if cell}
+        if expected.issubset(norms):
+            header_idx = i
+            break
+
+    # 2) Leer con cabecera detectada
+    df = pd.read_csv(NV_FILE, header=header_idx, dtype=str, keep_default_na=False)
+    df.columns = [c.strip() for c in df.columns]
+
+    # 3) Selector robusto de columna
+    def pick(*names):
+        # Primero por coincidencia exacta
+        for n in names:
+            if n in df.columns:
+                return n
+        # Luego por normalización
+        def nz(s):
+            return re.sub(r'[^a-z0-9]', '', str(s).lower())
+        inv = {nz(c): c for c in df.columns}
+        for n in names:
+            key = nz(n)
+            if key in inv:
+                return inv[key]
+        return None
+
+    c_num = pick('Num. Nota', 'NUMNOTA', 'N° Nota', 'NumNota')
+    c_rut = pick('RUT', 'Rut')
+    c_ciud = pick('Ciudad', 'CIUDAD')
+    c_raz = pick('Razón Social', 'Razon Social', 'RAZON SOCIAL', 'Cliente')
+    c_fent = pick('Fecha Entrega', 'Entrega', 'Fecha', 'FechaEntrega')
+    c_qty = pick('Cantidad', 'Cant.')
+    c_dsp = pick('Cant. Desp.', 'Cant. Despachada', 'Cant desp', 'Cant Desp', 'CANTDESP')
+    c_pu = pick('Precio Unitario', 'Prec. Unit.', 'Prec Unit', 'Prec.Unit.')
+
+    out = pd.DataFrame()
+    out['Num. Nota'] = df[c_num] if c_num else ''
+    out['RUT'] = df[c_rut] if c_rut else ''
+    out['Ciudad'] = df[c_ciud] if c_ciud else ''
+    out['Razón Social'] = df[c_raz] if c_raz else ''
+    out['Fecha Entrega'] = df[c_fent] if c_fent else df.get('Fecha', '')
+
+    def to_num_series(s):
+        return pd.to_numeric(
+            s.astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False),
+            errors='coerce'
+        ).fillna(0)
+
+    out['Cantidad'] = to_num_series(df[c_qty]) if c_qty else 0
+    out['Cant. Desp.'] = to_num_series(df[c_dsp]) if c_dsp else 0
+    out['Precio Unitario'] = to_num_series(df[c_pu]) if c_pu else 0
+
+    out['Pendiente'] = (out['Cantidad'] - out['Cant. Desp.']).astype(int)
+    out['Terminado'] = out['Pendiente'].apply(lambda x: 'SI' if x == 0 else 'NO')
+
+    # Tipos básicos para mostrar bonito
+    out['Cantidad'] = out['Cantidad'].astype(int)
+    out['Cant. Desp.'] = out['Cant. Desp.'].astype(int)
+    return out.to_dict(orient='records')
 
 # --- Integración con la base de datos ---
 def fetch_oc_items(num_oc):
@@ -509,6 +602,69 @@ def listado_nv():
 
 
 
+
+
+@app.route('/nv/gestionar')
+def nv_gestionar():
+    if not is_admin_or_cargar():
+        flash('No tienes permisos para gestionar.', 'warning')
+        return redirect(url_for('listado_nv'))
+
+    rows = _nv_rows_for_gestion()
+    hubs = db.query_df("SELECT ID, NOMBRE FROM WMS.HUBS ORDER BY NOMBRE", {})
+    hubs_list = hubs.to_dict(orient='records') if not hubs.empty else []
+    return render_template('nv_gestionar.html', rows=rows, hubs=hubs_list)
+
+
+@app.route('/nv/gestionar/accion', methods=['POST'])
+def nv_gestionar_accion():
+    if not is_admin_or_cargar():
+        flash('No tienes permisos para gestionar.', 'warning')
+        return redirect(url_for('listado_nv'))
+
+    numnota = request.form.get('numnota')
+    accion = request.form.get('accion')
+    hub_id = request.form.get('hub_id')
+
+    if not numnota or not accion:
+        flash('Faltan datos de la acción.', 'warning')
+        return redirect(url_for('nv_gestionar'))
+
+    if accion == 'aprobar':
+        if not hub_id:
+            flash('Selecciona un hub para aprobar y asignar.', 'warning')
+            return redirect(url_for('nv_gestionar'))
+
+        sql_upsert = """
+        MERGE WMS.NV_REVIEW AS T
+        USING (SELECT CAST(:numnota AS INT) AS NUMNOTA) AS S
+          ON (T.NUMNOTA = S.NUMNOTA)
+        WHEN MATCHED THEN
+          UPDATE SET ESTADO='asignada', HUB_ID=:hub, FECHA_ASIGNACION=:f
+        WHEN NOT MATCHED THEN
+          INSERT (NUMNOTA, ESTADO, HUB_ID, FECHA_ASIGNACION)
+          VALUES (:numnota, 'asignada', :hub, :f);
+        """
+        db.execute(sql_upsert, {"numnota": numnota, "hub": hub_id, "f": datetime.now()})
+        flash(f'NV {numnota} aprobada y asignada.', 'success')
+
+    elif accion == 'pendiente':
+        sql_upsert = """
+        MERGE WMS.NV_REVIEW AS T
+        USING (SELECT CAST(:numnota AS INT) AS NUMNOTA) AS S
+          ON (T.NUMNOTA = S.NUMNOTA)
+        WHEN MATCHED THEN
+          UPDATE SET ESTADO='pendiente', HUB_ID=NULL, FECHA_ASIGNACION=NULL
+        WHEN NOT MATCHED THEN
+          INSERT (NUMNOTA, ESTADO) VALUES (:numnota, 'pendiente');
+        """
+        db.execute(sql_upsert, {"numnota": numnota})
+        flash(f'NV {numnota} marcada como pendiente.', 'info')
+
+    else:
+        flash('Acción no reconocida.', 'warning')
+
+    return redirect(url_for('nv_gestionar'))
 
 
 @app.route('/notas/preview')
