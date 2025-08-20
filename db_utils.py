@@ -7,6 +7,7 @@ from db import (
     get_nota_detalle,
     get_stock_actual,
     get_guia_desde_nv,
+    get_factura_desde_nv,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "get_nota_detalle",
     "get_stock_actual",
     "get_guia_desde_nv",
+    "get_factura_desde_nv",
 ]
