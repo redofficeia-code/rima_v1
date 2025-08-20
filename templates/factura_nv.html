@@ -94,7 +94,7 @@
         <label for="fav">FAV Nº</label>
         <input id="fav" name="fav" type="text">
         <label for="fav_a">FAV A</label>
-        <input id="fav_a" name="fav_a" type="text">
+        <input id="fav_a" name="fav_a" type="text" value="{{ header.FAV_A or '' }}">
         <label for="fecha">Fecha</label>
         <input id="fecha" name="fecha" type="date">
         <label for="vencimiento">Vencimiento</label>
@@ -117,8 +117,8 @@
         <input id="condicion_nombre" name="condicion_nombre" type="text">
 
         <label for="vendedor_codigo">Vendedor</label>
-        <input id="vendedor_codigo" name="vendedor_codigo" type="text">
-        <input id="vendedor_nombre" name="vendedor_nombre" type="text">
+        <input id="vendedor_codigo" name="vendedor_codigo" type="text" value="{{ header.VEND_CODIGO or '' }}">
+        <input id="vendedor_nombre" name="vendedor_nombre" type="text" value="{{ header.VEND_NOMBRE or '' }}">
 
         <label for="comisionista_codigo">Comisionista</label>
         <input id="comisionista_codigo" name="comisionista_codigo" type="text">
