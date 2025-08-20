@@ -109,11 +109,14 @@
         </tr>
         <tr>
           <td class="label">FAV A</td>
-          <td><input id="fav_a" name="fav_a" type="text" value="{{ header.FAV_A or '' }}"></td>
+          <td><input id="fav_a_codigo" name="fav_a_codigo" type="text"></td>
+          <td colspan="2"><input id="fav_a_nombre" name="fav_a_nombre" type="text" value="{{ header.FAV_A or '' }}"></td>
           <td class="label">Fec. Aceptación</td>
           <td><input id="aceptacion" name="aceptacion" type="date"></td>
+        </tr>
+        <tr>
           <td class="label">Glosa Pago</td>
-          <td><input id="glosa_pago" name="glosa_pago" type="text"></td>
+          <td colspan="5"><input id="glosa_pago" name="glosa_pago" type="text"></td>
         </tr>
         <tr>
           <td class="label">Cliente</td>
