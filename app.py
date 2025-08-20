@@ -667,6 +667,66 @@ def nv_gestionar_accion():
     return redirect(url_for('nv_gestionar'))
 
 
+# --- Admin: gestionar zonas -------------------------------------------------
+
+@app.route('/admin/zonas', methods=['GET'])
+def zonas_admin():
+    if not is_admin_or_cargar():
+        flash('No tienes permisos para gestionar zonas.', 'warning')
+        return redirect(url_for('index'))
+    df = db.query_df("SELECT ID, NOMBRE FROM WMS.HUBS ORDER BY NOMBRE", {})
+    rows = df.to_dict(orient='records') if not df.empty else []
+    return render_template('zonas_admin.html', zonas=rows)
+
+
+@app.route('/admin/zonas/add', methods=['POST'])
+def zonas_admin_add():
+    if not is_admin_or_cargar():
+        flash('No tienes permisos para gestionar zonas.', 'warning')
+        return redirect(url_for('index'))
+
+    nombre = (request.form.get('nombre') or '').strip()
+    if not nombre:
+        flash('Debes ingresar un nombre de zona.', 'warning')
+        return redirect(url_for('zonas_admin'))
+
+    exist = db.query_df(
+        "SELECT 1 AS X FROM WMS.HUBS WHERE UPPER(NOMBRE)=UPPER(:n)",
+        {"n": nombre}
+    )
+    if not exist.empty:
+        flash(f'La zona "{nombre}" ya existe.', 'info')
+        return redirect(url_for('zonas_admin'))
+
+    db.execute("INSERT INTO WMS.HUBS(NOMBRE) VALUES (:n)", {"n": nombre})
+    flash(f'Zona "{nombre}" agregada correctamente.', 'success')
+    return redirect(url_for('zonas_admin'))
+
+
+@app.route('/admin/zonas/delete', methods=['POST'])
+def zonas_admin_delete():
+    if not is_admin_or_cargar():
+        flash('No tienes permisos para gestionar zonas.', 'warning')
+        return redirect(url_for('index'))
+
+    hub_id = request.form.get('hub_id')
+    if not hub_id:
+        flash('Falta el ID de la zona a eliminar.', 'warning')
+        return redirect(url_for('zonas_admin'))
+
+    in_use = db.query_df(
+        "SELECT TOP 1 1 AS X FROM WMS.NV_REVIEW WHERE HUB_ID = :id",
+        {"id": hub_id}
+    )
+    if not in_use.empty:
+        flash('No puedes eliminar esta zona porque tiene NV asignadas.', 'warning')
+        return redirect(url_for('zonas_admin'))
+
+    db.execute("DELETE FROM WMS.HUBS WHERE ID=:id", {"id": hub_id})
+    flash('Zona eliminada.', 'success')
+    return redirect(url_for('zonas_admin'))
+
+
 @app.route('/notas/preview')
 def notas_preview():
     if not os.path.exists(NV_FILE):
@@ -1069,6 +1129,9 @@ def salida():
     nv_items     = session.get('nv_items', [])        # detalle NV (desde BBDD)
     salida_items = session.get('salida_items', [])    # items para salida/escaneo
 
+    hubs_df = db.query_df("SELECT ID, NOMBRE FROM WMS.HUBS WHERE 1=1 ORDER BY NOMBRE", {})
+    hubs = hubs_df.to_dict(orient='records') if not hubs_df.empty else []
+
     if request.method == 'POST':
         action = request.form.get('action', 'buscar_nv')
         session['guia_datos'] = request.form.to_dict()
@@ -1244,7 +1307,8 @@ def salida():
         guia_actual=guia_actual,
         nv_items=display_nv_items,
         salida_items=salida_items,
-        stock_items=stock_items
+        stock_items=stock_items,
+        hubs=hubs
     )
 
 
