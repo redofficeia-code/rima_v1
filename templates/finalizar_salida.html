@@ -72,6 +72,7 @@
     </form>
 
     <form method="GET" action="{{ url_for('factura_nv') }}">
+        <input type="hidden" name="num_nota" value="{{ num_nota }}">
         <button type="submit">🧾 Factura</button>
     </form>
 
