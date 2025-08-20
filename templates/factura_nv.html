@@ -128,25 +128,30 @@
         <tr>
           <td class="label">Comisionista</td>
           <td><input id="comisionista_codigo" name="comisionista_codigo" type="text"></td>
+          <td><input id="comisionista_nombre" name="comisionista_nombre" type="text"></td>
           <td class="label">Vendedor</td>
           <td><input id="vendedor_codigo" name="vendedor_codigo" type="text" value="{{ header.VEND_CODIGO or '' }}"></td>
-          <td class="label">Comisión %</td>
-          <td><input id="comision_pct" name="comision_pct" type="number" step="0.01"></td>
+          <td><input id="vendedor_nombre" name="vendedor_nombre" type="text"></td>
         </tr>
         <tr>
+          <td class="label">Comisión %</td>
+          <td><input id="comision_pct" name="comision_pct" type="number" step="0.01"></td>
           <td class="label">GD Nº</td>
           <td><input id="gd" name="gd" type="text"></td>
           <td class="label">O/C Nº</td>
           <td><input id="oc" name="oc" type="text"></td>
-          <td class="label">Tipo Venta</td>
-          <td><input id="tipo_venta" name="tipo_venta" type="text"></td>
         </tr>
         <tr>
+          <td class="label">Tipo Venta</td>
+          <td><input id="tipo_venta" name="tipo_venta" type="text"></td>
           <td class="label">Sucursal</td>
           <td><input id="sucursal_codigo" name="sucursal_codigo" type="text"></td>
           <td colspan="2"><input id="sucursal_nombre" name="sucursal_nombre" type="text"></td>
+        </tr>
+        <tr>
           <td class="label">Descuento</td>
           <td><input id="descuento" name="descuento" type="number" step="0.01">%</td>
+          <td colspan="4"></td>
         </tr>
       </table>
 
