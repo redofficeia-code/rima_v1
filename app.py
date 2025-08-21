@@ -12,6 +12,13 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import re
 import unicodedata
+from models import db as orm_db, Zona, AsignacionNV
+from services.asignaciones import (
+    upsert_asignacion,
+    nv_asignadas_por_zona,
+    marcar_asignacion_completada,
+)
+from services.nv_query import get_nv_headers_by_nums
 try:
     import sqlalchemy  # noqa: F401
 except ModuleNotFoundError as exc:
@@ -30,12 +37,30 @@ except ModuleNotFoundError as exc:
 def is_admin_or_cargar():
     return session.get('role') in ('admin', 'cargar')
 
+
+def require_admin():
+    role = (session.get('role') or '').lower()
+    if role != 'admin':
+        abort(403)
+
 # --- Configuración de logging ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = 'CAMBIAR_POR_CLAVE_SECRETA'  # necesario para session
+
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data/app.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["DATA_DIR"] = DATA_DIR
+orm_db.init_app(app)
+
+with app.app_context():
+    orm_db.create_all()
+    for nombre in ["Puerto Montt", "Santiago", "Concepción"]:
+        if not Zona.query.filter_by(nombre=nombre).first():
+            orm_db.session.add(Zona(nombre=nombre))
+    orm_db.session.commit()
 
 
 @app.route('/_debug/role/<rol>')
@@ -604,6 +629,27 @@ def listado_nv():
 
 
 
+@app.route("/admin/asignar_nv", methods=["POST"])
+def admin_asignar_nv():
+    require_admin()
+    num_nota = (request.form.get("num_nota") or "").strip()
+    zona_id = int(request.form.get("zona_id") or 0)
+    if not num_nota or not zona_id:
+        flash("Debes seleccionar una zona y una NV.", "warning")
+        return redirect(request.referrer or url_for("listado_nv"))
+
+    upsert_asignacion(num_nota, zona_id, assigned_by=session.get("usuario", "admin"))
+    flash(f"NV {num_nota} asignada correctamente.", "success")
+    return redirect(request.referrer or url_for("listado_nv"))
+
+
+@app.route("/admin/asignar_nv/form/<num_nota>")
+def admin_asignar_form(num_nota):
+    require_admin()
+    zonas = Zona.query.order_by(Zona.nombre.asc()).all()
+    return render_template("admin/asignar_nv.html", num_nota=num_nota, zonas=zonas)
+
+
 @app.route('/nv/gestionar')
 def nv_gestionar():
     if not is_admin_or_cargar():
@@ -1129,6 +1175,18 @@ def salida():
     nv_items     = session.get('nv_items', [])        # detalle NV (desde BBDD)
     salida_items = session.get('salida_items', [])    # items para salida/escaneo
 
+    zonas = Zona.query.order_by(Zona.nombre.asc()).all()
+
+    nv_asignadas = []
+    zona_sel_id = request.values.get("zona_id")
+    if zona_sel_id:
+        try:
+            zona_sel_id_int = int(zona_sel_id)
+            nums = nv_asignadas_por_zona(zona_sel_id_int, estados=["pendiente"])
+            nv_asignadas = get_nv_headers_by_nums(nums)
+        except Exception:
+            nv_asignadas = []
+
     hub_id = request.args.get('hub_id', type=int)
     if hub_id is not None:
         hubs_df = db.query_df(
@@ -1250,6 +1308,7 @@ def salida():
 
             # Si todo OK: (aquí podrías insertar movimiento, generar GD, etc.)
             session.pop('salida_items', None)
+            marcar_asignacion_completada(nota)
             flash('Salida finalizada correctamente.', 'success')
             return redirect(url_for('salida'))
 
@@ -1317,7 +1376,10 @@ def salida():
         nv_items=display_nv_items,
         salida_items=salida_items,
         stock_items=stock_items,
-        hubs=hubs
+        hubs=hubs,
+        zonas=zonas,
+        zona_sel_id=zona_sel_id,
+        nv_asignadas=nv_asignadas
     )
 
 
