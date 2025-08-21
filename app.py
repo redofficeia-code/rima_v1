@@ -1129,7 +1129,16 @@ def salida():
     nv_items     = session.get('nv_items', [])        # detalle NV (desde BBDD)
     salida_items = session.get('salida_items', [])    # items para salida/escaneo
 
-    hubs_df = db.query_df("SELECT ID, NOMBRE FROM WMS.HUBS WHERE 1=1 ORDER BY NOMBRE", {})
+    hub_id = request.args.get('hub_id', type=int)
+    if hub_id is not None:
+        hubs_df = db.query_df(
+            "SELECT ID, NOMBRE FROM WMS.HUBS WHERE ID = :hub_id ORDER BY NOMBRE",
+            {"hub_id": hub_id},
+        )
+    else:
+        hubs_df = db.query_df(
+            "SELECT ID, NOMBRE FROM WMS.HUBS WHERE 1=1 ORDER BY NOMBRE", {}
+        )
     hubs = hubs_df.to_dict(orient='records') if not hubs_df.empty else []
 
     if request.method == 'POST':
