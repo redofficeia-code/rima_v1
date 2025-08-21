@@ -72,6 +72,22 @@
       background: #00c0cb;
       color: #0057d1;
     }
+    .secondary-link {
+      display: inline-block;
+      margin-top: 1em;
+      background: #0057d1;
+      color: white;
+      padding: 0.5em 1em;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.9em;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+      transition: background .2s, color .2s;
+    }
+    .secondary-link:hover {
+      background: #00c0cb;
+      color: #0057d1;
+    }
     /* en pistola 2-1 (dos arriba, uno abajo) */
     @media (max-width: 480px) {
       ul.menu li { flex: 0 0 90%; max-width: 90%; }
@@ -83,15 +99,14 @@
   <div class="container">
     <header>Listados</header>
     <ul class="menu">
-      <li>
-        {% if session.get('role') in ['admin','cargar'] %}
-          <a href="{{ url_for('zonas_admin') }}"><span>Gestionar zonas</span></a>
-        {% else %}
-          <a href="{{ url_for('listado_oc') }}"><span>Órdenes de Compra</span></a>
-        {% endif %}
-      </li>
+      {% if session.get('role') not in ['admin','cargar'] %}
+        <li><a href="{{ url_for('listado_oc') }}"><span>Órdenes de Compra</span></a></li>
+      {% endif %}
       <li><a href="{{ url_for('listado_nv') }}"><span>Notas de Venta</span></a></li>
     </ul>
+    {% if session.get('role') in ['admin','cargar'] %}
+      <a href="{{ url_for('zonas_admin') }}" class="secondary-link">Gestionar zonas</a>
+    {% endif %}
     <a href="{{ url_for('index') }}" style="display:inline-block;margin:1.5em 0;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Inicio</a>
   </div>
 </body>
