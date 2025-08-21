@@ -1,0 +1,11 @@
+<form method="post" action="{{ url_for('admin_asignar_nv') }}">
+  <input type="hidden" name="num_nota" value="{{ num_nota }}">
+  <label>Zona:</label>
+  <select name="zona_id" required>
+    <option value="">– Seleccionar –</option>
+    {% for z in zonas %}
+      <option value="{{ z.id }}">{{ z.nombre }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Asignar</button>
+</form>
