@@ -35,9 +35,9 @@ except ModuleNotFoundError as exc:
 
 
 # --- Directorios y rutas de archivos ---
-BASE_DIR = os.path.dirname(__file__)
-DATA_DIR = os.path.join(BASE_DIR, 'data')
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
 
 def is_admin_or_cargar():
     return session.get('role') in ('admin', 'cargar')
@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = 'CAMBIAR_POR_CLAVE_SECRETA'  # necesario para session
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data/app.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(DATA_DIR, 'app.db')}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["DATA_DIR"] = DATA_DIR
 orm_db.init_app(app)
@@ -74,9 +74,7 @@ def _debug_set_role(rol):
     flash(f'Rol seteado a: {rol}', 'info')
     return redirect(url_for('index'))
 
-# --- Directorios y rutas de archivos ---
-os.makedirs(DATA_DIR, exist_ok=True)
-
+# --- Rutas de archivos ---
 GUIDE_FOLDER = os.path.join(DATA_DIR, 'guides')
 os.makedirs(GUIDE_FOLDER, exist_ok=True)
 
