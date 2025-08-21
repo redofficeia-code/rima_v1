@@ -15,10 +15,8 @@ import unicodedata
 from models import db as orm_db, Zona, AsignacionNV
 from services.asignaciones import (
     upsert_asignacion,
-    nv_asignadas_por_zona,
     marcar_asignacion_completada,
 )
-from services.nv_query import get_nv_headers_by_nums
 try:
     import sqlalchemy  # noqa: F401
 except ModuleNotFoundError as exc:
@@ -1176,18 +1174,6 @@ def salida():
     nv_items     = session.get('nv_items', [])        # detalle NV (desde BBDD)
     salida_items = session.get('salida_items', [])    # items para salida/escaneo
 
-    zonas = Zona.query.order_by(Zona.nombre.asc()).all()
-
-    nv_asignadas = []
-    zona_sel_id = request.values.get("zona_id")
-    if zona_sel_id:
-        try:
-            zona_sel_id_int = int(zona_sel_id)
-            nums = nv_asignadas_por_zona(zona_sel_id_int, estados=["pendiente"])
-            nv_asignadas = get_nv_headers_by_nums(nums)
-        except Exception:
-            nv_asignadas = []
-
     hub_id = request.args.get('hub_id', type=int)
     if hub_id is not None:
         hubs_df = db.query_df(
@@ -1378,9 +1364,6 @@ def salida():
         salida_items=salida_items,
         stock_items=stock_items,
         hubs=hubs,
-        zonas=zonas,
-        zona_sel_id=zona_sel_id,
-        nv_asignadas=nv_asignadas
     )
 
 
