@@ -34,6 +34,11 @@ except ModuleNotFoundError as exc:
     ) from exc
 
 
+# --- Directorios y rutas de archivos ---
+BASE_DIR = os.path.dirname(__file__)
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+
+
 def is_admin_or_cargar():
     return session.get('role') in ('admin', 'cargar')
 
@@ -70,8 +75,6 @@ def _debug_set_role(rol):
     return redirect(url_for('index'))
 
 # --- Directorios y rutas de archivos ---
-BASE_DIR     = os.path.dirname(__file__)
-DATA_DIR     = os.path.join(BASE_DIR, 'data')
 os.makedirs(DATA_DIR, exist_ok=True)
 
 GUIDE_FOLDER = os.path.join(DATA_DIR, 'guides')
