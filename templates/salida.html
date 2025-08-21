@@ -136,6 +136,23 @@
       {% endif %}
     {% endwith %}
 
+    <form method="get" action="{{ url_for('salida') }}" style="margin-bottom:1rem">
+      <label>Zona/Lugar:</label>
+      <select name="zona_id" onchange="this.form.submit()">
+        <option value="">– Seleccionar –</option>
+        {% for z in zonas %}
+          <option value="{{ z.id }}" {% if zona_sel_id and zona_sel_id|int == z.id %}selected{% endif %}>{{ z.nombre }}</option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit">Ver</button></noscript>
+    </form>
+
+    {% if zona_sel_id and nv_asignadas %}
+      {% include "listados/_tabla_nv.html" %}
+    {% elif zona_sel_id %}
+      <p>No hay notas de venta asignadas a esta zona.</p>
+    {% endif %}
+
     <!-- ── Buscar Nota de Venta ───────────────────────────────────────── -->
     <form method="POST" class="search-form">
       <input type="hidden" name="action" value="buscar_nv">
