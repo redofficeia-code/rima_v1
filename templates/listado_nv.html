@@ -135,6 +135,9 @@
               {% for col in columns %}
                 <th>{{ col }}</th>
               {% endfor %}
+              {% if session.get('role') == 'admin' %}
+                <th>Acciones</th>
+              {% endif %}
             </tr>
           </thead>
           <tbody>
@@ -143,6 +146,9 @@
               {% for col in columns %}
                 <td{% if col == 'Terminado' %} style="color:{% if fila[col]|upper == 'NO' %}red{% elif fila[col]|upper == 'SI' %}green{% else %}inherit{% endif %};"{% endif %}>{{ fila[col] }}</td>
               {% endfor %}
+              {% if session.get('role') == 'admin' %}
+                <td><a href="{{ url_for('admin_asignar_form', num_nota=fila['Num. Nota']) }}">Asignar</a></td>
+              {% endif %}
             </tr>
             {% endfor %}
           </tbody>
