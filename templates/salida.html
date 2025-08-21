@@ -239,7 +239,7 @@
   {% if not nv_items %}
   <div class="options-grid">
     {% for h in hubs %}
-      <a class="btn-hub" href="{{ url_for('salida_por_hub', hub_id=h.ID) }}">{{ h.NOMBRE }}</a>
+      <a class="btn-hub" href="{{ url_for('salida', hub_id=h.ID) }}">{{ h.NOMBRE }}</a>
     {% endfor %}
   </div>
   {% endif %}
