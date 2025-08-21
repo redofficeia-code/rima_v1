@@ -1,0 +1,32 @@
+<table class="tabla">
+  <thead>
+    <tr>
+      <th>Num. Nota</th>
+      <th>RUT Cliente</th>
+      <th>Fecha</th>
+      <th>Sucursal</th>
+      <th>Total</th>
+      <th>Estado</th>
+      {% if session.get('role') == 'admin' %}
+        <th>Acciones</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in nv_asignadas %}
+    <tr>
+      <td>{{ r.NUMNOTA }}</td>
+      <td>{{ r.NRUTCLIE }}</td>
+      <td>{{ r.FECHA }}</td>
+      <td>{{ r.SUCUR }}</td>
+      <td>{{ r.TOTAL }}</td>
+      <td>{{ r.ESTADO }}</td>
+      {% if session.get('role') == 'admin' %}
+        <td>
+          <a href="{{ url_for('admin_asignar_form', num_nota=r.NUMNOTA) }}">Reasignar</a>
+        </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
