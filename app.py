@@ -56,6 +56,42 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+# --- Whitelist de endpoints públicos (no requieren sesión) ---
+PUBLIC_ENDPOINTS = {
+    "login1",      # /login
+    "login2",      # /login_operario
+    "logout",
+    "static",      # archivos estáticos
+}
+
+@app.before_request
+def force_auth():
+    """
+    Obliga a:
+      - Usuarios sin sesión -> /login
+      - Operarios (rol OPERARIO BODEGA) sin login 2 -> /login_operario
+    Permite:
+      - Endpoints en PUBLIC_ENDPOINTS
+      - /static/*
+    """
+    # En algunos casos (404/errores) endpoint puede venir None
+    endpoint = (request.endpoint or "").split(".")[-1]
+
+    # Permitir rutas públicas y estáticos
+    if endpoint in PUBLIC_ENDPOINTS or (request.path or "").startswith("/static/"):
+        return
+
+    # 1) Sin Login 1 -> ir a /login
+    if "user1" not in session:
+        return redirect(url_for("login1", next=request.path))
+
+    # 2) Operario debe pasar por Login 2 antes de cualquier otra vista
+    rol = (session["user1"].get("rol", "") or "").upper()
+    if rol == ROL_OPERARIO and "operario" not in session:
+        # Permite que visite /login_operario y /logout mientras se identifica
+        if endpoint not in {"login2", "logout", "static"}:
+            return redirect(url_for("login2", next=request.path))
+
 # --- Sesiones ---
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "cambia-esto")
 app.permanent_session_lifetime = 60 * 60 * 8  # 8 horas
@@ -2035,7 +2071,19 @@ def panel_operario():
 # (Opcional) Home
 @app.route("/")
 def home():
-    return render_template("home.html")
+    # Sin sesión -> a login 1
+    if "user1" not in session:
+        return redirect(url_for("login1"))
+
+    # Con sesión: decide según rol y si ya pasó login 2
+    if session["user1"]["rol"] == ROL_JEFE:
+        return redirect(url_for("panel_jefe"))
+
+    # Operario: si no se ha identificado aún, pedir login 2
+    if "operario" not in session:
+        return redirect(url_for("login2"))
+
+    return redirect(url_for("panel_operario"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
