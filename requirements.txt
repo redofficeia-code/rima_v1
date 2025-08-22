@@ -4,3 +4,4 @@ SQLAlchemy>=2.0
 flask_sqlalchemy
 pyodbc
 python-dotenv
+passlib[bcrypt]
