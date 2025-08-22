@@ -32,6 +32,13 @@
       border: none;
       border-radius: 8px;
     }
+    select {
+      width: 100%;
+      padding: 0.6em;
+      margin: 0.5em 0;
+      border: none;
+      border-radius: 8px;
+    }
     button {
       background: #ffeb0c;
       border: none;
@@ -57,7 +64,10 @@
       {% if m %}<div class="error">{{ m[0] }}</div>{% endif %}
     {% endwith %}
     <form method="post">
-      <input name="nombre" placeholder="NOMBRE (USER_DB)" required>
+      <select name="nombre" required>
+        <option value="JEFE BODEGA">JEFE BODEGA</option>
+        <option value="OPERARIO BODEGA">OPERARIO BODEGA</option>
+      </select>
       <input name="password" type="password" placeholder="PASSWORD" required>
       <button>Entrar</button>
     </form>
