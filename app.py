@@ -16,6 +16,7 @@ from models import db as orm_db, Zona, AsignacionNV
 from services.asignaciones import (
     upsert_asignacion,
     marcar_asignacion_completada,
+    nv_asignadas_por_zona,
 )
 try:
     import sqlalchemy  # noqa: F401
@@ -1186,6 +1187,14 @@ def salida():
         )
     hubs = hubs_df.to_dict(orient='records') if not hubs_df.empty else []
 
+    assigned_nvs = []
+    if hub_id is not None:
+        try:
+            assigned_nvs = nv_asignadas_por_zona(hub_id, estados=["pendiente"])
+        except Exception as e:
+            current_app.logger.error(f"Error al obtener NV asignadas: {e}")
+
+
     if request.method == 'POST':
         action = request.form.get('action', 'buscar_nv')
         session['guia_datos'] = request.form.to_dict()
@@ -1364,6 +1373,7 @@ def salida():
         salida_items=salida_items,
         stock_items=stock_items,
         hubs=hubs,
+        assigned_nvs=assigned_nvs,
     )
 
 
