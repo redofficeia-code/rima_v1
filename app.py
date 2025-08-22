@@ -18,6 +18,8 @@ from services.asignaciones import (
     upsert_asignacion,
     marcar_asignacion_completada,
 )
+from auth_service import login_nivel1, login_nivel2_operario
+from auth_map import ROL_JEFE, ROL_OPERARIO
 try:
     import sqlalchemy  # noqa: F401
     from sqlalchemy import text
@@ -55,7 +57,8 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # --- Sesiones ---
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "cambia-esto-por-una-clave-segura")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "cambia-esto")
+app.permanent_session_lifetime = 60 * 60 * 8  # 8 horas
 
 # --- Clave admin (por ENV o por defecto) ---
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "admin123")
@@ -1929,6 +1932,110 @@ def descargar_xls():
         download_name=os.path.basename(path),
         mimetype='application/vnd.ms-excel'
     )
+
+
+# ---- Helpers de protección ----
+def login_required(f):
+    @wraps(f)
+    def w(*a, **k):
+        if session.get("user1"):
+            return f(*a, **k)
+        return redirect(url_for("login1", next=request.path))
+    return w
+
+
+def require_rol(rol):
+    def deco(f):
+        @wraps(f)
+        def w(*a, **k):
+            u = session.get("user1")
+            if not u:
+                return redirect(url_for("login1"))
+            if (u["rol"] or "").upper() != rol.upper():
+                abort(403)
+            return f(*a, **k)
+        return w
+    return deco
+
+
+def require_operario_identificado(f):
+    @wraps(f)
+    def w(*a, **k):
+        u = session.get("user1")
+        if not u:
+            return redirect(url_for("login1"))
+        if (u["rol"] or "").upper() != ROL_OPERARIO:
+            abort(403)
+        if not session.get("operario"):
+            return redirect(url_for("login2"))
+        return f(*a, **k)
+    return w
+
+
+@app.context_processor
+def inject_user():
+    return dict(current_user=session.get("user1"), current_operario=session.get("operario"))
+
+
+# ---- Login 1 (USER_DB) ----
+@app.route("/login", methods=["GET", "POST"])
+def login1():
+    if request.method == "POST":
+        nombre = (request.form.get("nombre") or "").strip()
+        pwd = request.form.get("password") or ""
+        u = login_nivel1(nombre, pwd)
+        if not u:
+            flash("Credenciales inválidas o usuario inactivo.", "error")
+            return render_template("login1.html")
+        session["user1"] = u
+        session.permanent = True
+        if u["rol"] == ROL_JEFE:
+            return redirect(url_for("panel_jefe"))
+        return redirect(url_for("login2"))
+    return render_template("login1.html")
+
+
+# ---- Login 2 (PERSO_DB) ----
+@app.route("/login_operario", methods=["GET", "POST"])
+def login2():
+    u = session.get("user1")
+    if not u or (u["rol"] != ROL_OPERARIO):
+        return redirect(url_for("login1"))
+    if request.method == "POST":
+        cod = (request.form.get("codigo") or "").strip()
+        clave = request.form.get("clave") or ""
+        op = login_nivel2_operario(cod, clave)
+        if not op:
+            flash("Código o clave (Nombre) inválidos, o usuario inactivo.", "error")
+            return render_template("login2.html")
+        session["operario"] = op
+        return redirect(url_for("panel_operario"))
+    return render_template("login2.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login1"))
+
+
+# ---- Vistas protegidas ----
+@app.route("/admin")
+@require_rol(ROL_JEFE)
+def panel_jefe():
+    return render_template("admin/index.html")
+
+
+@app.route("/operario")
+@require_operario_identificado
+def panel_operario():
+    return render_template("operario/index.html")
+
+
+# (Opcional) Home
+@app.route("/")
+def home():
+    return render_template("home.html")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
