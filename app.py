@@ -4,6 +4,7 @@ import math
 import io
 import logging
 from datetime import datetime
+from functools import wraps
 from flask import (
     Flask, render_template, request, redirect,
     url_for, flash, session, send_file, current_app, abort
@@ -52,7 +53,29 @@ logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = 'CAMBIAR_POR_CLAVE_SECRETA'  # necesario para session
+
+# --- Sesiones ---
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "cambia-esto-por-una-clave-segura")
+
+# --- Clave admin (por ENV o por defecto) ---
+ADMIN_KEY = os.environ.get("ADMIN_KEY", "admin123")
+
+# --- Decorador de autorización admin ---
+def admin_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        # Si ya hay sesión admin, pasa
+        if session.get("is_admin"):
+            return f(*args, **kwargs)
+
+        # Backdoor de desarrollo con ?key=... (no usar en prod)
+        key = request.args.get("key")
+        if key and key == ADMIN_KEY:
+            session["is_admin"] = True
+            return f(*args, **kwargs)
+
+        abort(403)
+    return wrapper
 
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(DATA_DIR, 'app.db')}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -72,6 +95,35 @@ def _debug_set_role(rol):
     session['role'] = rol
     flash(f'Rol seteado a: {rol}', 'info')
     return redirect(url_for('index'))
+
+# --- Login admin (GET muestra form, POST valida) ---
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        if request.form.get("password") == ADMIN_KEY:
+            session["is_admin"] = True
+            return redirect(url_for("admin_dashboard"))
+        flash("Clave inválida", "error")
+    return render_template("admin/login.html")
+
+# --- Dashboard admin ---
+@app.route("/admin")
+@admin_required
+def admin_dashboard():
+    return render_template("admin/index.html")
+
+# --- Ejemplo de sección protegida: Gestionar listados ---
+@app.route("/admin/listados")
+@admin_required
+def admin_listados():
+    # Si ya existe otra vista real, renderízala aquí
+    return render_template("admin/listados.html")
+
+# --- Logout admin ---
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop("is_admin", None)
+    return redirect(url_for("admin_login"))
 
 # --- Rutas de archivos ---
 GUIDE_FOLDER = os.path.join(DATA_DIR, 'guides')
