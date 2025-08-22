@@ -1,0 +1,9 @@
+<!doctype html>
+<meta charset="utf-8">
+<h1>Ingreso (Login 1)</h1>
+{% with m=get_flashed_messages(category_filter=["error"]) %}{% if m %}<div style="color:red">{{m[0]}}</div>{% endif %}{% endwith %}
+<form method="post">
+  <input name="nombre" placeholder="NOMBRE (USER_DB)" required>
+  <input name="password" type="password" placeholder="PASSWORD" required>
+  <button>Entrar</button>
+</form>

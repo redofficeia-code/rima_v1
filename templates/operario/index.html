@@ -1,0 +1,9 @@
+<!doctype html>
+<meta charset="utf-8">
+<h1>Panel OPERARIO BODEGA</h1>
+{% if current_operario %}
+  <p>Operario: {{ current_operario.nombre }} ({{ current_operario.codigo }})</p>
+  {% if current_operario.cargo %}<p>Cargo: {{ current_operario.cargo }}</p>{% endif %}
+  {% if current_operario.sucursal %}<p>Sucursal: {{ current_operario.sucursal }}</p>{% endif %}
+{% endif %}
+<nav><a href="{{ url_for('logout') }}">Salir</a></nav>

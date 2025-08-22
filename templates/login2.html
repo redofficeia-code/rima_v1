@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<h1>Identificación Operario (Login 2)</h1>
+<p>Rol actual: OPERARIO BODEGA</p>
+{% with m=get_flashed_messages(category_filter=["error"]) %}{% if m %}<div style="color:red">{{m[0]}}</div>{% endif %}{% endwith %}
+<form method="post">
+  <input name="codigo" placeholder="CODIGO (PERSO_DB.CODIGO)" required>
+  <input name="clave"  placeholder="NOMBRE exacto (PERSO_DB.NOMBRE)" required>
+  <button>Continuar</button>
+</form>

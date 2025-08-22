@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<h1>Home</h1>
+{% if current_user %}
+  <p>Hola, {{ current_user.nombre }} ({{ current_user.rol }})</p>
+  {% if current_user.rol == 'JEFE BODEGA' %}
+    <a href="{{ url_for('panel_jefe') }}">Ir al panel de Jefe</a>
+  {% else %}
+    <a href="{{ url_for('login2') }}">Identificar Operario</a>
+  {% endif %}
+  <a href="{{ url_for('logout') }}">Salir</a>
+{% else %}
+  <a href="{{ url_for('login1') }}">Ingresar</a>
+{% endif %}
