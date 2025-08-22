@@ -244,52 +244,46 @@
 
   {% if not nv_items %}
   {% if not zona_seleccionada %}
-    <div class="zonas-grid">
-      <a class="tile" href="{{ url_for('salida') }}?zona=LA SERENA">LA SERENA</a>
-      <a class="tile" href="{{ url_for('salida') }}?zona=LINARES">LINARES</a>
-      <a class="tile" href="{{ url_for('salida') }}?zona=LOS LAGOS">LOS LAGOS</a>
-      <a class="tile" href="{{ url_for('salida') }}?zona=PUERTO MONTT">PUERTO MONTT</a>
-      <a class="tile" href="{{ url_for('salida') }}?zona=RANCAGUA">RANCAGUA</a>
-      <a class="tile" href="{{ url_for('salida') }}?zona=SANTIAGO">SANTIAGO</a>
-    </div>
+  <div class="zonas-grid">
+    <a class="tile" href="{{ url_for('salida') }}?zona=LA SERENA">LA SERENA</a>
+    <a class="tile" href="{{ url_for('salida') }}?zona=LINARES">LINARES</a>
+    <a class="tile" href="{{ url_for('salida') }}?zona=LOS LAGOS">LOS LAGOS</a>
+    <a class="tile" href="{{ url_for('salida') }}?zona=PUERTO MONTT">PUERTO MONTT</a>
+    <a class="tile" href="{{ url_for('salida') }}?zona=RANCAGUA">RANCAGUA</a>
+    <a class="tile" href="{{ url_for('salida') }}?zona=SANTIAGO">SANTIAGO</a>
+  </div>
   {% else %}
-    <div class="zona-header" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
-      <h2>Notas de Venta asignadas a {{ zona_seleccionada }}</h2>
-      <a class="btn" href="{{ url_for('salida') }}">← Volver a zonas</a>
-    </div>
+  <h2>Notas de Venta asignadas a {{ zona_seleccionada }}</h2>
+  <a href="{{ url_for('salida') }}">← Volver a zonas</a>
 
-    {% if lista_nv and lista_nv|length > 0 %}
-      <table class="tabla-nv">
-        <thead>
-          <tr>
-            <th>NV</th>
-            <th>Fecha</th>
-            <th>Sucursal</th>
-            <th>Cliente</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for nv in lista_nv %}
-          <tr>
-            <td>{{ nv.numnota }}</td>
-            <td>{{ nv.fecha }}</td>
-            <td>{{ nv.sucursal }}</td>
-            <td>{{ nv.cliente }}</td>
-            <td>
-              <form method="post" action="{{ url_for('salida') }}">
-                <input type="hidden" name="action" value="buscar_nv">
-                <input type="hidden" name="nv" value="{{ nv.numnota }}">
-                <button type="submit" class="btn">Cargar NV</button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p>No hay Notas de Venta asignadas a esta zona.</p>
-    {% endif %}
+  {% if lista_nv and lista_nv|length > 0 %}
+  <table>
+    <thead>
+      <tr>
+        <th>NV</th><th>Fecha</th><th>Sucursal</th><th>Cliente</th><th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for nv in lista_nv %}
+      <tr>
+        <td>{{ nv.numnota }}</td>
+        <td>{{ nv.fecha }}</td>
+        <td>{{ nv.sucursal }}</td>
+        <td>{{ nv.cliente }}</td>
+        <td>
+          <form method="post" action="{{ url_for('salida') }}">
+            <input type="hidden" name="action" value="buscar_nv">
+            <input type="hidden" name="nv" value="{{ nv.numnota }}">
+            <button type="submit">Cargar NV</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No hay Notas de Venta asignadas a esta zona.</p>
+  {% endif %}
   {% endif %}
   {% endif %}
 </body>
