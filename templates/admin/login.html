@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es">
+  <head><meta charset="utf-8"><title>Login Admin</title></head>
+  <body>
+    <h1>Acceso Administrador</h1>
+    {% with msgs = get_flashed_messages(category_filter=["error"]) %}
+      {% if msgs %}
+        <div style="color:red">{{ msgs[0] }}</div>
+      {% endif %}
+    {% endwith %}
+    <form method="post">
+      <input type="password" name="password" placeholder="Clave admin" required>
+      <button type="submit">Entrar</button>
+    </form>
+    <p style="margin-top:10px">
+      <small>Dev shortcut: /admin?key=admin123 (solo desarrollo)</small>
+    </p>
+  </body>
+</html>
