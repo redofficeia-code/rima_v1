@@ -68,6 +68,9 @@
       <a href="{{ url_for('listados') }}"><span>LISTADOS</span></a>
       <a href="{{ url_for('inventario') }}"><span>INVENTARIO</span></a>
       <a href="{{ url_for('devoluciones') }}"><span>DEVOLUCIONES</span></a>
+      {% if session.get('is_admin') %}
+      <a href="{{ url_for('admin_dashboard') }}"><span>Gestionar listados</span></a>
+      {% endif %}
     </div>
 
     {% block content %}{% endblock %}
