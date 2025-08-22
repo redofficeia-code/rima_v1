@@ -16,10 +16,10 @@ from models import db as orm_db, Zona, AsignacionNV
 from services.asignaciones import (
     upsert_asignacion,
     marcar_asignacion_completada,
-    nv_asignadas_por_zona,
 )
 try:
     import sqlalchemy  # noqa: F401
+    from sqlalchemy import text
 except ModuleNotFoundError as exc:
     raise ModuleNotFoundError(
         "Missing dependency 'sqlalchemy'. Install it with 'pip install SQLAlchemy'."
@@ -195,26 +195,29 @@ def fetch_oc_items(num_oc):
 
 
 # --- Helper: NV asignadas por zona ---
-def fetch_nv_asignadas_por_zona(zona):
+def fetch_nv_asignadas_por_zona(zona: str):
     """
     Retorna una lista de NV asignadas a la zona indicada.
-    Ajusta los nombres de tablas/campos según tu esquema real.
+    Usa la tabla dbo.NV_ZONAS creada en SQL Server.
     """
     sql = """
-    SELECT n.NUMNOTA,
-           n.FECHA,
-           n.SUCUR,
-           n.RAZSOC
-    FROM NOTV_DB AS n
-    INNER JOIN NV_ZONAS AS z ON z.NUMNOTA = n.NUMNOTA
+    SELECT 
+        n.NUMNOTA,
+        n.FECHA,
+        n.SUCUR,
+        n.RAZSOC
+    FROM dbo.NOTV_DB AS n
+    INNER JOIN dbo.NV_ZONAS AS z
+        ON z.NUMNOTA = n.NUMNOTA
     WHERE z.ZONA = :zona
     ORDER BY n.FECHA DESC, n.NUMNOTA DESC
     """
+
     df = db.query_df(sql, {"zona": zona})
     result = []
     for _, r in df.iterrows():
         result.append({
-            "numnota": r.get("NUMNOTA"),
+            "numnota": int(r["NUMNOTA"]) if not pd.isna(r["NUMNOTA"]) else None,
             "fecha":   r.get("FECHA"),
             "sucursal": r.get("SUCUR"),
             "cliente":  r.get("RAZSOC"),
@@ -1203,7 +1206,6 @@ def salida():
     nv_items     = session.get('nv_items', [])        # detalle NV (desde BBDD)
     salida_items = session.get('salida_items', [])    # items para salida/escaneo
 
-    # --- GET con zona: mostrar listado directamente ---
     zona = (request.args.get('zona') or '').strip()
     if zona:
         lista_nv = fetch_nv_asignadas_por_zona(zona)
@@ -1216,30 +1218,8 @@ def salida():
             nota=nota,
             guia_actual=guia_actual,
             nv_items=nv_items,
-            salida_items=salida_items,
-            stock_items=[],
-            hubs=[],
-            assigned_nvs=[]
+            salida_items=salida_items
         )
-
-    hub_id = request.args.get('hub_id', type=int)
-    if hub_id is not None:
-        hubs_df = db.query_df(
-            "SELECT ID, NOMBRE FROM WMS.HUBS WHERE ID = :hub_id ORDER BY NOMBRE",
-            {"hub_id": hub_id},
-        )
-    else:
-        hubs_df = db.query_df(
-            "SELECT ID, NOMBRE FROM WMS.HUBS WHERE 1=1 ORDER BY NOMBRE", {}
-        )
-    hubs = hubs_df.to_dict(orient='records') if not hubs_df.empty else []
-
-    assigned_nvs = []
-    if hub_id is not None:
-        try:
-            assigned_nvs = nv_asignadas_por_zona(hub_id, estados=["pendiente"])
-        except Exception as e:
-            current_app.logger.error(f"Error al obtener NV asignadas: {e}")
 
 
     if request.method == 'POST':
@@ -1421,8 +1401,6 @@ def salida():
         nv_items=display_nv_items,
         salida_items=salida_items,
         stock_items=stock_items,
-        hubs=hubs,
-        assigned_nvs=assigned_nvs,
     )
 
 
