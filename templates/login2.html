@@ -1,10 +1,67 @@
 <!doctype html>
-<meta charset="utf-8">
-<h1>Identificación Operario (Login 2)</h1>
-<p>Rol actual: OPERARIO BODEGA</p>
-{% with m=get_flashed_messages(category_filter=["error"]) %}{% if m %}<div style="color:red">{{m[0]}}</div>{% endif %}{% endwith %}
-<form method="post">
-  <input name="codigo" placeholder="CODIGO (PERSO_DB.CODIGO)" required>
-  <input name="clave"  placeholder="NOMBRE exacto (PERSO_DB.NOMBRE)" required>
-  <button>Continuar</button>
-</form>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Identificación Operario</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: linear-gradient(to right, #00c0cb, #0057d1);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+    }
+    .login-box {
+      background: rgba(0,0,0,0.2);
+      padding: 2em;
+      border-radius: 12px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+      width: 90%;
+      max-width: 400px;
+    }
+    input {
+      width: 100%;
+      padding: 0.6em;
+      margin: 0.5em 0;
+      border: none;
+      border-radius: 8px;
+    }
+    button {
+      background: #ffeb0c;
+      border: none;
+      padding: 0.6em 1.2em;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #ffd60a;
+    }
+    .error {
+      color: #ff6b6b;
+      margin-bottom: 1em;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="Logo" style="max-height:80px; margin-bottom:1em;">
+    <h1>Identificación Operario (Login 2)</h1>
+    <p>Rol actual: OPERARIO BODEGA</p>
+    {% with m=get_flashed_messages(category_filter=['error']) %}
+      {% if m %}<div class="error">{{ m[0] }}</div>{% endif %}
+    {% endwith %}
+    <form method="post">
+      <input name="codigo" placeholder="CODIGO (PERSO_DB.CODIGO)" required>
+      <input name="clave" placeholder="NOMBRE exacto (PERSO_DB.NOMBRE)" required>
+      <button>Continuar</button>
+    </form>
+  </div>
+</body>
+</html>
