@@ -193,6 +193,34 @@ def fetch_oc_items(num_oc):
     ])
     return df, guia
 
+
+# --- Helper: NV asignadas por zona ---
+def fetch_nv_asignadas_por_zona(zona):
+    """
+    Retorna una lista de NV asignadas a la zona indicada.
+    Ajusta los nombres de tablas/campos según tu esquema real.
+    """
+    sql = """
+    SELECT n.NUMNOTA,
+           n.FECHA,
+           n.SUCUR,
+           n.RAZSOC
+    FROM NOTV_DB AS n
+    INNER JOIN NV_ZONAS AS z ON z.NUMNOTA = n.NUMNOTA
+    WHERE z.ZONA = :zona
+    ORDER BY n.FECHA DESC, n.NUMNOTA DESC
+    """
+    df = db.query_df(sql, {"zona": zona})
+    result = []
+    for _, r in df.iterrows():
+        result.append({
+            "numnota": r.get("NUMNOTA"),
+            "fecha":   r.get("FECHA"),
+            "sucursal": r.get("SUCUR"),
+            "cliente":  r.get("RAZSOC"),
+        })
+    return result
+
 def norm_code(x):
     # quita espacios y * de Code39; pasa a mayúsculas
     return str(x).strip().strip('*').upper()
@@ -1175,6 +1203,25 @@ def salida():
     nv_items     = session.get('nv_items', [])        # detalle NV (desde BBDD)
     salida_items = session.get('salida_items', [])    # items para salida/escaneo
 
+    # --- GET con zona: mostrar listado directamente ---
+    zona = (request.args.get('zona') or '').strip()
+    if zona:
+        lista_nv = fetch_nv_asignadas_por_zona(zona)
+        if not lista_nv:
+            flash(f'No hay Notas de Venta asignadas a "{zona}".', 'info')
+        return render_template(
+            'salida.html',
+            zona_seleccionada=zona,
+            lista_nv=lista_nv,
+            nota=nota,
+            guia_actual=guia_actual,
+            nv_items=nv_items,
+            salida_items=salida_items,
+            stock_items=[],
+            hubs=[],
+            assigned_nvs=[]
+        )
+
     hub_id = request.args.get('hub_id', type=int)
     if hub_id is not None:
         hubs_df = db.query_df(
@@ -1367,6 +1414,8 @@ def salida():
 
     return render_template(
         'salida.html',
+        zona_seleccionada=None,
+        lista_nv=[],
         nota=nota,
         guia_actual=guia_actual,
         nv_items=display_nv_items,
