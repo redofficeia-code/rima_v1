@@ -242,6 +242,15 @@
       <a class="btn-hub" href="{{ url_for('salida', hub_id=h.ID) }}">{{ h.NOMBRE }}</a>
     {% endfor %}
   </div>
+
+  {% if assigned_nvs %}
+  <h2>Notas de Venta asignadas</h2>
+  <ul class="nv-list">
+    {% for nv in assigned_nvs %}
+      <li>{{ nv }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
   {% endif %}
 </body>
 </html>
