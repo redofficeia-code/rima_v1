@@ -198,15 +198,18 @@ def fetch_oc_items(num_oc):
 def fetch_nv_asignadas_por_zona(zona: str):
     """
     Retorna una lista de NV asignadas a la zona indicada.
-    Usa la tabla dbo.NV_ZONAS creada en SQL Server.
+    Usa la tabla ``dbo.NV_ZONAS`` creada en SQL Server y une con ``dbo.CLIEN_DB``
+    para obtener la razón social del cliente.
     """
     sql = """
-    SELECT 
+    SELECT
         n.NUMNOTA,
         n.FECHA,
         n.SUCUR,
-        n.RAZSOC
+        c.RAZSOC
     FROM dbo.NOTV_DB AS n
+    LEFT JOIN dbo.CLIEN_DB AS c
+        ON c.NREGUIST = n.NRUTCLIE
     INNER JOIN dbo.NV_ZONAS AS z
         ON z.NUMNOTA = n.NUMNOTA
     WHERE z.ZONA = :zona
