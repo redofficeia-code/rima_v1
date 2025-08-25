@@ -15,6 +15,8 @@ import unicodedata
 import db
 import db_utils
 from db_utils import get_oc_detalle
+from auth_service import login_nivel1, login_nivel2_operario
+from auth_map import ROL_JEFE, ROL_OPERARIO
 
 # --- Configuración de logging ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -23,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 app = Flask(__name__)
-app.secret_key = 'CAMBIAR_POR_CLAVE_SECRETA'  # necesario para session
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-change-me')
 
 # --- Directorios y rutas de archivos ---
 BASE_DIR     = os.path.dirname(__file__)
@@ -166,7 +168,62 @@ def inv_get_session(sid):
 # --- Rutas ---
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return redirect(url_for('login1'))
+
+
+@app.route('/login1', methods=['GET', 'POST'])
+def login1():
+    # Si ya hay alguien en sesión, enrutar según rol
+    cu = session.get('current_user')
+    if cu:
+        if cu.get('rol') == ROL_JEFE:
+            return redirect(url_for('admin_index'))
+        return redirect(url_for('login2'))
+
+    if request.method == 'POST':
+        usuario = (request.form.get('usuario') or '').strip()
+        clave   = (request.form.get('clave') or '').strip()
+
+        u = login_nivel1(usuario, clave)
+        if not u:
+            flash('Usuario o clave inválidos.', 'error')
+            return render_template('login1.html')
+
+        session['current_user'] = {'nombre': u['nombre'], 'rol': u['rol']}
+        if u['rol'] == ROL_JEFE:
+            return redirect(url_for('admin_index'))
+        return redirect(url_for('login2'))
+
+    return render_template('login1.html')
+
+
+@app.route('/login2', methods=['GET', 'POST'])
+def login2():
+    cu = session.get('current_user')
+    if not cu:
+        return redirect(url_for('login1'))
+    if cu.get('rol') != ROL_OPERARIO:
+        return redirect(url_for('admin_index'))
+
+    if request.method == 'POST':
+        codigo       = (request.form.get('codigo') or '').strip()
+        clave_nombre = (request.form.get('clave_nombre') or '').strip()
+
+        op = login_nivel2_operario(codigo, clave_nombre)
+        if not op:
+            flash('Código o clave de operario inválidos.', 'error')
+            return render_template('login2.html')
+
+        session['operario'] = op
+        return redirect(url_for('salida'))
+
+    return render_template('login2.html')
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login1'))
 
 
 @app.route('/admin')
@@ -219,6 +276,12 @@ def devoluciones():
 
 @app.route('/devoluciones/ingreso', methods=['GET', 'POST'])
 def devolucion_ingreso():
+    cu = session.get('current_user')
+    op = session.get('operario')
+    if not cu:
+        return redirect(url_for('login1'))
+    if cu.get('rol') == ROL_OPERARIO and not op:
+        return redirect(url_for('login2'))
     return ingreso_core(
         'devoluciones_ingreso.html',
         'devolucion_ingreso',
@@ -242,6 +305,12 @@ def devoluciones_salida():
     se muestra su detalle junto al stock disponible y se pueden escanear
     códigos para registrar la devolución.
     """
+    cu = session.get('current_user')
+    op = session.get('operario')
+    if not cu:
+        return redirect(url_for('login1'))
+    if cu.get('rol') == ROL_OPERARIO and not op:
+        return redirect(url_for('login2'))
     # Recuperar datos desde sesión
     factura      = session.get('dev_current_factura', '')
     guia_actual  = session.get('dev_current_guia', '')
@@ -891,6 +960,12 @@ def ingreso_core(
 
 @app.route('/ingreso', methods=['GET', 'POST'])
 def ingreso():
+    cu = session.get('current_user')
+    op = session.get('operario')
+    if not cu:
+        return redirect(url_for('login1'))
+    if cu.get('rol') == ROL_OPERARIO and not op:
+        return redirect(url_for('login2'))
     return ingreso_core('ingreso.html', 'ingreso', db_fetcher=fetch_oc_items)
 
 
@@ -898,6 +973,13 @@ def ingreso():
 
 @app.route('/ingreso/diferencias.xls')
 def download_diferencias():
+        cu = session.get('current_user')
+        op = session.get('operario')
+        if not cu:
+            return redirect(url_for('login1'))
+        if cu.get('rol') == ROL_OPERARIO and not op:
+            return redirect(url_for('login2'))
+
         path = session.get('diferencias_path')
         if not path or not os.path.exists(path):
             return "No se encontró el informe de diferencias.", 404
@@ -913,6 +995,13 @@ def download_diferencias():
 
 @app.route('/ingreso/guia.xls')
 def download_guia():
+        cu = session.get('current_user')
+        op = session.get('operario')
+        if not cu:
+            return redirect(url_for('login1'))
+        if cu.get('rol') == ROL_OPERARIO and not op:
+            return redirect(url_for('login2'))
+
         path = session.get('informe_path')
         if not path or not os.path.exists(path):
             return "No se encontró la guía de recepción.", 404
@@ -927,6 +1016,13 @@ def download_guia():
 
 @app.route('/salida', methods=['GET', 'POST'])
 def salida():
+    cu = session.get('current_user')
+    op = session.get('operario')
+    if not cu:
+        return redirect(url_for('login1'))
+    if cu.get('rol') == ROL_OPERARIO and not op:
+        return redirect(url_for('login2'))
+
     # Estado
     nota         = session.get('current_nv', '')
     guia_actual  = session.get('current_guia', '')
@@ -1382,6 +1478,12 @@ def finalizar_salida():
     ``num_nota`` almacenado en la sesión antes de limpiar el resto del estado y
     se pasa como parámetro a la plantilla.
     """
+    cu = session.get('current_user')
+    op = session.get('operario')
+    if not cu:
+        return redirect(url_for('login1'))
+    if cu.get('rol') == ROL_OPERARIO and not op:
+        return redirect(url_for('login2'))
 
     num_nota = session.get('current_nv', '')
 
@@ -1409,6 +1511,12 @@ def guia_despacho_view(template_name: str = 'guia_despacho.html',
     los archivos provenientes de distintos orígenes suelen variar en tildes o
     abreviaciones.
     """
+    cu = session.get('current_user')
+    op = session.get('operario')
+    if not cu:
+        return redirect(url_for('login1'))
+    if cu.get('rol') == ROL_OPERARIO and not op:
+        return redirect(url_for('login2'))
 
     # 1. Cargar sesión o querystring
     nota     = session.get('nv_para_guia') or request.args.get('nv', '').strip()
@@ -1540,6 +1648,13 @@ def guia_despacho():
     Prellena la Guía de Despacho con datos de la Nota de Venta (num_nota).
     Parámetro: ?num_nota=xxxxx
     """
+    cu = session.get('current_user')
+    op = session.get('operario')
+    if not cu:
+        return redirect(url_for('login1'))
+    if cu.get('rol') == ROL_OPERARIO and not op:
+        return redirect(url_for('login2'))
+
     num_nota = (request.args.get('num_nota') or '').strip()
     if not num_nota:
         flash('Falta el parámetro num_nota.', 'warning')
@@ -1573,6 +1688,13 @@ def guia_traslado():
 
 @app.route('/descargar_xls')
 def descargar_xls():
+    cu = session.get('current_user')
+    op = session.get('operario')
+    if not cu:
+        return redirect(url_for('login1'))
+    if cu.get('rol') == ROL_OPERARIO and not op:
+        return redirect(url_for('login2'))
+
     path = session.get('guia_file')
     if not path or not os.path.exists(path):
         abort(404)
