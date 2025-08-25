@@ -80,6 +80,9 @@
   </style>
 </head>
 <body>
+  <div style="text-align: right; padding: 10px;">
+    <a href="{{ url_for('logout') }}" style="color: white; text-decoration: none;">Salir</a>
+  </div>
   <div class="container">
     <img src="{{ url_for('static', filename='img/logo2.png') }}"
          alt="Logo"
