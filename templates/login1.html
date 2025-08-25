@@ -2,27 +2,31 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login 1</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
 <body>
-  <h1>Ingreso WMS – Login 1</h1>
+  <div class="login-box">
+    <h1>Ingreso WMS – Login 1</h1>
 
-  {% with msgs = get_flashed_messages(with_categories=true) %}
-    {% if msgs %}
-      <ul>
-        {% for cat, m in msgs %}
-          <li>{{ m }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% if msgs %}
+        <ul>
+          {% for cat, m in msgs %}
+            <li>{{ m }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
 
-  <form method="post" action="{{ url_for('login1') }}">
-    <label>Usuario</label>
-    <input type="text" name="usuario" required autofocus>
-    <label>Clave</label>
-    <input type="password" name="clave" required>
-    <button type="submit">Ingresar</button>
-  </form>
+    <form method="post" action="{{ url_for('login1') }}">
+      <label>Usuario</label>
+      <input type="text" name="usuario" required autofocus>
+      <label>Clave</label>
+      <input type="password" name="clave" required>
+      <button type="submit">Ingresar</button>
+    </form>
+  </div>
 </body>
 </html>
