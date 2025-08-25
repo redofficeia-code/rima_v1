@@ -121,9 +121,43 @@
       background: #0057d1;
       color: #fff;
     }
-    .zonas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;margin-top:24px}
-    .tile{display:flex;align-items:center;justify-content:center;padding:28px;border-radius:14px;background:#fff;color:#0f5bbf;font-weight:700;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,0.08)}
-    .tile:hover{transform:translateY(-2px)}
+    /* Contenedor en 2 columnas SIEMPRE */
+    .zones-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr)); /* 2 columnas */
+      gap: 24px;                   /* separación entre botones */
+      max-width: 1100px;           /* opcional, para no estirar demasiado */
+      margin: 24px auto 64px;      /* centrado */
+      align-items: stretch;        /* que todos tengan misma altura */
+    }
+
+    /* Estilo del botón */
+    .zone-btn {
+      display: block;
+      text-align: center;
+      padding: 18px 24px;
+      border-radius: 18px;
+      background: #ffffff;
+      color: #0b57d1;              /* combina con tu gradiente */
+      font-weight: 700;
+      text-transform: uppercase;
+      text-decoration: none;
+      box-shadow: 0 6px 16px rgba(0,0,0,.12);
+      border: none;
+      transition: transform .08s ease, box-shadow .08s ease;
+      line-height: 1.2;
+      min-height: 64px;            /* altura cómoda */
+    }
+
+    .zone-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(0,0,0,.16);
+    }
+
+    /* (Opcional) En pantallas muy pequeñas, baja a 1 columna */
+    @media (max-width: 520px) {
+      .zones-grid { grid-template-columns: 1fr; }
+    }
     .tabla-nv{width:100%;border-collapse:collapse;margin-top:16px;background:#fff;border-radius:10px;overflow:hidden}
     .tabla-nv th,.tabla-nv td{padding:10px 12px;border-bottom:1px solid #e8eef6}
     .btn{background:#ffc400;border:0;padding:8px 14px;border-radius:10px;text-decoration:none;color:#333;font-weight:600;cursor:pointer}
@@ -244,13 +278,21 @@
 
   {% if not nv_items %}
   {% if not zona_seleccionada %}
-  <div class="zonas-grid">
-    <a class="tile" href="{{ url_for('salida') }}?zona=LA SERENA">LA SERENA</a>
-    <a class="tile" href="{{ url_for('salida') }}?zona=LINARES">LINARES</a>
-    <a class="tile" href="{{ url_for('salida') }}?zona=LOS LAGOS">LOS LAGOS</a>
-    <a class="tile" href="{{ url_for('salida') }}?zona=PUERTO MONTT">PUERTO MONTT</a>
-    <a class="tile" href="{{ url_for('salida') }}?zona=RANCAGUA">RANCAGUA</a>
-    <a class="tile" href="{{ url_for('salida') }}?zona=SANTIAGO">SANTIAGO</a>
+  <!-- Zona de botones -->
+  <div class="zones-grid">
+    <!-- Si son fijos -->
+    <a class="zone-btn" href="/salida?ciudad=la_serena">LA SERENA</a>
+    <a class="zone-btn" href="/salida?ciudad=linares">LINARES</a>
+    <a class="zone-btn" href="/salida?ciudad=los_lagos">LOS LAGOS</a>
+    <a class="zone-btn" href="/salida?ciudad=puerto_montt">PUERTO MONTT</a>
+    <a class="zone-btn" href="/salida?ciudad=rancagua">RANCAGUA</a>
+    <a class="zone-btn" href="/salida?ciudad=santiago">SANTIAGO</a>
+
+    <!-- Si más adelante son dinámicos, usa este bucle:
+    {% for z in zonas %}
+      <a class="zone-btn" href="{{ url_for('salida', ciudad=z.slug or z.nombre) }}">{{ z.nombre }}</a>
+    {% endfor %}
+    -->
   </div>
   {% else %}
   <h2>Notas de Venta asignadas a {{ zona_seleccionada }}</h2>
