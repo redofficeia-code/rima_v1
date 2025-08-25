@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import re
 import unicodedata
+import db
 import db_utils
 from db_utils import get_oc_detalle
 
@@ -166,6 +167,49 @@ def inv_get_session(sid):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/admin')
+def admin_index():
+    """Panel principal de administración.
+
+    Requiere que el usuario esté autenticado como administrador. En modo
+    desarrollo es posible acceder pasando ``?key=`` con la clave definida en
+    la variable de entorno ``ADMIN_KEY`` (``admin123`` por defecto)."""
+    key = request.args.get('key')
+    if key and key == os.environ.get('ADMIN_KEY', 'admin123'):
+        session['is_admin'] = True
+
+    if not session.get('is_admin'):
+        return abort(403)
+
+    return render_template('admin/index.html')
+
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """Formulario de autenticación para administradores."""
+    if request.method == 'POST':
+        pwd = request.form.get('password', '')
+        if pwd == os.environ.get('ADMIN_KEY', 'admin123'):
+            session['is_admin'] = True
+            return redirect(url_for('admin_index'))
+        flash('Clave incorrecta', 'error')
+
+    return render_template('admin/login.html')
+
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('is_admin', None)
+    return redirect(url_for('admin_login'))
+
+
+@app.route('/admin/listados')
+def admin_listados():
+    if not session.get('is_admin'):
+        return abort(403)
+    return render_template('admin/listados.html')
 
 
 @app.route('/devoluciones')
