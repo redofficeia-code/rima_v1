@@ -53,15 +53,17 @@
 </head>
 <body>
   <div class="container">
-    <img src="{{ url_for('static', filename='img/logo2.png') }}"
-         alt="Logo"
-         style="max-height:100px; margin:1em auto;">
-    <header>{% block header %}WMS – App Bodega{% endblock %}</header>
-
-    <div class="primary">
-      <a href="{{ url_for('ingreso') }}"><span>INGRESO</span></a>
-      <a href="{{ url_for('salida') }}"><span>SALIDA</span></a>
-      <a href="{{ url_for('devoluciones_salida') }}"><span>DEVOLUCIÓN SALIDA</span></a>
+      <img src="{{ url_for('static', filename='img/logo2.png') }}"
+           alt="Logo"
+           style="max-height:100px; margin:1em auto;">
+      <header>{% block header %}WMS – App Bodega{% endblock %}</header>
+      {% if session.current_user %}
+      <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+      {% endif %}
+      <div class="primary">
+        <a href="{{ url_for('ingreso') }}"><span>INGRESO</span></a>
+        <a href="{{ url_for('salida') }}"><span>SALIDA</span></a>
+        <a href="{{ url_for('devoluciones_salida') }}"><span>DEVOLUCIÓN SALIDA</span></a>
     </div>
 
     <div class="secondary">
