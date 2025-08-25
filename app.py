@@ -18,6 +18,12 @@ from db_utils import get_oc_detalle
 from auth_service import login_nivel1, login_nivel2_operario
 from auth_map import ROL_JEFE, ROL_OPERARIO
 
+# Usuarios disponibles para Login 1 (value, label)
+LOGIN1_USUARIOS = [
+    ("BODEGA", "Jefe Bodega"),
+    ("OPERARIO BODEGA", "Operario Bodega"),
+]
+
 # --- Configuración de logging ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
@@ -187,14 +193,14 @@ def login1():
         u = login_nivel1(usuario, clave)
         if not u:
             flash('Usuario o clave inválidos.', 'error')
-            return render_template('login1.html')
+            return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
 
         session['current_user'] = {'nombre': u['nombre'], 'rol': u['rol']}
         if u['rol'] == ROL_JEFE:
             return redirect(url_for('admin_index'))
         return redirect(url_for('login2'))
 
-    return render_template('login1.html')
+    return render_template('login1.html', usuarios=LOGIN1_USUARIOS)
 
 
 @app.route('/login2', methods=['GET', 'POST'])
