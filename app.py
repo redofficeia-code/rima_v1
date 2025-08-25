@@ -4,7 +4,6 @@ import math
 import io
 import logging
 from datetime import datetime
-from functools import wraps
 from flask import (
     Flask, render_template, request, redirect,
     url_for, flash, session, send_file, current_app, abort
@@ -13,158 +12,23 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 import re
 import unicodedata
-from models import db as orm_db, Zona, AsignacionNV
-from services.asignaciones import (
-    upsert_asignacion,
-    marcar_asignacion_completada,
-)
-from auth_service import login_nivel1, login_nivel2_operario
-from auth_map import ROL_JEFE, ROL_OPERARIO
-try:
-    import sqlalchemy  # noqa: F401
-    from sqlalchemy import text
-except ModuleNotFoundError as exc:
-    raise ModuleNotFoundError(
-        "Missing dependency 'sqlalchemy'. Install it with 'pip install SQLAlchemy'."
-    ) from exc
-
-try:
-    import db
-except ModuleNotFoundError as exc:
-    raise ModuleNotFoundError(
-        "Could not import required module 'db'. Ensure 'db.py' exists."
-    ) from exc
-
-
-# --- Directorios y rutas de archivos ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-
-def is_admin_or_cargar():
-    return session.get('role') in ('admin', 'cargar')
-
-
-def require_admin():
-    role = (session.get('role') or '').lower()
-    if role != 'admin':
-        abort(403)
+import db_utils
+from db_utils import get_oc_detalle
 
 # --- Configuración de logging ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
+
+
 app = Flask(__name__)
+app.secret_key = 'CAMBIAR_POR_CLAVE_SECRETA'  # necesario para session
 
-# --- Whitelist de endpoints públicos (no requieren sesión) ---
-PUBLIC_ENDPOINTS = {
-    "login1",      # /login
-    "login2",      # /login_operario
-    "logout",
-    "static",      # archivos estáticos
-}
+# --- Directorios y rutas de archivos ---
+BASE_DIR     = os.path.dirname(__file__)
+DATA_DIR     = os.path.join(BASE_DIR, 'data')
+os.makedirs(DATA_DIR, exist_ok=True)
 
-@app.before_request
-def force_auth():
-    """
-    Obliga a:
-      - Usuarios sin sesión -> /login
-      - Operarios (rol OPERARIO BODEGA) sin login 2 -> /login_operario
-    Permite:
-      - Endpoints en PUBLIC_ENDPOINTS
-      - /static/*
-    """
-    # En algunos casos (404/errores) endpoint puede venir None
-    endpoint = (request.endpoint or "").split(".")[-1]
-
-    # Permitir rutas públicas y estáticos
-    if endpoint in PUBLIC_ENDPOINTS or (request.path or "").startswith("/static/"):
-        return
-
-    # 1) Sin Login 1 -> ir a /login
-    if "user1" not in session:
-        return redirect(url_for("login1", next=request.path))
-
-    # 2) Operario debe pasar por Login 2 antes de cualquier otra vista
-    rol = (session["user1"].get("rol", "") or "").upper()
-    if rol == ROL_OPERARIO and "operario" not in session:
-        # Permite que visite /login_operario y /logout mientras se identifica
-        if endpoint not in {"login2", "logout", "static"}:
-            return redirect(url_for("login2", next=request.path))
-
-# --- Sesiones ---
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "cambia-esto")
-app.permanent_session_lifetime = 60 * 60 * 8  # 8 horas
-
-# --- Clave admin (por ENV o por defecto) ---
-ADMIN_KEY = os.environ.get("ADMIN_KEY", "admin123")
-
-# --- Decorador de autorización admin ---
-def admin_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        # Si ya hay sesión admin, pasa
-        if session.get("is_admin"):
-            return f(*args, **kwargs)
-
-        # Backdoor de desarrollo con ?key=... (no usar en prod)
-        key = request.args.get("key")
-        if key and key == ADMIN_KEY:
-            session["is_admin"] = True
-            return f(*args, **kwargs)
-
-        abort(403)
-    return wrapper
-
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(DATA_DIR, 'app.db')}"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["DATA_DIR"] = DATA_DIR
-orm_db.init_app(app)
-
-with app.app_context():
-    orm_db.create_all()
-    for nombre in ["Puerto Montt", "Santiago", "Concepción"]:
-        if not Zona.query.filter_by(nombre=nombre).first():
-            orm_db.session.add(Zona(nombre=nombre))
-    orm_db.session.commit()
-
-
-@app.route('/_debug/role/<rol>')
-def _debug_set_role(rol):
-    session['role'] = rol
-    flash(f'Rol seteado a: {rol}', 'info')
-    return redirect(url_for('index'))
-
-# --- Login admin (GET muestra form, POST valida) ---
-@app.route("/admin/login", methods=["GET", "POST"])
-def admin_login():
-    if request.method == "POST":
-        if request.form.get("password") == ADMIN_KEY:
-            session["is_admin"] = True
-            return redirect(url_for("admin_dashboard"))
-        flash("Clave inválida", "error")
-    return render_template("admin/login.html")
-
-# --- Dashboard admin ---
-@app.route("/admin")
-@admin_required
-def admin_dashboard():
-    return render_template("admin/index.html")
-
-# --- Ejemplo de sección protegida: Gestionar listados ---
-@app.route("/admin/listados")
-@admin_required
-def admin_listados():
-    # Si ya existe otra vista real, renderízala aquí
-    return render_template("admin/listados.html")
-
-# --- Logout admin ---
-@app.route("/admin/logout")
-def admin_logout():
-    session.pop("is_admin", None)
-    return redirect(url_for("admin_login"))
-
-# --- Rutas de archivos ---
 GUIDE_FOLDER = os.path.join(DATA_DIR, 'guides')
 os.makedirs(GUIDE_FOLDER, exist_ok=True)
 
@@ -182,96 +46,14 @@ INV_SESIONES_FILE = os.path.join(DATA_DIR, 'inv_sesiones.csv')
 ALLOWED_EXT  = {'csv', 'xls', 'xlsx'}
 FIELDNAMES   = ['codigo_producto', 'cantidad', 'ultima_actualizacion']
 
-
-def _nv_rows_for_gestion():
-    """
-    Lee NV desde NV_FILE detectando la fila de cabecera y devuelve
-    las columnas pedidas para gestión:
-    Num. Nota, RUT, Ciudad, Razón Social, Fecha Entrega,
-    Cantidad, Cant. Desp., Precio Unitario, Pendiente, Terminado
-    """
-    if not os.path.exists(NV_FILE) or os.path.getsize(NV_FILE) == 0:
-        return []
-
-    # 1) Detectar cabecera
-    df_raw = pd.read_csv(NV_FILE, header=None, dtype=str, keep_default_na=False)
-
-    expected = {'ciudad','fecha','numnota','rut','razonsocial','canal','fechaentrega','formadepago'}
-
-    def _norm(txt: str) -> str:
-        s = unicodedata.normalize("NFKD", str(txt))
-        s = s.encode("ascii", "ignore").decode().lower()
-        return re.sub(r'[^a-z0-9]', '', s)
-
-    header_idx = 0
-    for i, row in df_raw.iterrows():
-        norms = {_norm(cell) for cell in row if cell}
-        if expected.issubset(norms):
-            header_idx = i
-            break
-
-    # 2) Leer con cabecera detectada
-    df = pd.read_csv(NV_FILE, header=header_idx, dtype=str, keep_default_na=False)
-    df.columns = [c.strip() for c in df.columns]
-
-    # 3) Selector robusto de columna
-    def pick(*names):
-        # Primero por coincidencia exacta
-        for n in names:
-            if n in df.columns:
-                return n
-        # Luego por normalización
-        def nz(s):
-            return re.sub(r'[^a-z0-9]', '', str(s).lower())
-        inv = {nz(c): c for c in df.columns}
-        for n in names:
-            key = nz(n)
-            if key in inv:
-                return inv[key]
-        return None
-
-    c_num = pick('Num. Nota', 'NUMNOTA', 'N° Nota', 'NumNota')
-    c_rut = pick('RUT', 'Rut')
-    c_ciud = pick('Ciudad', 'CIUDAD')
-    c_raz = pick('Razón Social', 'Razon Social', 'RAZON SOCIAL', 'Cliente')
-    c_fent = pick('Fecha Entrega', 'Entrega', 'Fecha', 'FechaEntrega')
-    c_qty = pick('Cantidad', 'Cant.')
-    c_dsp = pick('Cant. Desp.', 'Cant. Despachada', 'Cant desp', 'Cant Desp', 'CANTDESP')
-    c_pu = pick('Precio Unitario', 'Prec. Unit.', 'Prec Unit', 'Prec.Unit.')
-
-    out = pd.DataFrame()
-    out['Num. Nota'] = df[c_num] if c_num else ''
-    out['RUT'] = df[c_rut] if c_rut else ''
-    out['Ciudad'] = df[c_ciud] if c_ciud else ''
-    out['Razón Social'] = df[c_raz] if c_raz else ''
-    out['Fecha Entrega'] = df[c_fent] if c_fent else df.get('Fecha', '')
-
-    def to_num_series(s):
-        return pd.to_numeric(
-            s.astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False),
-            errors='coerce'
-        ).fillna(0)
-
-    out['Cantidad'] = to_num_series(df[c_qty]) if c_qty else 0
-    out['Cant. Desp.'] = to_num_series(df[c_dsp]) if c_dsp else 0
-    out['Precio Unitario'] = to_num_series(df[c_pu]) if c_pu else 0
-
-    out['Pendiente'] = (out['Cantidad'] - out['Cant. Desp.']).astype(int)
-    out['Terminado'] = out['Pendiente'].apply(lambda x: 'SI' if x == 0 else 'NO')
-
-    # Tipos básicos para mostrar bonito
-    out['Cantidad'] = out['Cantidad'].astype(int)
-    out['Cant. Desp.'] = out['Cant. Desp.'].astype(int)
-    return out.to_dict(orient='records')
-
 # --- Integración con la base de datos ---
 def fetch_oc_items(num_oc):
-    """Obtiene detalle de una OC usando db.get_oc_detalle.
+    """Obtiene detalle de una OC usando db_utils.get_oc_detalle.
 
     Retorna un DataFrame con columnas estandarizadas y el número de guía
     si está disponible.
     """
-    rows = db.get_oc_detalle(num_oc)
+    rows = get_oc_detalle(num_oc)
     guia = rows[0].get('num_guia') if rows else None
     df = pd.DataFrame([
         {
@@ -283,40 +65,6 @@ def fetch_oc_items(num_oc):
         for r in rows
     ])
     return df, guia
-
-
-# --- Helper: NV asignadas por zona ---
-def fetch_nv_asignadas_por_zona(zona: str):
-    """
-    Retorna una lista de NV asignadas a la zona indicada.
-    Usa la tabla ``dbo.NV_ZONAS`` creada en SQL Server y une con ``dbo.CLIEN_DB``
-    para obtener la razón social del cliente.
-    """
-    sql = """
-    SELECT
-        n.NUMNOTA,
-        n.FECHA,
-        n.SUCUR,
-        c.RAZSOC
-    FROM dbo.NOTV_DB AS n
-    LEFT JOIN dbo.CLIEN_DB AS c
-        ON c.NREGUIST = n.NRUTCLIE
-    INNER JOIN dbo.NV_ZONAS AS z
-        ON z.NUMNOTA = n.NUMNOTA
-    WHERE z.ZONA = :zona
-    ORDER BY n.FECHA DESC, n.NUMNOTA DESC
-    """
-
-    df = db.query_df(sql, {"zona": zona})
-    result = []
-    for _, r in df.iterrows():
-        result.append({
-            "numnota": int(r["NUMNOTA"]) if not pd.isna(r["NUMNOTA"]) else None,
-            "fecha":   r.get("FECHA"),
-            "sucursal": r.get("SUCUR"),
-            "cliente":  r.get("RAZSOC"),
-        })
-    return result
 
 def norm_code(x):
     # quita espacios y * de Code39; pasa a mayúsculas
@@ -543,7 +291,7 @@ def devoluciones_salida():
     # Cargar Stock desde la BBDD
     stock_map = {}
     try:
-        df_st = db.get_stock_actual()
+        df_st = db_utils.get_stock_actual()
         for _, row in df_st.iterrows():
             key = str(row.get('codigo', '')).strip()
             stock_map[key] = {
@@ -754,150 +502,6 @@ def listado_nv():
 
 
 
-@app.route("/admin/asignar_nv", methods=["POST"])
-def admin_asignar_nv():
-    require_admin()
-    num_nota = (request.form.get("num_nota") or "").strip()
-    zona_id = int(request.form.get("zona_id") or 0)
-    if not num_nota or not zona_id:
-        flash("Debes seleccionar una zona y una NV.", "warning")
-        return redirect(request.referrer or url_for("listado_nv"))
-
-    upsert_asignacion(num_nota, zona_id, assigned_by=session.get("usuario", "admin"))
-    flash(f"NV {num_nota} asignada correctamente.", "success")
-    return redirect(request.referrer or url_for("listado_nv"))
-
-
-@app.route("/admin/asignar_nv/form/<num_nota>")
-def admin_asignar_form(num_nota):
-    require_admin()
-    zonas = Zona.query.order_by(Zona.nombre.asc()).all()
-    return render_template("admin/asignar_nv.html", num_nota=num_nota, zonas=zonas)
-
-
-@app.route('/nv/gestionar')
-def nv_gestionar():
-    if not is_admin_or_cargar():
-        flash('No tienes permisos para gestionar.', 'warning')
-        return redirect(url_for('listado_nv'))
-
-    rows = _nv_rows_for_gestion()
-    hubs = db.query_df("SELECT ID, NOMBRE FROM WMS.HUBS ORDER BY NOMBRE", {})
-    hubs_list = hubs.to_dict(orient='records') if not hubs.empty else []
-    return render_template('nv_gestionar.html', rows=rows, hubs=hubs_list)
-
-
-@app.route('/nv/gestionar/accion', methods=['POST'])
-def nv_gestionar_accion():
-    if not is_admin_or_cargar():
-        flash('No tienes permisos para gestionar.', 'warning')
-        return redirect(url_for('listado_nv'))
-
-    numnota = request.form.get('numnota')
-    accion = request.form.get('accion')
-    hub_id = request.form.get('hub_id')
-
-    if not numnota or not accion:
-        flash('Faltan datos de la acción.', 'warning')
-        return redirect(url_for('nv_gestionar'))
-
-    if accion == 'aprobar':
-        if not hub_id:
-            flash('Selecciona un hub para aprobar y asignar.', 'warning')
-            return redirect(url_for('nv_gestionar'))
-
-        sql_upsert = """
-        MERGE WMS.NV_REVIEW AS T
-        USING (SELECT CAST(:numnota AS INT) AS NUMNOTA) AS S
-          ON (T.NUMNOTA = S.NUMNOTA)
-        WHEN MATCHED THEN
-          UPDATE SET ESTADO='asignada', HUB_ID=:hub, FECHA_ASIGNACION=:f
-        WHEN NOT MATCHED THEN
-          INSERT (NUMNOTA, ESTADO, HUB_ID, FECHA_ASIGNACION)
-          VALUES (:numnota, 'asignada', :hub, :f);
-        """
-        db.execute(sql_upsert, {"numnota": numnota, "hub": hub_id, "f": datetime.now()})
-        flash(f'NV {numnota} aprobada y asignada.', 'success')
-
-    elif accion == 'pendiente':
-        sql_upsert = """
-        MERGE WMS.NV_REVIEW AS T
-        USING (SELECT CAST(:numnota AS INT) AS NUMNOTA) AS S
-          ON (T.NUMNOTA = S.NUMNOTA)
-        WHEN MATCHED THEN
-          UPDATE SET ESTADO='pendiente', HUB_ID=NULL, FECHA_ASIGNACION=NULL
-        WHEN NOT MATCHED THEN
-          INSERT (NUMNOTA, ESTADO) VALUES (:numnota, 'pendiente');
-        """
-        db.execute(sql_upsert, {"numnota": numnota})
-        flash(f'NV {numnota} marcada como pendiente.', 'info')
-
-    else:
-        flash('Acción no reconocida.', 'warning')
-
-    return redirect(url_for('nv_gestionar'))
-
-
-# --- Admin: gestionar zonas -------------------------------------------------
-
-@app.route('/admin/zonas', methods=['GET'])
-def zonas_admin():
-    if not is_admin_or_cargar():
-        flash('No tienes permisos para gestionar zonas.', 'warning')
-        return redirect(url_for('index'))
-    df = db.query_df("SELECT ID, NOMBRE FROM WMS.HUBS ORDER BY NOMBRE", {})
-    rows = df.to_dict(orient='records') if not df.empty else []
-    return render_template('zonas_admin.html', zonas=rows)
-
-
-@app.route('/admin/zonas/add', methods=['POST'])
-def zonas_admin_add():
-    if not is_admin_or_cargar():
-        flash('No tienes permisos para gestionar zonas.', 'warning')
-        return redirect(url_for('index'))
-
-    nombre = (request.form.get('nombre') or '').strip()
-    if not nombre:
-        flash('Debes ingresar un nombre de zona.', 'warning')
-        return redirect(url_for('zonas_admin'))
-
-    exist = db.query_df(
-        "SELECT 1 AS X FROM WMS.HUBS WHERE UPPER(NOMBRE)=UPPER(:n)",
-        {"n": nombre}
-    )
-    if not exist.empty:
-        flash(f'La zona "{nombre}" ya existe.', 'info')
-        return redirect(url_for('zonas_admin'))
-
-    db.execute("INSERT INTO WMS.HUBS(NOMBRE) VALUES (:n)", {"n": nombre})
-    flash(f'Zona "{nombre}" agregada correctamente.', 'success')
-    return redirect(url_for('zonas_admin'))
-
-
-@app.route('/admin/zonas/delete', methods=['POST'])
-def zonas_admin_delete():
-    if not is_admin_or_cargar():
-        flash('No tienes permisos para gestionar zonas.', 'warning')
-        return redirect(url_for('index'))
-
-    hub_id = request.form.get('hub_id')
-    if not hub_id:
-        flash('Falta el ID de la zona a eliminar.', 'warning')
-        return redirect(url_for('zonas_admin'))
-
-    in_use = db.query_df(
-        "SELECT TOP 1 1 AS X FROM WMS.NV_REVIEW WHERE HUB_ID = :id",
-        {"id": hub_id}
-    )
-    if not in_use.empty:
-        flash('No puedes eliminar esta zona porque tiene NV asignadas.', 'warning')
-        return redirect(url_for('zonas_admin'))
-
-    db.execute("DELETE FROM WMS.HUBS WHERE ID=:id", {"id": hub_id})
-    flash('Zona eliminada.', 'success')
-    return redirect(url_for('zonas_admin'))
-
-
 @app.route('/notas/preview')
 def notas_preview():
     if not os.path.exists(NV_FILE):
@@ -935,21 +539,6 @@ def notas_preview():
 def nota_credito():
     """Renderiza la página de Nota de Crédito."""
     return render_template('nota_credito.html')
-
-
-@app.route('/factura_nv')
-def factura_nv():
-    """Prellena la Factura de Venta con datos de una Nota de Venta."""
-    num_nota = (request.args.get('num_nota') or '').strip()
-    header = {}
-    if num_nota:
-        try:
-            header = db.get_factura_desde_nv(num_nota)
-            if not header:
-                flash(f'No se encontró información para la Nota de Venta {num_nota}.', 'warning')
-        except Exception as e:
-            flash(f'Error al consultar la BBDD: {e}', 'danger')
-    return render_template('factura_nv.html', header=header, num_nota=num_nota, datetime=datetime)
 
 
 
@@ -1300,22 +889,6 @@ def salida():
     nv_items     = session.get('nv_items', [])        # detalle NV (desde BBDD)
     salida_items = session.get('salida_items', [])    # items para salida/escaneo
 
-    zona = (request.args.get('zona') or '').strip()
-    if zona:
-        lista_nv = fetch_nv_asignadas_por_zona(zona)
-        if not lista_nv:
-            flash(f'No hay Notas de Venta asignadas a "{zona}".', 'info')
-        return render_template(
-            'salida.html',
-            zona_seleccionada=zona,
-            lista_nv=lista_nv,
-            nota=nota,
-            guia_actual=guia_actual,
-            nv_items=nv_items,
-            salida_items=salida_items
-        )
-
-
     if request.method == 'POST':
         action = request.form.get('action', 'buscar_nv')
         session['guia_datos'] = request.form.to_dict()
@@ -1333,7 +906,7 @@ def salida():
                 return redirect(url_for('salida'))
 
             try:
-                df = db.get_nota_detalle(nota)
+                df = db_utils.get_nota_detalle(nota)
                 if df.empty:
                     flash(f'No se encontró detalle para la Nota de Venta {nota}.', 'warning')
                 else:
@@ -1425,7 +998,6 @@ def salida():
 
             # Si todo OK: (aquí podrías insertar movimiento, generar GD, etc.)
             session.pop('salida_items', None)
-            marcar_asignacion_completada(nota)
             flash('Salida finalizada correctamente.', 'success')
             return redirect(url_for('salida'))
 
@@ -1460,7 +1032,7 @@ def salida():
     if display_nv_items:
         stock_map = {}
         try:
-            df_st = db.get_stock_actual()
+            df_st = db_utils.get_stock_actual()
             for _, row in df_st.iterrows():
                 key = str(row.get('codigo', '')).strip()
                 stock_map[key] = {
@@ -1488,13 +1060,11 @@ def salida():
 
     return render_template(
         'salida.html',
-        zona_seleccionada=None,
-        lista_nv=[],
         nota=nota,
         guia_actual=guia_actual,
         nv_items=display_nv_items,
         salida_items=salida_items,
-        stock_items=stock_items,
+        stock_items=stock_items
     )
 
 
@@ -1932,7 +1502,7 @@ def guia_despacho():
         return redirect(url_for('salida'))
 
     try:
-        header, detalles = db.get_guia_desde_nv(num_nota)
+        header, detalles = db_utils.get_guia_desde_nv(num_nota)
         if not header:
             flash(f'No se encontró información para la Nota de Venta {num_nota}.', 'warning')
             return redirect(url_for('salida'))
@@ -1968,122 +1538,6 @@ def descargar_xls():
         download_name=os.path.basename(path),
         mimetype='application/vnd.ms-excel'
     )
-
-
-# ---- Helpers de protección ----
-def login_required(f):
-    @wraps(f)
-    def w(*a, **k):
-        if session.get("user1"):
-            return f(*a, **k)
-        return redirect(url_for("login1", next=request.path))
-    return w
-
-
-def require_rol(rol):
-    def deco(f):
-        @wraps(f)
-        def w(*a, **k):
-            u = session.get("user1")
-            if not u:
-                return redirect(url_for("login1"))
-            if (u["rol"] or "").upper() != rol.upper():
-                abort(403)
-            return f(*a, **k)
-        return w
-    return deco
-
-
-def require_operario_identificado(f):
-    @wraps(f)
-    def w(*a, **k):
-        u = session.get("user1")
-        if not u:
-            return redirect(url_for("login1"))
-        if (u["rol"] or "").upper() != ROL_OPERARIO:
-            abort(403)
-        if not session.get("operario"):
-            return redirect(url_for("login2"))
-        return f(*a, **k)
-    return w
-
-
-@app.context_processor
-def inject_user():
-    return dict(current_user=session.get("user1"), current_operario=session.get("operario"))
-
-
-# ---- Login 1 (USER_DB) ----
-@app.route("/login", methods=["GET", "POST"])
-def login1():
-    if request.method == "POST":
-        nombre = (request.form.get("nombre") or "").strip()
-        pwd = request.form.get("password") or ""
-        u = login_nivel1(nombre, pwd)
-        if not u:
-            flash("Credenciales inválidas o usuario inactivo.", "error")
-            return render_template("login1.html")
-        session["user1"] = u
-        session.permanent = True
-        if u["rol"] == ROL_JEFE:
-            return redirect(url_for("panel_jefe"))
-        return redirect(url_for("login2"))
-    return render_template("login1.html")
-
-
-# ---- Login 2 (PERSO_DB) ----
-@app.route("/login_operario", methods=["GET", "POST"])
-def login2():
-    u = session.get("user1")
-    if not u or (u["rol"] != ROL_OPERARIO):
-        return redirect(url_for("login1"))
-    if request.method == "POST":
-        cod = (request.form.get("codigo") or "").strip()
-        clave = request.form.get("clave") or ""
-        op = login_nivel2_operario(cod, clave)
-        if not op:
-            flash("Código o clave (Nombre) inválidos, o usuario inactivo.", "error")
-            return render_template("login2.html")
-        session["operario"] = op
-        return redirect(url_for("panel_operario"))
-    return render_template("login2.html")
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login1"))
-
-
-# ---- Vistas protegidas ----
-@app.route("/admin")
-@require_rol(ROL_JEFE)
-def panel_jefe():
-    return render_template("admin/index.html")
-
-
-@app.route("/operario")
-@require_operario_identificado
-def panel_operario():
-    return render_template("operario/index.html")
-
-
-# (Opcional) Home
-@app.route("/")
-def home():
-    # Sin sesión -> a login 1
-    if "user1" not in session:
-        return redirect(url_for("login1"))
-
-    # Con sesión: decide según rol y si ya pasó login 2
-    if session["user1"]["rol"] == ROL_JEFE:
-        return redirect(url_for("panel_jefe"))
-
-    # Operario: si no se ha identificado aún, pedir login 2
-    if "operario" not in session:
-        return redirect(url_for("login2"))
-
-    return redirect(url_for("panel_operario"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
