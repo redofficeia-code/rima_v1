@@ -253,3 +253,6 @@ from sqlalchemy import text  # ya debería estar importado arriba; si no, déjal
 def execute(sql: str, params: dict | None = None) -> None:
     with ENGINE.begin() as conn:
         conn.execute(text(sql), params or {})
+
+ENGINE = engine
+
