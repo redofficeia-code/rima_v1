@@ -3,14 +3,26 @@ import os, re
 import pandas as pd
 from sqlalchemy import text
 from db import ENGINE
+<<<<<<< ours
+=======
+try:
+    with ENGINE.connect() as c:
+        c.execute(text("SELECT 1"))
+    print("✅ Conexión USERS/ENGINE OK")
+except Exception as e:  # pragma: no cover - solo diagnóstico
+    print("❌ Falla conexión USERS/ENGINE:", e)
+>>>>>>> theirs
 try:
     from passlib.hash import bcrypt
 except ModuleNotFoundError:  # pragma: no cover - dependencias opcionales
     bcrypt = None
 from auth_map import *
 
+<<<<<<< ours
 # Un solo engine para ambas tablas (misma BD)
 
+=======
+>>>>>>> theirs
 
 def _q(sql: str, params=None) -> pd.DataFrame:
     with ENGINE.connect() as c:
