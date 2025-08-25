@@ -174,7 +174,22 @@ def inv_get_session(sid):
 # --- Rutas ---
 @app.route('/')
 def index():
-    return redirect(url_for('login1'))
+    """Página principal para operarios una vez autenticados."""
+    cu = session.get('current_user')
+    if not cu:
+        # No hay sesión, ir al primer nivel de login
+        return redirect(url_for('login1'))
+
+    # Administradores siempre van a su propio índice
+    if cu.get('rol') == ROL_JEFE:
+        return redirect(url_for('admin_index'))
+
+    # Si no se ha autenticado como operario aún, volver al login de nivel 2
+    if not session.get('operario'):
+        return redirect(url_for('login2'))
+
+    # Operario autenticado, mostrar menú principal
+    return render_template('index.html')
 
 
 @app.route('/login1', methods=['GET', 'POST'])
@@ -221,7 +236,8 @@ def login2():
             return render_template('login2.html')
 
         session['operario'] = op
-        return redirect(url_for('salida'))
+        # Después de un login exitoso, llevar al menú principal
+        return redirect(url_for('index'))
 
     return render_template('login2.html')
 
