@@ -1,39 +1,23 @@
-# auth_service.py
-import os, re
+# auth_service.py (unificado con db.ENGINE)
+import re
 import pandas as pd
 from sqlalchemy import text
-from db import ENGINE
-<<<<<<< ours
-=======
-try:
-    with ENGINE.connect() as c:
-        c.execute(text("SELECT 1"))
-    print("✅ Conexión USERS/ENGINE OK")
-except Exception as e:  # pragma: no cover - solo diagnóstico
-    print("❌ Falla conexión USERS/ENGINE:", e)
->>>>>>> theirs
+from db import ENGINE  # 👈 usamos el mismo engine de db.py
 try:
     from passlib.hash import bcrypt
 except ModuleNotFoundError:  # pragma: no cover - dependencias opcionales
     bcrypt = None
-from auth_map import *
 
-<<<<<<< ours
-# Un solo engine para ambas tablas (misma BD)
-
-=======
->>>>>>> theirs
+from auth_map import *  # mapea nombres de tablas/columnas
 
 def _q(sql: str, params=None) -> pd.DataFrame:
     with ENGINE.connect() as c:
         return pd.read_sql(text(sql), c, params=params or {})
 
-
 def _norm(s: str) -> str:
     s = (s or "").strip()
     s = re.sub(r"\s+", " ", s)
     return s.casefold()
-
 
 def _verify_pwd(candidate: str, stored: str) -> bool:
     if stored is None:
@@ -46,14 +30,14 @@ def _verify_pwd(candidate: str, stored: str) -> bool:
             return bcrypt.verify(candidate, s)
         except Exception:
             return False
-    # texto plano (temporal / legacy)
+    # texto plano (legacy)
     return candidate == s
-
 
 def login_nivel1(nombre: str, password: str):
     """
     Login 1 contra USER_DB: NOMBRE + PASSWORD.
     Deriva rol desde NOMBRE (JEFE BODEGA / OPERARIO BODEGA).
+    USER_COL_ACT se interpreta como 'eliminado/inactivo' (1/true/yes → bloquear).
     """
     sql = f"""
     SELECT {USER_COL_NOM} AS nom, {USER_COL_PWD} AS pwd, {USER_COL_ACT} AS act
@@ -65,8 +49,9 @@ def login_nivel1(nombre: str, password: str):
         return None
 
     r = df.iloc[0]
-    # activo?
-    if str(r["act"]) in ("1", "True", "true"):
+
+    # Bloquear si está marcado como eliminado/inactivo
+    if str(r["act"]).strip().lower() in ("1", "true", "s", "y", "yes"):
         return None
 
     # password
@@ -79,24 +64,26 @@ def login_nivel1(nombre: str, password: str):
 
     return {"nombre": (r["nom"] or "").strip(), "rol": rol, "is_admin": (rol == ROL_JEFE)}
 
-
 def login_nivel2_operario(codigo: str, clave_nombre: str):
     """
     Login 2 SOLO si rol = OPERARIO BODEGA.
     Valida CODIGO + NOMBRE (como clave) en PERSO_DB.
+    PERSO_COL_ACT se interpreta como 'eliminado/inactivo' (1/true/yes → bloquear).
     """
     cols = [PERSO_COL_COD, PERSO_COL_NOM]
     for op in [PERSO_COL_APE, PERSO_COL_CARG, PERSO_COL_SUC, PERSO_COL_ACT]:
         if op:
             cols.append(op)
+
     sql = f"SELECT {', '.join(cols)} FROM {PERSO_TABLE} WHERE {PERSO_COL_COD} = :c"
     df = _q(sql, {"c": codigo})
     if df.empty:
         return None
 
     r = df.iloc[0]
-    # activo?
-    if str(r.get(PERSO_COL_ACT, 0)) in ("1", "True", "true"):
+
+    # Bloquear si está marcado como eliminado/inactivo
+    if str(r.get(PERSO_COL_ACT, 0)).strip().lower() in ("1", "true", "s", "y", "yes"):
         return None
 
     # clave = NOMBRE normalizado
