@@ -3,96 +3,130 @@ import os, re
 import pandas as pd
 from sqlalchemy import text
 from db import ENGINE  # reutiliza el mismo ENGINE configurado en db.py
+
 try:
     from passlib.hash import bcrypt
 except ModuleNotFoundError:  # dependencias opcionales
     bcrypt = None
-from auth_map import *
 
+import auth_map as am
+
+
+# -------------------- utilidades internas --------------------
 
 def _q(sql: str, params=None) -> pd.DataFrame:
-    """Ejecuta query y devuelve DataFrame."""
+    """Ejecuta una consulta y devuelve DataFrame."""
     with ENGINE.connect() as c:
         return pd.read_sql(text(sql), c, params=params or {})
 
-
 def _norm(s: str) -> str:
-    """Normaliza un string para comparaciones de login."""
+    """Normaliza texto para comparaciones de login."""
     s = (s or "").strip()
     s = re.sub(r"\s+", " ", s)
     return s.casefold()
 
-
 def _verify_pwd(candidate: str, stored: str) -> bool:
-    """Verifica contraseña: bcrypt o texto plano (legacy)."""
+    """Verifica contraseña: bcrypt ($2...) o texto plano (legacy)."""
     if stored is None:
         return False
     s = str(stored)
-    if s.startswith("$2"):   # bcrypt
+    if s.startswith("$2"):
         if bcrypt is None:
             return False
         try:
             return bcrypt.verify(candidate, s)
         except Exception:
             return False
-    # texto plano (temporal / legacy)
     return candidate == s
 
+
+# -------------------- helpers de rol --------------------
+
+def _resolver_rol(nombre: str) -> str | None:
+    """
+    Mapea el nombre lógico (ej.: 'JEFE BODEGA', 'BODEGA', 'OPERARIO BODEGA')
+    a un rol definido en auth_map.ROL_ALIASES.
+    """
+    nm = _norm(nombre or "")
+    # coincidencia exacta con alias
+    for k, v in am.ROL_ALIASES.items():
+        if _norm(k) == nm:
+            return v
+    # heurística
+    if "jefe" in nm and "bodega" in nm:
+        return am.ROL_JEFE
+    if "operario" in nm and "bodega" in nm:
+        return am.ROL_OPERARIO
+    return None
+
+
+# -------------------- logins --------------------
 
 def login_usuario(nombre: str, clave: str):
     """
     Login de nivel 1 (usuario/clave).
-    Retorna dict con datos o None si falla.
+    Retorna dict con {nombre, mail, rol} o None si falla.
     """
     sql = f"""
-        SELECT {USERS_COL_NOM}, {USERS_COL_PWD}, {USERS_COL_MAIL}
-        FROM {USERS_TABLE}
-        WHERE {USERS_COL_NOM} = :n
+        SELECT {am.USER_COL_NOM}, {am.USER_COL_PWD}, {am.USER_COL_MAIL}, {am.USER_COL_ACT}
+        FROM {am.USER_TABLE}
+        WHERE {am.USER_COL_NOM} = :n
     """
     df = _q(sql, {"n": nombre})
     if df.empty:
         return None
 
     r = df.iloc[0]
-    if not _verify_pwd(clave, r[USERS_COL_PWD]):
+
+    # 'Eliminado' = 0 => activo, 1 => inactivo
+    val_user_act = str(r.get(am.USER_COL_ACT, "0")).strip().lower()
+    if val_user_act in {"1", "true", "sí", "si", "yes"}:
         return None
 
+    # contraseña
+    if not _verify_pwd(clave, r[am.USER_COL_PWD]):
+        return None
+
+    rol = _resolver_rol(r[am.USER_COL_NOM]) or am.ROL_OPERARIO
+
     return {
-        "nombre": r[USERS_COL_NOM],
-        "mail": r.get(USERS_COL_MAIL),
+        "nombre": r[am.USER_COL_NOM],
+        "mail": r.get(am.USER_COL_MAIL),
+        "rol":  rol,
     }
 
 
 def login_nivel2_operario(codigo: str, clave_nombre: str):
     """
-    Autentica operario de nivel 2 usando código y el nombre como clave.
-    Retorna un dict con los datos del operario o None si no coincide.
+    Login de nivel 2 (operario): código + nombre como clave.
+    Retorna dict con {codigo, nombre, apellido, cargo, sucursal, rol} o None.
     """
-    cols = [PERSO_COL_COD, PERSO_COL_NOM]
-    for op in [PERSO_COL_APE, PERSO_COL_CARG, PERSO_COL_SUC, PERSO_COL_ACT]:
+    cols = [am.PERSO_COL_COD, am.PERSO_COL_NOM]
+    for op in [am.PERSO_COL_APE, am.PERSO_COL_CARG, am.PERSO_COL_SUC, am.PERSO_COL_ACT]:
         if op:
             cols.append(op)
 
-    sql = f"SELECT {', '.join(cols)} FROM {PERSO_TABLE} WHERE {PERSO_COL_COD} = :c"
+    sql = f"SELECT {', '.join(cols)} FROM {am.PERSO_TABLE} WHERE {am.PERSO_COL_COD} = :c"
     df = _q(sql, {"c": codigo})
     if df.empty:
         return None
 
     r = df.iloc[0]
 
-    # Validar si está activo (si la columna existe)
-    val_act = str(r.get(PERSO_COL_ACT, "")).strip().lower()
-    if val_act in {"0", "false", "no", "n"}:
+    # 'Eliminado' = 0 => activo, 1 => inactivo
+    val_act = str(r.get(am.PERSO_COL_ACT, "0")).strip().lower()
+    if val_act in {"1", "true", "sí", "si", "yes"}:
         return None
 
-    # Validar clave = nombre normalizado
-    if _norm(r[PERSO_COL_NOM]) != _norm(clave_nombre):
+    # clave = nombre normalizado
+    if _norm(r[am.PERSO_COL_NOM]) != _norm(clave_nombre):
         return None
 
     return {
-        "codigo": r[PERSO_COL_COD],
-        "nombre": r[PERSO_COL_NOM],
-        "apellido": r.get(PERSO_COL_APE),
-        "cargo": r.get(PERSO_COL_CARG),
-        "sucursal": r.get(PERSO_COL_SUC),
+        "codigo":   r[am.PERSO_COL_COD],
+        "nombre":   r[am.PERSO_COL_NOM],
+        "apellido": r.get(am.PERSO_COL_APE),
+        "cargo":    r.get(am.PERSO_COL_CARG),
+        "sucursal": r.get(am.PERSO_COL_SUC),
+        "rol":      am.ROL_OPERARIO,
     }
