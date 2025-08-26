@@ -3,6 +3,8 @@ import os, re
 import pandas as pd
 from sqlalchemy import text
 from db import ENGINE  # reutiliza el mismo ENGINE configurado en db.py
+import auth_map as am
+import legacy_passwords as lp
 
 try:
     from passlib.hash import bcrypt
