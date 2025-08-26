@@ -1159,7 +1159,7 @@ def salida():
             cant   = request.form.get('cantidad') or '1'
             try:
                 cant = int(cant)
-            except:
+            except Exception:
                 cant = 1
 
             if not nv_items:
