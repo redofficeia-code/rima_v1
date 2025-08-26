@@ -15,13 +15,8 @@ import unicodedata
 import db
 import db_utils
 from db_utils import get_oc_detalle
-<<<<<<< ours
-from auth_service import login_usuario, login_nivel2_operario
-from auth_map import ROL_JEFE, ROL_OPERARIO
-=======
 from auth_service import login_nivel1, login_nivel2_operario
 from auth_map import ROL_JEFE, ROL_OPERARIO, ROL_ALIASES
->>>>>>> theirs
 
 # Usuarios disponibles para Login 1 (value, label)
 LOGIN1_USUARIOS = [
@@ -210,14 +205,10 @@ def login1():
         usuario_input = (request.form.get('usuario') or '').strip()
         clave = (request.form.get('clave') or '').strip()
 
-<<<<<<< ours
-        u = login_usuario(usuario, clave)
-=======
         # Mapea alias: ej. "BODEGA" -> "JEFE BODEGA"
         usuario_query = ROL_ALIASES.get(usuario_input.upper(), usuario_input)
 
         u = login_nivel1(usuario_query, clave)
->>>>>>> theirs
         if not u:
             flash('Usuario o clave inválidos.', 'error')
             return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario_input)
@@ -1052,18 +1043,9 @@ def download_guia():
 def salida():
     cu = session.get('current_user')
     op = session.get('operario')
-<<<<<<< ours
-    if not cu:
-        if app.config.get('TESTING'):
-            cu = {'rol': ROL_JEFE}
-        else:
-            return redirect(url_for('login1'))
-    if cu.get('rol') == ROL_OPERARIO and not op and not app.config.get('TESTING'):
-=======
     if not cu and not current_app.testing:
         return redirect(url_for('login1'))
     if cu and cu.get('rol') == ROL_OPERARIO and not op and not current_app.testing:
->>>>>>> theirs
         return redirect(url_for('login2'))
 
     if request.method == 'GET':
