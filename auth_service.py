@@ -1,17 +1,20 @@
 # auth_service.py
-import os, re
+import re
 import pandas as pd
 from sqlalchemy import text
 from db import ENGINE  # reutiliza el mismo ENGINE configurado en db.py
+
+# Mapeos/constantes de tablas y columnas
 import auth_map as am
+
+# Algoritmo legado de contraseñas (dotcode)
 import legacy_passwords as lp
 
+# bcrypt (opcional)
 try:
     from passlib.hash import bcrypt
 except ModuleNotFoundError:  # dependencias opcionales
     bcrypt = None
-
-import auth_map as am
 
 
 # -------------------- utilidades internas --------------------
@@ -28,10 +31,15 @@ def _norm(s: str) -> str:
     return s.casefold()
 
 def _verify_pwd(candidate: str, stored: str) -> bool:
-    """Verifica contraseña: bcrypt ($2...) o texto plano (legacy)."""
+    """
+    Verifica la contraseña ingresada contra la almacenada en la BD.
+    Soporta bcrypt, formato legado con puntos y texto plano.
+    """
     if stored is None:
         return False
     s = str(stored)
+
+    # 1) bcrypt ($2...)
     if s.startswith("$2"):
         if bcrypt is None:
             return False
@@ -39,7 +47,19 @@ def _verify_pwd(candidate: str, stored: str) -> bool:
             return bcrypt.verify(candidate, s)
         except Exception:
             return False
-    return candidate == s
+
+    # 2) formato con puntos (dotcode legado)
+    if lp.looks_dotcode(s):
+        try:
+            candidate_norm = lp.legacy_preprocess(candidate)  # capitalize()
+            calc = lp.codificar_clave(candidate_norm)
+            return calc.strip() == s.strip()
+        except Exception:
+            return False
+
+    # 3) texto plano (legacy / pruebas)
+    return candidate.strip() == s.strip()
+
 
 
 # -------------------- helpers de rol --------------------

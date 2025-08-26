@@ -15,12 +15,17 @@ import unicodedata
 import db
 import db_utils
 from db_utils import get_oc_detalle
+<<<<<<< ours
 from auth_service import login_usuario, login_nivel2_operario
 from auth_map import ROL_JEFE, ROL_OPERARIO
+=======
+from auth_service import login_nivel1, login_nivel2_operario
+from auth_map import ROL_JEFE, ROL_OPERARIO, ROL_ALIASES
+>>>>>>> theirs
 
 # Usuarios disponibles para Login 1 (value, label)
 LOGIN1_USUARIOS = [
-    ("BODEGA", "Jefe Bodega"),
+    ("JEFE BODEGA", "Jefe Bodega"),
     ("OPERARIO BODEGA", "Operario Bodega"),
 ]
 
@@ -202,13 +207,20 @@ def login1():
         return redirect(url_for('login2'))
 
     if request.method == 'POST':
-        usuario = (request.form.get('usuario') or '').strip()
-        clave   = (request.form.get('clave') or '').strip()
+        usuario_input = (request.form.get('usuario') or '').strip()
+        clave = (request.form.get('clave') or '').strip()
 
+<<<<<<< ours
         u = login_usuario(usuario, clave)
+=======
+        # Mapea alias: ej. "BODEGA" -> "JEFE BODEGA"
+        usuario_query = ROL_ALIASES.get(usuario_input.upper(), usuario_input)
+
+        u = login_nivel1(usuario_query, clave)
+>>>>>>> theirs
         if not u:
             flash('Usuario o clave inválidos.', 'error')
-            return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
+            return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario_input)
 
         session['current_user'] = {'nombre': u['nombre'], 'rol': u['rol']}
         if u['rol'] == ROL_JEFE:
@@ -1040,12 +1052,18 @@ def download_guia():
 def salida():
     cu = session.get('current_user')
     op = session.get('operario')
+<<<<<<< ours
     if not cu:
         if app.config.get('TESTING'):
             cu = {'rol': ROL_JEFE}
         else:
             return redirect(url_for('login1'))
     if cu.get('rol') == ROL_OPERARIO and not op and not app.config.get('TESTING'):
+=======
+    if not cu and not current_app.testing:
+        return redirect(url_for('login1'))
+    if cu and cu.get('rol') == ROL_OPERARIO and not op and not current_app.testing:
+>>>>>>> theirs
         return redirect(url_for('login2'))
 
     if request.method == 'GET':
@@ -1189,6 +1207,35 @@ def salida():
             return redirect(url_for('salida'))
 
     # GET
+    # Consultas auxiliares para hubs o zonas
+    zona = request.args.get('zona')
+    hub_id = request.args.get('hub_id', type=int)
+    lista_nv = None
+    zona_seleccionada = None
+    if zona:
+        zona_seleccionada = zona
+        sql = (
+            "SELECT NUMNOTA, FECHA, SUCUR, RAZSOC FROM NOTV_DB N "
+            "JOIN NV_ZONAS Z ON N.NUMNOTA = Z.NV WHERE Z.ZONA = :zona"
+        )
+        df_z = db.query_df(sql, {"zona": zona})
+        if not df_z.empty:
+            lista_nv = df_z.rename(columns={
+                "NUMNOTA": "numnota",
+                "FECHA": "fecha",
+                "SUCUR": "sucursal",
+                "RAZSOC": "cliente",
+            }).to_dict(orient="records")
+        else:
+            flash('No hay Notas de Venta asignadas', 'info')
+    else:
+        sql = "SELECT ID, NOMBRE FROM HUBS WHERE 1=1"
+        params = {}
+        if hub_id is not None:
+            sql = "SELECT ID, NOMBRE FROM HUBS WHERE ID = :hub_id"
+            params = {"hub_id": hub_id}
+        db.query_df(sql, params)
+
     # Calcular cantidades escaneadas y faltantes para cada ítem de la NV
     scanned_map = {}
     for si in salida_items:
