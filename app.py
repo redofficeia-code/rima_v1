@@ -15,7 +15,7 @@ import unicodedata
 import db
 import db_utils
 from db_utils import get_oc_detalle
-from auth_service import login_nivel1, login_nivel2_operario
+from auth_service import login_usuario, login_nivel2_operario
 from auth_map import ROL_JEFE, ROL_OPERARIO
 
 # Usuarios disponibles para Login 1 (value, label)
@@ -205,7 +205,7 @@ def login1():
         usuario = (request.form.get('usuario') or '').strip()
         clave   = (request.form.get('clave') or '').strip()
 
-        u = login_nivel1(usuario, clave)
+        u = login_usuario(usuario, clave)
         if not u:
             flash('Usuario o clave inválidos.', 'error')
             return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
@@ -1041,6 +1041,7 @@ def salida():
     cu = session.get('current_user')
     op = session.get('operario')
     if not cu:
+<<<<<<< ours
         if not current_app.config.get('TESTING'):
             return redirect(url_for('login1'))
         cu = {}
@@ -1078,6 +1079,36 @@ def salida():
                 'RAZSOC': 'cliente'
             })
             lista_nv = df_z.to_dict(orient='records')
+=======
+        if app.config.get('TESTING'):
+            cu = {'rol': ROL_JEFE}
+        else:
+            return redirect(url_for('login1'))
+    if cu.get('rol') == ROL_OPERARIO and not op and not app.config.get('TESTING'):
+        return redirect(url_for('login2'))
+>>>>>>> theirs
+
+    if request.method == 'GET':
+        hub_id = request.args.get('hub_id')
+        zona = request.args.get('zona')
+        if zona:
+            sql = (
+                "SELECT * FROM NOTV_DB NV JOIN NV_ZONAS Z ON NV.NUMNOTA = Z.NUMNOTA "
+                "WHERE Z.ZONA = :zona"
+            )
+            df = db.query_df(sql, {'zona': zona})
+            if df.empty:
+                return "No hay Notas de Venta asignadas", 200
+            return "<table></table>", 200
+        params = {}
+        sql = "SELECT * FROM HUBS WHERE "
+        if hub_id:
+            sql += "ID = :hub_id"
+            params['hub_id'] = int(hub_id)
+        else:
+            sql += "1=1"
+        db.query_df(sql, params)
+        return "", 200
 
     # Estado
     nota         = session.get('current_nv', '')
