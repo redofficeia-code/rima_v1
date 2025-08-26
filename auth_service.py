@@ -1,6 +1,7 @@
 # auth_service.py
 import re
 import pandas as pd
+<<<<<<< ours
 from sqlalchemy import text
 from db import ENGINE  # reutiliza el mismo ENGINE configurado en db.py
 
@@ -15,6 +16,11 @@ try:
     from passlib.hash import bcrypt
 except ModuleNotFoundError:  # dependencias opcionales
     bcrypt = None
+=======
+from sqlalchemy import create_engine, text
+import legacy_passwords as lp
+from auth_map import *
+>>>>>>> theirs
 
 
 # -------------------- utilidades internas --------------------
@@ -39,14 +45,37 @@ def _verify_pwd(candidate: str, stored: str) -> bool:
         return False
     s = str(stored)
 
+<<<<<<< ours
     # 1) bcrypt ($2...)
     if s.startswith("$2"):
         if bcrypt is None:
+=======
+    # bcrypt
+    if s.startswith("$2"):
+        try:
+            from passlib.hash import bcrypt
+        except ModuleNotFoundError:
+>>>>>>> theirs
             return False
         try:
             return bcrypt.verify(candidate, s)
         except Exception:
             return False
+<<<<<<< ours
+=======
+
+    # dotcode legado
+    if lp.looks_dotcode(s):
+        try:
+            candidate_norm = lp.legacy_preprocess(candidate)  # capitalize()
+            calc = lp.codificar_clave(candidate_norm)
+            return calc.strip() == s.strip()
+        except Exception:
+            return False
+
+    # texto plano
+    return (candidate or "").strip() == s.strip()
+>>>>>>> theirs
 
     # 2) formato con puntos (dotcode legado)
     if lp.looks_dotcode(s):
