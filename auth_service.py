@@ -1,26 +1,20 @@
 # auth_service.py
 import re
 import pandas as pd
-<<<<<<< ours
 from sqlalchemy import text
-from db import ENGINE  # reutiliza el mismo ENGINE configurado en db.py
+from db import ENGINE
 
-# Mapeos/constantes de tablas y columnas
+# alias del mapa
 import auth_map as am
 
-# Algoritmo legado de contraseñas (dotcode)
+# algoritmo legado (dotcode)
 import legacy_passwords as lp
 
 # bcrypt (opcional)
 try:
     from passlib.hash import bcrypt
-except ModuleNotFoundError:  # dependencias opcionales
+except ModuleNotFoundError:
     bcrypt = None
-=======
-from sqlalchemy import create_engine, text
-import legacy_passwords as lp
-from auth_map import *
->>>>>>> theirs
 
 
 # -------------------- utilidades internas --------------------
@@ -45,50 +39,26 @@ def _verify_pwd(candidate: str, stored: str) -> bool:
         return False
     s = str(stored)
 
-<<<<<<< ours
     # 1) bcrypt ($2...)
     if s.startswith("$2"):
         if bcrypt is None:
-=======
-    # bcrypt
-    if s.startswith("$2"):
-        try:
-            from passlib.hash import bcrypt
-        except ModuleNotFoundError:
->>>>>>> theirs
             return False
         try:
             return bcrypt.verify(candidate, s)
         except Exception:
             return False
-<<<<<<< ours
-=======
-
-    # dotcode legado
-    if lp.looks_dotcode(s):
-        try:
-            candidate_norm = lp.legacy_preprocess(candidate)  # capitalize()
-            calc = lp.codificar_clave(candidate_norm)
-            return calc.strip() == s.strip()
-        except Exception:
-            return False
-
-    # texto plano
-    return (candidate or "").strip() == s.strip()
->>>>>>> theirs
 
     # 2) formato con puntos (dotcode legado)
     if lp.looks_dotcode(s):
         try:
-            candidate_norm = lp.legacy_preprocess(candidate)  # capitalize()
+            candidate_norm = lp.legacy_preprocess(candidate)  # p.ej. capitalize()
             calc = lp.codificar_clave(candidate_norm)
             return calc.strip() == s.strip()
         except Exception:
             return False
 
     # 3) texto plano (legacy / pruebas)
-    return candidate.strip() == s.strip()
-
+    return (candidate or "").strip() == s.strip()
 
 
 # -------------------- helpers de rol --------------------
@@ -99,11 +69,9 @@ def _resolver_rol(nombre: str) -> str | None:
     a un rol definido en auth_map.ROL_ALIASES.
     """
     nm = _norm(nombre or "")
-    # coincidencia exacta con alias
     for k, v in am.ROL_ALIASES.items():
         if _norm(k) == nm:
             return v
-    # heurística
     if "jefe" in nm and "bodega" in nm:
         return am.ROL_JEFE
     if "operario" in nm and "bodega" in nm:
@@ -181,3 +149,9 @@ def login_nivel2_operario(codigo: str, clave_nombre: str):
         "sucursal": r.get(am.PERSO_COL_SUC),
         "rol":      am.ROL_OPERARIO,
     }
+
+
+# --- Compat: alias para código legacy ---
+def login_nivel1(nombre: str, clave: str):
+    """Compatibilidad con import legacy desde app.py"""
+    return login_usuario(nombre, clave)

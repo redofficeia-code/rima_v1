@@ -15,7 +15,7 @@ import unicodedata
 import db
 import db_utils
 from db_utils import get_oc_detalle
-from auth_service import login_nivel1, login_nivel2_operario
+from auth_service import login_usuario as login_nivel1, login_nivel2_operario
 from auth_map import ROL_JEFE, ROL_OPERARIO, ROL_ALIASES
 
 # Usuarios disponibles para Login 1 (value, label)
