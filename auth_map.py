@@ -17,7 +17,7 @@ PERSO_COL_SUC  = "PERSUC"      # sucursal
 PERSO_COL_ACT  = "Eliminado"   # 0 = activo, 1 = baja
 
 # --- Roles lógicos (derivados desde USER_DB.NOMBRE) ---
-ROL_JEFE     = "JEFE BODEGA"
+ROL_JEFE     = "Bodega"
 ROL_OPERARIO = "OPERARIO BODEGA"
 
 # Soporta legacy "BODEGA" como JEFE BODEGA
