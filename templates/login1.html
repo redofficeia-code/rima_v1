@@ -24,7 +24,11 @@
       <label>Usuario</label>
       <select name="usuario" required autofocus>
         {% for value, _label in usuarios %}
+<<<<<<< ours
         <option value="{{ value }}"{% if value == selected_usuario %} selected{% endif %}>{{ value }}</option>
+=======
+        <option value="{{ value }}"{% if value == selected_usuario %} selected{% endif %}>{{ _label }}</option>
+>>>>>>> theirs
         {% endfor %}
       </select>
       <label>Clave</label>
