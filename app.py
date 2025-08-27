@@ -221,12 +221,8 @@ def login1():
     cu = session.get('current_user')
     if cu:
         if cu.get('rol') == ROL_JEFE:
-<<<<<<< ours
-            return redirect(url_for('panel_jefe'))
-=======
             session['is_admin'] = True
             return redirect(url_for('admin_index'))
->>>>>>> theirs
         return redirect(url_for('login2'))
 
     if request.method == 'POST':
@@ -256,12 +252,8 @@ def login1():
         # Guardar sesión y redirigir según rol
         session['current_user'] = {'nombre': u['nombre'], 'rol': u['rol']}
         if u['rol'] == ROL_JEFE:
-<<<<<<< ours
-            return redirect(url_for('panel_jefe'))
-=======
             session['is_admin'] = u.get('is_admin', True)
             return redirect(url_for('admin_index'))
->>>>>>> theirs
         return redirect(url_for('login2'))
 
     # GET
@@ -1059,12 +1051,6 @@ def download_guia():
 def salida():
     cu = session.get('current_user')
     op = session.get('operario')
-<<<<<<< ours
-    if not cu and not current_app.testing:
-        return redirect(url_for('login1'))
-    if cu and cu.get('rol') == ROL_OPERARIO and not op and not current_app.testing:
-        return redirect(url_for('login2'))
-=======
     if not cu:
         if current_app.config.get('TESTING'):
             session['current_user'] = cu = {'nombre': 'test', 'rol': ROL_OPERARIO}
@@ -1106,7 +1092,6 @@ def salida():
             db.query_df("SELECT * FROM HUBS WHERE ID = :hub_id", {'hub_id': hub_id})
         else:
             db.query_df("SELECT * FROM HUBS WHERE 1=1", {})
->>>>>>> theirs
 
     if request.method == 'GET':
         hub_id = request.args.get('hub_id')
@@ -1341,11 +1326,7 @@ def salida():
         nv_items=display_nv_items,
         salida_items=salida_items,
         stock_items=stock_items,
-<<<<<<< ours
-        zona_seleccionada=zona_seleccionada,
-=======
         zona_seleccionada=zona_sel,
->>>>>>> theirs
         lista_nv=lista_nv
     )
 
