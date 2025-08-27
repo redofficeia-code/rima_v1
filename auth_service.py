@@ -15,6 +15,24 @@ try:
     from passlib.hash import bcrypt
 except ModuleNotFoundError:
     bcrypt = None
+<<<<<<< ours
+=======
+from auth_map import (
+    USER_TABLE,
+    USER_COL_NOM,
+    USER_COL_PWD,
+    USER_COL_ACT,
+    PERSO_TABLE,
+    PERSO_COL_COD,
+    PERSO_COL_NOM,
+    PERSO_COL_APE,
+    PERSO_COL_CARG,
+    PERSO_COL_SUC,
+    PERSO_COL_ACT,
+    ROL_ALIASES,
+    ROL_JEFE,
+)
+>>>>>>> theirs
 
 
 # -------------------- utilidades internas --------------------
@@ -68,6 +86,7 @@ def _resolver_rol(nombre: str) -> str | None:
     Mapea el nombre lógico (ej.: 'JEFE BODEGA', 'BODEGA', 'OPERARIO BODEGA')
     a un rol definido en auth_map.ROL_ALIASES.
     """
+<<<<<<< ours
     nm = _norm(nombre or "")
     for k, v in am.ROL_ALIASES.items():
         if _norm(k) == nm:
@@ -85,6 +104,11 @@ def login_usuario(nombre: str, clave: str):
     """
     Login de nivel 1 (usuario/clave).
     Retorna dict con {nombre, mail, rol} o None si falla.
+=======
+    Login 1 contra USER_DB: NOMBRE + PASSWORD.
+    Deriva rol desde NOMBRE y lo normaliza al formato canon
+    (``Bodega`` o ``Operario``).
+>>>>>>> theirs
     """
     sql = f"""
         SELECT {am.USER_COL_NOM}, {am.USER_COL_PWD}, {am.USER_COL_MAIL}, {am.USER_COL_ACT}
@@ -106,6 +130,7 @@ def login_usuario(nombre: str, clave: str):
     if not _verify_pwd(clave, r[am.USER_COL_PWD]):
         return None
 
+<<<<<<< ours
     rol = _resolver_rol(r[am.USER_COL_NOM]) or am.ROL_OPERARIO
 
     return {
@@ -113,12 +138,24 @@ def login_usuario(nombre: str, clave: str):
         "mail": r.get(am.USER_COL_MAIL),
         "rol":  rol,
     }
+=======
+    # rol lógico desde nombre (normalizado a canon)
+    nom_str = (r["nom"] or "").strip().upper()
+    rol = ROL_ALIASES.get(nom_str, nom_str)
+
+    return {"nombre": (r["nom"] or "").strip(), "rol": rol}
+>>>>>>> theirs
 
 
 def login_nivel2_operario(codigo: str, clave_nombre: str):
     """
+<<<<<<< ours
     Login de nivel 2 (operario): código + nombre como clave.
     Retorna dict con {codigo, nombre, apellido, cargo, sucursal, rol} o None.
+=======
+    Login 2 SOLO si rol = ``Operario``.
+    Valida CODIGO + NOMBRE (como clave) en PERSO_DB.
+>>>>>>> theirs
     """
     cols = [am.PERSO_COL_COD, am.PERSO_COL_NOM]
     for op in [am.PERSO_COL_APE, am.PERSO_COL_CARG, am.PERSO_COL_SUC, am.PERSO_COL_ACT]:
