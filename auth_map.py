@@ -1,4 +1,5 @@
 # auth_map.py
+# -*- coding: utf-8 -*-
 
 # --- USER_DB (Login 1) ---
 USER_TABLE    = "USER_DB"
@@ -10,8 +11,8 @@ USER_COL_MAIL = "mail_usr"     # correo del usuario
 # ---- Tablas físicas para Login 1 (con esquema) ----
 # Asegúrate que coincida con el lugar donde está COD='BB1'
 USERS_TABLE_RIMA = "RIMA.dbo.USER_DB"
-# Si consultas otra base, descomenta y ajusta:
-# USERS_TABLE_SCL  = "SANTIAGO.dbo.USER_DB"
+# IMPORTANTE: aquí indicamos Santiago explícitamente (SCL es solo el nombre de la constante)
+USERS_TABLE_SCL  = "Santiago.dbo.USER_DB"
 
 # --- PERSO_DB (Login 2) ---
 PERSO_TABLE    = "PERSO_DB"
@@ -23,7 +24,6 @@ PERSO_COL_SUC  = "PERSUC"      # sucursal
 PERSO_COL_ACT  = "Eliminado"   # 0 = activo, 1 = baja
 
 # --- Roles lógicos (derivados desde USER_DB) ---
-# Nombres "canónicos" que usa la app
 ROL_JEFE     = "Bodega"
 ROL_OPERARIO = "OPERARIO BODEGA"
 
@@ -111,9 +111,9 @@ def _alias(name, *alts):
 
 _alias('PERSO_TABLE', 'PERSONAL_TABLE')
 
-_alias('PERSO_COL_COD', 'PERSONAL_COL_COD', 'PERSO_COD', 'CODIGO')
-_alias('PERSO_COL_NOM', 'PERSONAL_COL_NOM', 'PERSO_NOM', 'NOMBRE')
-_alias('PERSO_COL_APE', 'PERSONAL_COL_APE', 'PERSO_APE', 'APELLIDO')
-_alias('PERSO_COL_CARG', 'PERSONAL_COL_CARG', 'PERSO_CARGO', 'CARGO')
-_alias('PERSO_COL_SUC', 'PERSONAL_COL_SUC', 'PERSO_SUC', 'SUCUR', 'PERSUC')
-_alias('PERSO_COL_ACT', 'PERSONAL_COL_ACT', 'PERSO_ACT', 'ACTIVO', 'Eliminado')
+_alias('PERSO_COL_COD',  'PERSONAL_COL_COD',  'PERSO_COD',  'CODIGO')
+_alias('PERSO_COL_NOM',  'PERSONAL_COL_NOM',  'PERSO_NOM',  'NOMBRE')
+_alias('PERSO_COL_APE',  'PERSONAL_COL_APE',  'PERSO_APE',  'APELLIDO')
+_alias('PERSO_COL_CARG', 'PERSONAL_COL_CARG', 'PERSO_CARGO','CARGO')
+_alias('PERSO_COL_SUC',  'PERSONAL_COL_SUC',  'PERSO_SUC',  'SUCUR', 'PERSUC')
+_alias('PERSO_COL_ACT',  'PERSONAL_COL_ACT',  'PERSO_ACT',  'ACTIVO','Eliminado')

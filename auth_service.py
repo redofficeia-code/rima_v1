@@ -49,21 +49,21 @@ def _engine_from_env():
     drv  = os.getenv("MSSQL_DRIVER") or os.getenv("SQLSERVER_DRIVER") or "ODBC Driver 17 for SQL Server"
 
     if host and db and user and pwd:
-        # SERVER admite "ip,puerto" o "nombre\instancia"
+        # SERVER admite "ip,puerto" o "nombre\\instancia"
         if "," in host or "\\" in host:
             server_field = host  # ya trae puerto o instancia
         else:
             server_field = f"{host},{port}" if port else host
 
-        # IMPORTANTE: braces correctos
+        # braces correctos para DRIVER
         odbc = f"DRIVER={{{drv}}};SERVER={server_field};DATABASE={db};UID={user};PWD={pwd};TrustServerCertificate=yes"
         return create_engine(
             "mssql+pyodbc:///?odbc_connect=" + quote_plus(odbc),
             pool_pre_ping=True, future=True, fast_executemany=True
         )
 
-    # 3) URL directa
-    url = os.getenv("USER_DB_URL")
+    # 3) URL directa (¡OJO: plural!)
+    url = os.getenv("USERS_DB_URL")
     if url:
         # Si es URL mssql y contiene "host,port", conviértela a odbc_connect
         if url.lower().startswith("mssql") and "," in url.split("@")[-1].split("/")[0]:
@@ -86,7 +86,7 @@ def _engine_from_env():
                     pool_pre_ping=True, future=True, fast_executemany=True
                 )
             except Exception:
-                pass  # Si falla, intenta crear la URL tal cual
+                pass  # si falla, usa la URL tal cual
 
         return create_engine(url, pool_pre_ping=True, future=True)
 
