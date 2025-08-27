@@ -20,12 +20,20 @@ PERSO_COL_ACT  = "Eliminado"   # 0 = activo, 1 = baja
 ROL_JEFE     = "Bodega"
 ROL_OPERARIO = "OPERARIO BODEGA"
 
-# Soporta legacy "BODEGA" como JEFE BODEGA
+# --- Aliases que pueden escribir en el login y deben mapear al canon ---
 ROL_ALIASES = {
+    # Aliases de jefe
     "BODEGA": ROL_JEFE,
-    "JEFE BODEGA": ROL_JEFE,
+    "ADMIN": ROL_JEFE,
+
+    # Aliases de operario
+    "OPERARIO": ROL_OPERARIO,
+    "OPER": ROL_OPERARIO,
     "OPERARIO BODEGA": ROL_OPERARIO,
-}
+   
+    
+
+    }
 
 # --- Aliases para compatibilidad (evita romper otros módulos) ---
 
