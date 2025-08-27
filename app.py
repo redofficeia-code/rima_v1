@@ -15,6 +15,7 @@ import unicodedata
 import db
 import db_utils
 from db_utils import get_oc_detalle
+<<<<<<< ours
 from auth_service import login_usuario as login_nivel1, login_nivel2_operario
 from auth_map import ROL_JEFE, ROL_OPERARIO, ROL_ALIASES
 
@@ -22,6 +23,17 @@ from auth_map import ROL_JEFE, ROL_OPERARIO, ROL_ALIASES
 LOGIN1_USUARIOS = [
     ("Bodega", "Jefe Bodega"),
     ("OPERARIO BODEGA", "Operario Bodega"),
+=======
+from auth_service import login_nivel1, login_nivel2_operario
+from auth_map import ROL_JEFE, ROL_OPERARIO, ROL_ALIASES
+from decorators import admin_required
+
+# Usuarios disponibles para Login 1 (value, label)
+LOGIN1_USUARIOS = [
+    ("BODEGA", "BODEGA"),
+    ("JEFE BODEGA", "JEFE BODEGA"),
+    ("OPERARIO", "OPERARIO"),
+>>>>>>> theirs
 ]
 
 # --- Configuración de logging ---
@@ -32,6 +44,12 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-change-me')
+
+
+@app.context_processor
+def inject_roles():
+    """Hace disponibles las constantes de roles en las plantillas."""
+    return {"ROL_JEFE": ROL_JEFE, "ROL_OPERARIO": ROL_OPERARIO}
 
 # --- Directorios y rutas de archivos ---
 BASE_DIR     = os.path.dirname(__file__)
@@ -204,10 +222,16 @@ def login1():
     if request.method == 'POST':
         usuario_input = (request.form.get('usuario') or '').strip()
         clave = (request.form.get('clave') or '').strip()
+<<<<<<< ours
 
         # Mapea alias: ej. "BODEGA" -> "JEFE BODEGA"
         usuario_query = ROL_ALIASES.get(usuario_input.upper(), usuario_input)
 
+=======
+
+        usuario_query = ROL_ALIASES.get(usuario_input.upper(), usuario_input)
+
+>>>>>>> theirs
         u = login_nivel1(usuario_query, clave)
         if not u:
             flash('Usuario o clave inválidos.', 'error')
@@ -252,45 +276,14 @@ def logout():
 
 
 @app.route('/admin')
+@admin_required
 def admin_index():
-    """Panel principal de administración.
-
-    Requiere que el usuario esté autenticado como administrador. En modo
-    desarrollo es posible acceder pasando ``?key=`` con la clave definida en
-    la variable de entorno ``ADMIN_KEY`` (``admin123`` por defecto)."""
-    key = request.args.get('key')
-    if key and key == os.environ.get('ADMIN_KEY', 'admin123'):
-        session['is_admin'] = True
-
-    if not session.get('is_admin'):
-        return abort(403)
-
     return render_template('admin/index.html')
 
 
-@app.route('/admin/login', methods=['GET', 'POST'])
-def admin_login():
-    """Formulario de autenticación para administradores."""
-    if request.method == 'POST':
-        pwd = request.form.get('password', '')
-        if pwd == os.environ.get('ADMIN_KEY', 'admin123'):
-            session['is_admin'] = True
-            return redirect(url_for('admin_index'))
-        flash('Clave incorrecta', 'error')
-
-    return render_template('admin/login.html')
-
-
-@app.route('/admin/logout')
-def admin_logout():
-    session.pop('is_admin', None)
-    return redirect(url_for('admin_login'))
-
-
 @app.route('/admin/listados')
+@admin_required
 def admin_listados():
-    if not session.get('is_admin'):
-        return abort(403)
     return render_template('admin/listados.html')
 
 
