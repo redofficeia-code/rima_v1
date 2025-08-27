@@ -206,13 +206,22 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/panel_jefe')
+def panel_jefe():
+    """Página principal para el Jefe de Bodega."""
+    cu = session.get('current_user')
+    if not cu or cu.get('rol') != ROL_JEFE:
+        return redirect(url_for('login1'))
+    return render_template('index.html')
+
+
 @app.route('/login1', methods=['GET', 'POST'])
 def login1():
     # Si ya hay alguien en sesión, enrutar según rol
     cu = session.get('current_user')
     if cu:
         if cu.get('rol') == ROL_JEFE:
-            return redirect(url_for('admin_index'))
+            return redirect(url_for('panel_jefe'))
         return redirect(url_for('login2'))
 
     if request.method == 'POST':
@@ -242,7 +251,7 @@ def login1():
         # Guardar sesión y redirigir según rol
         session['current_user'] = {'nombre': u['nombre'], 'rol': u['rol']}
         if u['rol'] == ROL_JEFE:
-            return redirect(url_for('admin_index'))
+            return redirect(url_for('panel_jefe'))
         return redirect(url_for('login2'))
 
     # GET
@@ -255,7 +264,7 @@ def login2():
     if not cu:
         return redirect(url_for('login1'))
     if cu.get('rol') != ROL_OPERARIO:
-        return redirect(url_for('admin_index'))
+        return redirect(url_for('panel_jefe'))
 
     if request.method == 'POST':
         codigo       = (request.form.get('codigo') or '').strip()
