@@ -10,6 +10,7 @@ try:
     from passlib.hash import bcrypt
 except ModuleNotFoundError:
     bcrypt = None
+<<<<<<< ours
 
 try:
     import legacy_passwords as lp
@@ -61,6 +62,25 @@ def _engine_from_env():
     print("[auth_service] Sin variables de conexión → usando sqlite:// (solo pruebas)")
     return create_engine("sqlite://", pool_pre_ping=True, future=True)
 
+=======
+try:
+    import legacy_passwords as lp
+except ModuleNotFoundError:  # pragma: no cover
+    lp = None
+from auth_map import *
+
+# Usuario permitidos en Login 1 (whitelist)
+LOGIN1_ALLOWED = {'BB1', 'SPT'}
+
+# Mapeo COD -> NOMBRE para USER_DB
+LOGIN1_COD_TO_NOMBRE = {
+    'BB1': 'JEFE BODEGA',
+    'SPT': 'OPERARIO BODEGA',
+}
+
+# Un solo engine para ambas tablas (misma BD)
+ENGINE = create_engine(os.environ.get("USERS_DB_URL", "sqlite://"), pool_pre_ping=True, future=True)
+>>>>>>> theirs
 
 ENGINE = _engine_from_env()
 
@@ -100,6 +120,7 @@ def _verify_pwd(candidate: str, stored: str) -> bool:
             return bcrypt.verify(candidate, s)
         except Exception:
             return False
+<<<<<<< ours
 
     # 2) legado con puntos (solo dígitos/puntos/espacio y contiene '.')
     if ("." in s) and all(ch.isdigit() or ch == "." or ch.isspace() for ch in s):
@@ -142,6 +163,31 @@ def _map_rol(grupo_raw):
 
 
 def _find_user_any_db(usuario_query: str):
+=======
+    if lp is not None:
+        try:
+            return lp.codificar_clave(candidate) == s
+        except Exception:
+            pass
+    # texto plano (temporal / legacy)
+    return candidate == s
+
+
+def login_nivel1(usuario_query: str, password: str):
+    """
+    Login 1: restringido a COD 'BB1' (Jefe) y 'SPT' (Operario).
+    """
+    cod = (usuario_query or '').strip().upper()
+    if cod not in LOGIN1_ALLOWED:
+        return None
+    nombre = LOGIN1_COD_TO_NOMBRE.get(cod)
+    if not nombre:
+        return None
+    sql = f"""
+    SELECT {USER_COL_NOM} AS nom, {USER_COL_PWD} AS pwd, {USER_COL_ACT} AS act
+    FROM {USER_TABLE}
+    WHERE RTRIM({USER_COL_NOM}) = :n
+>>>>>>> theirs
     """
     Busca el usuario por COD o NOMBRE en posibles tablas de usuarios.
     Intenta primero en RIMA y luego en SANTIAGO (o defaults si no hay constantes).
