@@ -21,18 +21,8 @@ from decorators import admin_required
 
 # Usuarios disponibles para Login 1 (value=COD, label visible)
 LOGIN1_USUARIOS = [
-<<<<<<< ours
-
-    ("BODEGA", "BODEGA"),
-    ("JEFE BODEGA", "JEFE BODEGA"),
-    ("OPERARIO", "OPERARIO"),
-
-    ('BB1', 'JEFE BODEGA'),
-    ('SPT', 'OPERARIO BODEGA'),
-=======
     ("BB1", "JEFE BODEGA"),
     ("SPT", "OPERARIO BODEGA"),
->>>>>>> theirs
 ]
 
 # --- Configuración de logging ---
@@ -225,11 +215,7 @@ def login1():
         u = login_nivel1(usuario_query, clave)
         if not u:
             flash('Usuario o clave inválidos.', 'error')
-<<<<<<< ours
-            return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario_input)
-=======
             return render_template('login1.html', usuarios=LOGIN1_USUARIOS)
->>>>>>> theirs
 
         session['current_user'] = {'nombre': u['nombre'], 'rol': u['rol']}
         if u['rol'] == ROL_JEFE:
