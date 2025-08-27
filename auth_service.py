@@ -152,5 +152,5 @@ def login_nivel2_operario(codigo: str, clave_nombre: str):
 
 # --- Compat: alias para código legacy ---
 def login_nivel1(nombre: str, clave: str):
-    """Compatibilidad con import legacy desde app.py"""
+    "Compatibilidad con import legacy desde app.py""
     return login_usuario(nombre, clave)
