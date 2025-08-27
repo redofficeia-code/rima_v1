@@ -293,7 +293,23 @@ def logout():
 @app.route('/admin')
 @admin_required
 def admin_index():
+<<<<<<< ours
     return render_template('admin/index.html')
+=======
+    """Panel principal de administración.
+
+    Requiere que el usuario esté autenticado como administrador. En modo
+    desarrollo es posible acceder pasando ``?key=`` con la clave definida en
+    la variable de entorno ``ADMIN_KEY`` (``admin123`` por defecto)."""
+    key = request.args.get('key')
+    if key and key == os.environ.get('ADMIN_KEY', 'admin123'):
+        session['is_admin'] = True
+
+    if not session.get('is_admin'):
+        return abort(403)
+
+    return render_template('admin/menu.html')
+>>>>>>> theirs
 
 
 @app.route('/admin/listados')
@@ -647,6 +663,12 @@ def listado_nv():
 
 
 
+
+@app.route('/nv/gestionar')
+def nv_gestionar():
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
+    return render_template('nv_gestionar.html', rows=[], hubs=[])
 
 @app.route('/notas/preview')
 def notas_preview():
