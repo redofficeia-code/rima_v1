@@ -22,29 +22,17 @@
 
     <form method="post" action="{{ url_for('login1') }}">
       <label>Usuario</label>
-<<<<<<< ours
-<<<<<<< ours
       <select name="usuario" required autofocus>
-        {% for value, _label in usuarios %}
-<<<<<<< ours
-        <option value="{{ value }}"{% if value == selected_usuario %} selected{% endif %}>{{ value }}</option>
-=======
-        <option value="{{ value }}"{% if value == selected_usuario %} selected{% endif %}>{{ _label }}</option>
->>>>>>> theirs
-=======
-      <select name="usuario" required>
         {% for value, label in usuarios %}
-          <option value="{{ value }}">{{ label }}</option>
->>>>>>> theirs
-=======
-      <select name="usuario" required>
-        {% for value, label in usuarios %}
-          <option value="{{ value }}">{{ label }}</option>
->>>>>>> theirs
+          <option value="{{ value }}"{% if value == selected_usuario %} selected{% endif %}>
+            {{ label }}
+          </option>
         {% endfor %}
       </select>
+
       <label>Clave</label>
       <input type="password" name="clave" required>
+
       <button type="submit">Ingresar</button>
     </form>
   </div>

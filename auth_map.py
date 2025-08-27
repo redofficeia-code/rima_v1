@@ -7,6 +7,12 @@ USER_COL_PWD  = "PASSWORD"     # texto o hash
 USER_COL_ACT  = "Eliminado"    # 0 = activo, 1 = baja
 USER_COL_MAIL = "mail_usr"     # correo del usuario
 
+# ---- Tablas físicas para Login 1 (con esquema) ----
+# Asegúrate que coincida con el lugar donde está COD='BB1'
+USERS_TABLE_RIMA = "RIMA.dbo.USER_DB"
+# Si consultas otra base, descomenta y ajusta:
+# USERS_TABLE_SCL  = "SANTIAGO.dbo.USER_DB"
+
 # --- PERSO_DB (Login 2) ---
 PERSO_TABLE    = "PERSO_DB"
 PERSO_COL_COD  = "CODIGO"      # login operario
@@ -16,9 +22,28 @@ PERSO_COL_CARG = "CARGO"       # opcional
 PERSO_COL_SUC  = "PERSUC"      # sucursal
 PERSO_COL_ACT  = "Eliminado"   # 0 = activo, 1 = baja
 
-# --- Roles lógicos (derivados desde USER_DB.NOMBRE) ---
+# --- Roles lógicos (derivados desde USER_DB) ---
+# Nombres "canónicos" que usa la app
 ROL_JEFE     = "Bodega"
 ROL_OPERARIO = "OPERARIO BODEGA"
+
+# Mapeo explícito por GRUPO de la BD (recomendado)
+def _map_rol(grupo):
+    """
+    Traduce el valor de GRUPO de la tabla USER_DB a los roles lógicos.
+    21 -> Jefe Bodega
+    14 -> Operario Bodega
+    Otro -> Operario (por defecto)
+    """
+    try:
+        g = int(str(grupo).strip())
+    except Exception:
+        g = None
+    if g == 21:
+        return ROL_JEFE
+    if g == 14:
+        return ROL_OPERARIO
+    return ROL_OPERARIO
 
 # --- Aliases que pueden escribir en el login y deben mapear al canon ---
 ROL_ALIASES = {
@@ -30,10 +55,7 @@ ROL_ALIASES = {
     "OPERARIO": ROL_OPERARIO,
     "OPER": ROL_OPERARIO,
     "OPERARIO BODEGA": ROL_OPERARIO,
-   
-    
-
-    }
+}
 
 # --- Aliases para compatibilidad (evita romper otros módulos) ---
 

@@ -15,9 +15,16 @@ import unicodedata
 import db
 import db_utils
 from db_utils import get_oc_detalle
-from auth_service import login_nivel1, login_nivel2_operario
 from auth_map import ROL_JEFE, ROL_OPERARIO, ROL_ALIASES
 from decorators import admin_required
+
+from auth_service import login_nivel1, login_nivel2_operario
+try:
+    from auth_service import login_nivel1_debug   # <-- importa la versión con diagnóstico
+    HAS_DEBUG_LOGIN = True
+except Exception:
+    HAS_DEBUG_LOGIN = False
+
 
 # Usuarios disponibles para Login 1 (value=COD, label visible)
 LOGIN1_USUARIOS = [
@@ -209,20 +216,37 @@ def login1():
         return redirect(url_for('login2'))
 
     if request.method == 'POST':
-        usuario = (request.form.get('usuario') or '').strip().upper()
+        usuario = (request.form.get('usuario') or '').strip().upper()  # 'BB1' o 'SPT'
         clave   = (request.form.get('clave') or '').strip()
 
-        u = login_nivel1(usuario_query, clave)
-        if not u:
-            flash('Usuario o clave inválidos.', 'error')
-            return render_template('login1.html', usuarios=LOGIN1_USUARIOS)
+        if HAS_DEBUG_LOGIN:
+            u, motivo = login_nivel1_debug(usuario, clave)
+            if not u:
+                if motivo == "whitelist":
+                    flash("Solo se permiten BB1 (Jefe) y SPT (Operario).", "error")
+                elif motivo == "no_user":
+                    flash(f"No se encontró el usuario '{usuario}' en USERS_DB.", "error")
+                elif motivo == "no_pwd":
+                    flash(f"El usuario '{usuario}' no tiene PASSWORD en la BD.", "error")
+                elif motivo == "bad_pwd":
+                    flash("Contraseña incorrecta. Ingresa la clave en claro (no el string con puntos).", "error")
+                else:
+                    flash("Usuario o clave inválidos.", "error")
+                return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
+        else:
+            u = login_nivel1(usuario, clave)
+            if not u:
+                flash('Usuario o clave inválidos.', 'error')
+                return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
 
+        # Guardar sesión y redirigir según rol
         session['current_user'] = {'nombre': u['nombre'], 'rol': u['rol']}
         if u['rol'] == ROL_JEFE:
             return redirect(url_for('admin_index'))
         return redirect(url_for('login2'))
 
-    return render_template('login1.html', usuarios=LOGIN1_USUARIOS)
+    # GET
+    return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=None)
 
 
 @app.route('/login2', methods=['GET', 'POST'])

@@ -4,7 +4,7 @@ import os
 import re
 import pandas as pd
 from sqlalchemy import create_engine, text
-from urllib.parse import quote_plus  # << necesario para odbc_connect
+from urllib.parse import quote_plus  # para odbc_connect
 
 # --- dependencias opcionales ---
 try:
@@ -27,11 +27,6 @@ LOGIN1_ALLOWED = {'BB1', 'SPT'}  # 'BB1' = JEFE BODEGA, 'SPT' = OPERARIO BODEGA
 
 # ---------------------------------------------------------------------
 # Conexión a BD
-#   Soporta:
-#   1) USERS_DB_ODBC  -> ODBC puro (DRIVER=...;SERVER=...;DATABASE=...;UID=...;PWD=...)
-#   2) Variables separadas (MSSQL_HOST, MSSQL_PORT, MSSQL_DB, MSSQL_USER, MSSQL_PASSWORD, MSSQL_DRIVER)
-#   3) USERS_DB_URL   -> URL SQLAlchemy. Si detecta "host,port" convierte a odbc_connect automáticamente.
-#   Si nada está definido, usa sqlite:// (solo pruebas).
 # ---------------------------------------------------------------------
 def _engine_from_env():
     # 1) ODBC string directa
@@ -60,26 +55,23 @@ def _engine_from_env():
         else:
             server_field = f"{host},{port}" if port else host
 
-        odbc = f"DRIVER={{{{ {drv} }}}};SERVER={server_field};DATABASE={db};UID={user};PWD={pwd};TrustServerCertificate=yes"
+        # IMPORTANTE: braces correctos
+        odbc = f"DRIVER={{{drv}}};SERVER={server_field};DATABASE={db};UID={user};PWD={pwd};TrustServerCertificate=yes"
         return create_engine(
             "mssql+pyodbc:///?odbc_connect=" + quote_plus(odbc),
             pool_pre_ping=True, future=True, fast_executemany=True
         )
 
     # 3) URL directa
-    url = os.getenv("USERS_DB_URL")
+    url = os.getenv("USER_DB_URL")
     if url:
         # Si es URL mssql y contiene "host,port", conviértela a odbc_connect
         if url.lower().startswith("mssql") and "," in url.split("@")[-1].split("/")[0]:
-            # Extraer partes simples: mssql+pyodbc://user:pwd@host,port/db?driver=...
-            # Recomendación: usa odbc_connect para soportar la coma segura
-            # Intento de parseo mínimo:
             try:
-                # Busca ?driver=... o usa driver por defecto
+                # ?driver=... o driver por defecto
                 drv_q = "ODBC Driver 17 for SQL Server"
                 if "driver=" in url.lower():
-                    drv_q = url.split("driver=")[-1]
-                    drv_q = drv_q.split("&")[0].replace("+", " ")
+                    drv_q = url.split("driver=")[-1].split("&")[0].replace("+", " ")
 
                 # user:pwd
                 creds = url.split("://", 1)[1].split("@", 1)[0]
@@ -88,14 +80,13 @@ def _engine_from_env():
                 dbname = dbhost.split("/", 1)[1].split("?", 1)[0]
                 user, pwd = creds.split(":", 1)
 
-                odbc = f"DRIVER={{{{ {drv_q} }}}};SERVER={host_port};DATABASE={dbname};UID={user};PWD={pwd};TrustServerCertificate=yes"
+                odbc = f"DRIVER={{{drv_q}}};SERVER={host_port};DATABASE={dbname};UID={user};PWD={pwd};TrustServerCertificate=yes"
                 return create_engine(
                     "mssql+pyodbc:///?odbc_connect=" + quote_plus(odbc),
                     pool_pre_ping=True, future=True, fast_executemany=True
                 )
             except Exception:
-                # Si falla, intenta crear la URL tal cual (por si no había coma)
-                pass
+                pass  # Si falla, intenta crear la URL tal cual
 
         return create_engine(url, pool_pre_ping=True, future=True)
 
@@ -170,8 +161,10 @@ def _find_user_any_db(usuario_query: str):
     if tbl_scl:
         candidate_tables.append(tbl_scl)
     if not candidate_tables:
-        candidate_tables = ["USERS_DB"]
+        # Fallback correcto: nombre real de tu tabla es USER_DB (singular)
+        candidate_tables = ["USER_DB"]
 
+    uparam = (usuario_query or "").strip().upper()
     seen = set()
     for tbl in candidate_tables:
         if not tbl or tbl in seen:
@@ -181,16 +174,18 @@ def _find_user_any_db(usuario_query: str):
             df = _q(
                 f"""
                 SELECT TOP 1
-                    COD       AS cod,
-                    NOMBRE    AS nombre,
-                    PASSWORD  AS password,
-                    GRUPO     AS grupo
+                    LTRIM(RTRIM(COD))      AS cod,
+                    LTRIM(RTRIM(NOMBRE))   AS nombre,
+                    LTRIM(RTRIM(PASSWORD)) AS password,
+                    GRUPO                  AS grupo
                 FROM {tbl}
-                WHERE COD = :u OR NOMBRE = :u
+                WHERE UPPER(LTRIM(RTRIM(COD))) = :u
+                   OR UPPER(LTRIM(RTRIM(NOMBRE))) = :u
                 """,
-                {"u": usuario_query},
+                {"u": uparam},
             )
         except Exception:
+            # La tabla puede no existir o no estar accesible con este ENGINE
             continue
 
         if not df.empty:
@@ -252,6 +247,42 @@ def login_nivel1(usuario_query: str, clave: str):
     if u:
         u["is_admin"] = (u.get("rol") == ROL_JEFE)
     return u
+
+def _build_session_user(usuario_row):
+    """Convierte una fila de USER_DB a dict estándar de sesión."""
+    return {
+        "usuario": usuario_row["cod"],
+        "nombre": usuario_row["nombre"],
+        "rol": _map_rol_safe(usuario_row.get("grupo")),
+        "tabla": usuario_row.get("tabla_origen"),
+    }
+
+def login_nivel1_debug(usuario_query: str, clave: str):
+    """
+    Igual que login_nivel1, pero devuelve (usuario_dict|None, motivo:str) para diagnóstico:
+      - "whitelist"   -> el valor no es BB1 ni SPT
+      - "no_user"     -> no se encontró el usuario en la(s) tabla(s)
+      - "no_pwd"      -> el campo PASSWORD en BD está NULL/vacío
+      - "bad_pwd"     -> la contraseña no coincide
+      - "ok"          -> autenticación correcta
+    """
+    cod = (usuario_query or "").strip().upper()
+    if cod not in LOGIN1_ALLOWED:
+        return None, "whitelist"
+
+    row = _find_user_any_db(cod)
+    if not row:
+        return None, "no_user"
+
+    stored = (row.get("password") or "").strip()
+    if not stored:
+        return None, "no_pwd"
+
+    if not _verify_pwd(clave or "", stored):
+        return None, "bad_pwd"
+
+    u = _build_session_user(row)
+    return u, "ok"
 
 # -------------------- login nivel 2 (operario) --------------------
 def login_nivel2_operario(codigo: str, clave_nombre: str):
