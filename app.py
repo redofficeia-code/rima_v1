@@ -21,14 +21,13 @@ from decorators import admin_required
 
 # Usuarios disponibles para Login 1 (value=COD, label visible)
 LOGIN1_USUARIOS = [
-<<<<<<< ours
+
     ("BODEGA", "BODEGA"),
     ("JEFE BODEGA", "JEFE BODEGA"),
     ("OPERARIO", "OPERARIO"),
-=======
+
     ('BB1', 'JEFE BODEGA'),
     ('SPT', 'OPERARIO BODEGA'),
->>>>>>> theirs
 ]
 
 # --- Configuración de logging ---
@@ -215,15 +214,8 @@ def login1():
         return redirect(url_for('login2'))
 
     if request.method == 'POST':
-<<<<<<< ours
-        usuario_input = (request.form.get('usuario') or '').strip()
-        clave = (request.form.get('clave') or '').strip()
-
-        usuario_query = ROL_ALIASES.get(usuario_input.upper(), usuario_input)
-=======
         usuario = (request.form.get('usuario') or '').strip().upper()
         clave   = (request.form.get('clave') or '').strip()
->>>>>>> theirs
 
         u = login_nivel1(usuario_query, clave)
         if not u:
