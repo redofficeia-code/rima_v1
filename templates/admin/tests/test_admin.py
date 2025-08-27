@@ -1,6 +1,6 @@
-import os
 import pytest
 from app import app
+from auth_map import ROL_JEFE, ROL_OPERARIO
 
 
 @pytest.fixture
@@ -11,23 +11,20 @@ def client():
         yield c
 
 
-def test_admin_forbidden_without_login(client):
+def test_admin_requires_proper_role(client):
+    # Sin sesión debe retornar 403
     resp = client.get("/admin")
     assert resp.status_code == 403
 
+    # Con rol no administrador también 403
+    with client.session_transaction() as sess:
+        sess["current_user"] = {"nombre": "Operario", "rol": ROL_OPERARIO}
+    resp = client.get("/admin")
+    assert resp.status_code == 403
 
-def test_admin_with_key_param(client):
-    resp = client.get("/admin?key=" + os.environ.get("ADMIN_KEY", "admin123"))
+    # Con rol de jefe permite el acceso
+    with client.session_transaction() as sess:
+        sess["current_user"] = {"nombre": "Jefe", "rol": ROL_JEFE}
+    resp = client.get("/admin")
     assert resp.status_code == 200
 
-
-def test_admin_login_ok(client):
-    resp_get = client.get("/admin/login")
-    assert resp_get.status_code == 200
-    resp_post = client.post(
-        "/admin/login",
-        data={"password": os.environ.get("ADMIN_KEY", "admin123")},
-        follow_redirects=True,
-    )
-    assert resp_post.status_code == 200
-    assert b"Panel de Administraci" in resp_post.data
