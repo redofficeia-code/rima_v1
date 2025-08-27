@@ -28,3 +28,17 @@ def test_admin_requires_proper_role(client):
     resp = client.get("/admin")
     assert resp.status_code == 200
 
+<<<<<<< ours
+=======
+
+def test_admin_login_ok(client):
+    resp_get = client.get("/admin/login")
+    assert resp_get.status_code == 200
+    resp_post = client.post(
+        "/admin/login",
+        data={"password": os.environ.get("ADMIN_KEY", "admin123")},
+        follow_redirects=True,
+    )
+    assert resp_post.status_code == 200
+    assert "MENÚ ADMIN".encode("utf-8") in resp_post.data
+>>>>>>> theirs
