@@ -57,7 +57,7 @@
            alt="Logo"
            style="max-height:100px; margin:1em auto;">
       <header>{% block header %}WMS – App Bodega{% endblock %}</header>
-      {% if session.current_user %}
+      {% if session.get('current_user') %}
       <a href="{{ url_for('logout') }}">Cerrar sesión</a>
       {% endif %}
       <div class="primary">
@@ -70,8 +70,8 @@
       <a href="{{ url_for('listados') }}"><span>LISTADOS</span></a>
       <a href="{{ url_for('inventario') }}"><span>INVENTARIO</span></a>
       <a href="{{ url_for('devoluciones') }}"><span>DEVOLUCIONES</span></a>
-      {% if session.get('is_admin') %}
-      <a href="{{ url_for('admin_dashboard') }}"><span>Gestionar listados</span></a>
+      {% if session.get('current_user', {}).get('rol') == ROL_JEFE %}
+      <a href="{{ url_for('admin_index') }}"><span>Gestionar listados</span></a>
       {% endif %}
     </div>
 
