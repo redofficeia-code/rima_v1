@@ -284,47 +284,97 @@ def login_nivel1_debug(usuario_query: str, clave: str):
     u = _build_session_user(row)
     return u, "ok"
 
-# -------------------- login nivel 2 (operario) --------------------
 def login_nivel2_operario(codigo: str, clave_nombre: str):
     """
     Login 2 SOLO si rol = OPERARIO.
-    Valida CODIGO + NOMBRE (como clave) en PERSO_DB.
+    Busca por CODIGO en PERSO_DB de Santiago y RIMA (en ese orden),
+    y valida que la 'clave' sea el NOMBRE normalizado (case/espacios-insensible).
     """
+
+    # --- columnas desde auth_map (con fallbacks seguros) ---
     try:
-        cols = [PERSO_COL_COD, PERSO_COL_NOM]
+        base_cols = [PERSO_COL_COD, PERSO_COL_NOM]
+        opt_cols  = []
         for op in [PERSO_COL_APE, PERSO_COL_CARG, PERSO_COL_SUC, PERSO_COL_ACT]:
-            if op:
-                cols.append(op)
-        table = PERSO_TABLE
-        col_cod, col_nom, col_ape, col_carg, col_suc, col_act = (
-            PERSO_COL_COD, PERSO_COL_NOM, PERSO_COL_APE, PERSO_COL_CARG, PERSO_COL_SUC, PERSO_COL_ACT
-        )
+            if op:  # solo si está definida
+                opt_cols.append(op)
+        col_cod, col_nom = PERSO_COL_COD, PERSO_COL_NOM
+        col_ape, col_carg = PERSO_COL_APE, PERSO_COL_CARG
+        col_suc, col_act  = PERSO_COL_SUC, PERSO_COL_ACT
     except NameError:
-        table = "PERSO_DB"
-        col_cod, col_nom, col_ape, col_carg, col_suc, col_act = (
-            "CODIGO", "NOMBRE", "APELLIDO", "CARGO", "SUCURSAL", "AGGVER"
-        )
-        cols = [col_cod, col_nom, col_ape, col_carg, col_suc, col_act]
+        col_cod, col_nom = "CODIGO", "NOMBRE"
+        col_ape, col_carg, col_suc, col_act = "APELLIDO", "CARGO", None, "ACTIVO"
+        base_cols = [col_cod, col_nom]
+        opt_cols  = [col_ape, col_carg, col_act]
 
-    sql = f"SELECT {', '.join(cols)} FROM {table} WHERE {col_cod} = :c"
-    df = _q(sql, {"c": codigo})
-    if df.empty:
-        return None
+    # --- tablas candidatas: SANTIAGO -> RIMA -> genérica ---
+    candidates = []
+    for nm in ("PERSO_TABLE_SCL", "PERSO_TABLE_RIMA", "PERSO_TABLE"):
+        t = _safe_get(nm, None)
+        if t:
+            candidates.append(t)
+    if not candidates:
+        candidates = ["Santiago.dbo.PERSO_DB", "RIMA.dbo.PERSO_DB", "PERSO_DB"]
 
-    r = df.iloc[0]
+    codigo_norm = (codigo or "").strip().upper()
+    clave_norm  = _norm(clave_nombre)
 
-    # ¿activo? (ajusta si en tu instalación el significado es inverso)
-    if str(r.get(col_act, 0)).strip() in ("1", "True", "true"):
-        return None
+    def esta_inactivo(row, flag_col: str) -> bool:
+        """Devuelve True si el registro debe considerarse inactivo."""
+        if not flag_col:
+            return False
+        name = flag_col.lower()
+        val  = str(row.get(flag_col, "")).strip().lower()
+        if "activo" in name:
+            # ACTIVO: 1/true => activo, 0/false => inactivo
+            return val in ("0", "false", "no", "")
+        if any(k in name for k in ("elim", "baja", "aggver")):
+            # ELIMINADO/BAJA/AGGVER: 1 => inactivo
+            return val in ("1", "true", "sí", "si")
+        return False  # desconocido: no bloquear
 
-    # clave = NOMBRE normalizado
-    if _norm(r[col_nom]) != _norm(clave_nombre):
-        return None
+    for tbl in candidates:
+        # Intento 1: con todas las columnas definidas
+        cols_try = base_cols + [c for c in opt_cols if c]
+        try:
+            sql = f"""
+                SELECT {', '.join(cols_try)}
+                FROM {tbl}
+                WHERE UPPER(LTRIM(RTRIM({col_cod}))) = :c
+            """
+            df = _q(sql, {"c": codigo_norm})
+        except Exception:
+            # Intento 2: mínimo indispensable (CODIGO, NOMBRE) si falló por columnas inexistentes
+            try:
+                sql = f"""
+                    SELECT {col_cod}, {col_nom}
+                    FROM {tbl}
+                    WHERE UPPER(LTRIM(RTRIM({col_cod}))) = :c
+                """
+                df = _q(sql, {"c": codigo_norm})
+            except Exception:
+                continue
 
-    return {
-        "codigo": r[col_cod],
-        "nombre": r[col_nom],
-        "apellido": r.get(col_ape),
-        "cargo": r.get(col_carg),
-        "sucursal": r.get(col_suc),
-    }
+        if df.empty:
+            continue
+
+        r = df.iloc[0]
+
+        # Chequeo de activo (si tenemos columna de estado)
+        if col_act and col_act in r.index and esta_inactivo(r, col_act):
+            continue
+
+        # clave = NOMBRE normalizado
+        if _norm(r[col_nom]) != clave_norm:
+            continue
+
+        return {
+            "codigo": r[col_cod],
+            "nombre": r[col_nom],
+            "apellido": r.get(col_ape) if col_ape else None,
+            "cargo": r.get(col_carg) if col_carg else None,
+            "sucursal": r.get(col_suc) if col_suc else None,
+            "tabla_origen": tbl,
+        }
+
+    return None

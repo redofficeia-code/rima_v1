@@ -15,13 +15,22 @@ USERS_TABLE_RIMA = "RIMA.dbo.USER_DB"
 USERS_TABLE_SCL  = "Santiago.dbo.USER_DB"
 
 # --- PERSO_DB (Login 2) ---
+# Tabla genérica (fallback)
 PERSO_TABLE    = "PERSO_DB"
+# Tablas físicas por BD para que login 2 busque en ambas
+PERSO_TABLE_SCL  = "Santiago.dbo.PERSO_DB"   # Santiago
+PERSO_TABLE_RIMA = "RIMA.dbo.PERSO_DB"       # RIMA
+
+# Columnas (ajusta el flag y quita sucursal si no existe)
+PERSO_COL_ACT  = "ACTIVO"   # <-- en tu tabla ACTIVO=1 significa activo
+PERSO_COL_SUC  = None       # <-- no selecciones columna de sucursal si no existe
+
 PERSO_COL_COD  = "CODIGO"      # login operario
 PERSO_COL_NOM  = "NOMBRE"      # clave del operario (temporal)
 PERSO_COL_APE  = "APELLIDO"    # opcional
 PERSO_COL_CARG = "CARGO"       # opcional
 PERSO_COL_SUC  = "PERSUC"      # sucursal
-PERSO_COL_ACT  = "Eliminado"   # 0 = activo, 1 = baja
+
 
 # --- Roles lógicos (derivados desde USER_DB) ---
 ROL_JEFE     = "Bodega"
