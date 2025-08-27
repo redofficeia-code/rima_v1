@@ -20,7 +20,11 @@ from auth_map import ROL_JEFE, ROL_OPERARIO, ROL_ALIASES
 
 # Usuarios disponibles para Login 1 (value, label)
 LOGIN1_USUARIOS = [
+<<<<<<< ours
     ("JEFE BODEGA", "Jefe Bodega"),
+=======
+    ("Bodega", "Jefe Bodega"),
+>>>>>>> theirs
     ("OPERARIO BODEGA", "Operario Bodega"),
 ]
 
