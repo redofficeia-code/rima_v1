@@ -15,6 +15,7 @@ import unicodedata
 import db
 import db_utils
 from db_utils import get_oc_detalle
+<<<<<<< ours
 from auth_map import ROL_JEFE, ROL_OPERARIO, ROL_ALIASES
 from decorators import admin_required
 
@@ -24,6 +25,13 @@ try:
     HAS_DEBUG_LOGIN = True
 except Exception:
     HAS_DEBUG_LOGIN = False
+=======
+from auth_map import ROL_JEFE, ROL_OPERARIO
+try:
+    from auth_service import login_nivel2_operario
+except ImportError:
+    login_nivel2_operario = None
+>>>>>>> theirs
 
 
 # Usuarios disponibles para Login 1 (value=COD, label visible)
@@ -226,6 +234,7 @@ def login1():
         session['is_admin'] = False
         return redirect(url_for('login2'))
 
+<<<<<<< ours
     # Si es GET, mostrar formulario
     if request.method != 'POST':
         return render_template('login1.html', usuarios=LOGIN1_USUARIOS)
@@ -251,10 +260,27 @@ def login1():
             return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
     else:
         u = login_nivel1(usuario, clave)
-        if not u:
-            flash('Usuario o clave inválidos.', 'error')
-            return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
+=======
+    if request.method == 'POST':
+        usuario_input = (request.form.get('usuario') or '').strip()
+        clave_input   = (request.form.get('clave')   or '').strip()
 
+        from auth_service import login_usuario
+        u = login_usuario(usuario_input, clave_input)
+
+>>>>>>> theirs
+        if not u:
+            flash(f"No se encontró el usuario '{usuario_input}' en USERS_DB o la clave es inválida.", "error")
+            return render_template('login1.html')
+
+        # Guarda sesión y rutea según rol
+        session['current_user'] = {
+            'usuario': u['usuario'],
+            'nombre':  u['nombre'],
+            'rol':     u['rol'],
+        }
+
+<<<<<<< ours
     # --- éxito: guardar sesión y redirigir ---
     rol_normalizado = (u.get('rol') or '').strip().casefold()
 
@@ -270,6 +296,15 @@ def login1():
     session['is_admin'] = False
     return redirect(url_for('login2'))
 
+=======
+        # Admin si rol == ROL_JEFE
+        if u['rol'] == ROL_JEFE:
+            session['is_admin'] = True
+            return redirect(url_for('admin_index'))
+
+        # Caso contrario va a Login 2 (operario)
+        return redirect(url_for('login2'))
+>>>>>>> theirs
 
 
 
