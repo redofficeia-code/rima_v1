@@ -1091,33 +1091,9 @@ def salida():
         ]
         if df_z.empty:
             flash('No hay Notas de Venta asignadas', 'warning')
-    else:
-        if hub_id:
-            db.query_df("SELECT * FROM HUBS WHERE ID = :hub_id", {'hub_id': hub_id})
-        else:
-            db.query_df("SELECT * FROM HUBS WHERE 1=1", {})
+    
 
-    if request.method == 'GET':
-        hub_id = request.args.get('hub_id')
-        zona = request.args.get('zona')
-        if zona:
-            sql = (
-                "SELECT * FROM NOTV_DB NV JOIN NV_ZONAS Z ON NV.NUMNOTA = Z.NUMNOTA "
-                "WHERE Z.ZONA = :zona"
-            )
-            df = db.query_df(sql, {'zona': zona})
-            if df.empty:
-                return "No hay Notas de Venta asignadas", 200
-            return "<table></table>", 200
-        params = {}
-        sql = "SELECT * FROM HUBS WHERE "
-        if hub_id:
-            sql += "ID = :hub_id"
-            params['hub_id'] = int(hub_id)
-        else:
-            sql += "1=1"
-        db.query_df(sql, params)
-        return "", 200
+
 
     # Estado
     nota         = session.get('current_nv', '')
@@ -1260,12 +1236,9 @@ def salida():
         else:
             flash('No hay Notas de Venta asignadas', 'info')
     else:
-        sql = "SELECT ID, NOMBRE FROM HUBS WHERE 1=1"
-        params = {}
-        if hub_id is not None:
-            sql = "SELECT ID, NOMBRE FROM HUBS WHERE ID = :hub_id"
-            params = {"hub_id": hub_id}
-        db.query_df(sql, params)
+        # Antes consultábamos HUBS; lo omitimos porque la tabla no existe en tu BD.
+        pass
+
 
     # Calcular cantidades escaneadas y faltantes para cada ítem de la NV
     scanned_map = {}
@@ -1330,7 +1303,7 @@ def salida():
         nv_items=display_nv_items,
         salida_items=salida_items,
         stock_items=stock_items,
-        zona_seleccionada=zona_sel,
+        zona_seleccionada=zona_seleccionada,
         lista_nv=lista_nv
     )
 
