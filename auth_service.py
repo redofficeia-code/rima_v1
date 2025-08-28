@@ -6,6 +6,7 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 from urllib.parse import quote_plus  # para odbc_connect
 
+
 # --- dependencias opcionales ---
 try:
     from passlib.hash import bcrypt
@@ -43,12 +44,12 @@ def _engine_from_env():
     # 2) Variables separadas
     host = os.getenv("MSSQL_HOST") or os.getenv("SQLSERVER_HOST")
     port = os.getenv("MSSQL_PORT") or os.getenv("SQLSERVER_PORT") or "1433"
-    db   = os.getenv("MSSQL_DB") or os.getenv("SQLSERVER_DB") or os.getenv("DB_NAME")
+    dbn  = os.getenv("MSSQL_DB") or os.getenv("SQLSERVER_DB") or os.getenv("DB_NAME")
     user = os.getenv("MSSQL_USER") or os.getenv("SQLSERVER_USER") or os.getenv("DB_USER")
     pwd  = os.getenv("MSSQL_PASSWORD") or os.getenv("SQLSERVER_PASSWORD") or os.getenv("DB_PASSWORD")
     drv  = os.getenv("MSSQL_DRIVER") or os.getenv("SQLSERVER_DRIVER") or "ODBC Driver 17 for SQL Server"
 
-    if host and db and user and pwd:
+    if host and dbn and user and pwd:
         # SERVER admite "ip,puerto" o "nombre\\instancia"
         if "," in host or "\\" in host:
             server_field = host  # ya trae puerto o instancia
@@ -56,7 +57,7 @@ def _engine_from_env():
             server_field = f"{host},{port}" if port else host
 
         # braces correctos para DRIVER
-        odbc = f"DRIVER={{{drv}}};SERVER={server_field};DATABASE={db};UID={user};PWD={pwd};TrustServerCertificate=yes"
+        odbc = f"DRIVER={{{drv}}};SERVER={server_field};DATABASE={dbn};UID={user};PWD={pwd};TrustServerCertificate=yes"
         return create_engine(
             "mssql+pyodbc:///?odbc_connect=" + quote_plus(odbc),
             pool_pre_ping=True, future=True, fast_executemany=True
@@ -65,40 +66,22 @@ def _engine_from_env():
     # 3) URL directa (¡OJO: plural!)
     url = os.getenv("USER_DB_URL")
     if url:
-        # Si es URL mssql y contiene "host,port", conviértela a odbc_connect
-        if url.lower().startswith("mssql") and "," in url.split("@")[-1].split("/")[0]:
-            try:
-                # ?driver=... o driver por defecto
-                drv_q = "ODBC Driver 17 for SQL Server"
-                if "driver=" in url.lower():
-                    drv_q = url.split("driver=")[-1].split("&")[0].replace("+", " ")
-
-                # user:pwd
-                creds = url.split("://", 1)[1].split("@", 1)[0]
-                dbhost = url.split("@", 1)[1]
-                host_port = dbhost.split("/", 1)[0]           # host,port
-                dbname = dbhost.split("/", 1)[1].split("?", 1)[0]
-                user, pwd = creds.split(":", 1)
-
-                odbc = f"DRIVER={{{drv_q}}};SERVER={host_port};DATABASE={dbname};UID={user};PWD={pwd};TrustServerCertificate=yes"
-                return create_engine(
-                    "mssql+pyodbc:///?odbc_connect=" + quote_plus(odbc),
-                    pool_pre_ping=True, future=True, fast_executemany=True
-                )
-            except Exception:
-                pass  # si falla, usa la URL tal cual
-
         return create_engine(url, pool_pre_ping=True, future=True)
 
-    # 4) Fallback
+    # 4) Fallback (solo para tests; en app se sobreescribe con db.ENGINE)
     return create_engine("sqlite://", pool_pre_ping=True, future=True)
 
-# Crea el engine usando la lógica robusta
-ENGINE = _engine_from_env()
+# Usa el mismo ENGINE que el resto de la app
+try:
+    import db
+    ENGINE = db.ENGINE
+except Exception:
+    ENGINE = _engine_from_env()  # fallback si no se pudo importar
+
 
 # -------------------- utilidades internas --------------------
 def _q(sql: str, params=None) -> pd.DataFrame:
-    """Ejecuta una consulta y devuelve DataFrame."""
+    """Ejecuta una consulta y devuelve DataFrame con el ENGINE local (no preferido)."""
     with ENGINE.connect() as c:
         return pd.read_sql(text(sql), c, params=params or {})
 
@@ -202,26 +185,6 @@ def _find_user_any_db(usuario_query: str):
 import auth_map as am
 
 # -------------------- login nivel 1 y helpers --------------------
-def _map_rol_safe(grupo_val):
-    """
-    Usa _map_rol de auth_map si existe; si no, fallback:
-      - 21 -> ROL_JEFE
-      - 14 -> ROL_OPERARIO
-      - otro -> ROL_OPERARIO
-    """
-    try:
-        return _map_rol(grupo_val)  # type: ignore
-    except Exception:
-        try:
-            g = int(grupo_val) if grupo_val is not None else None
-        except Exception:
-            g = None
-        if g == 21:
-            return ROL_JEFE
-        if g == 14:
-            return ROL_OPERARIO
-        return ROL_OPERARIO
-
 def _map_rol_safe(grupo):
     """Mapea el grupo a rol lógico usando tu auth_map; tolerante a None/cadenas."""
     try:
@@ -229,90 +192,175 @@ def _map_rol_safe(grupo):
     except Exception:
         return am.ROL_OPERARIO  # fallback
 
-def login_usuario(usuario_query: str, clave: str):
-    """
-    Autentica un usuario por COD o NOMBRE contra RIMA/SANTIAGO.
-    Retorna dict {usuario, nombre, rol, tabla} o None si falla.
-    - Acepta PASSWORD vacío/NULL solo si la clave ingresada también es vacía (regla de pruebas).
-    """
-    row = _find_user_any_db(usuario_query)
-    if not row:
+def _verify_pwd_login1(ingresada: str, almacenada: str) -> bool:
+    """Comparador para Login1: texto, bcrypt o legacy-puntos."""
+    if almacenada is None:
+        return False
+    s_in = (ingresada or "").strip()
+    s_st = str(almacenada).strip()
+    if not s_in:
+        return False
+
+    # 1) texto plano
+    if s_in == s_st:
+        return True
+
+    # 2) bcrypt
+    if s_st.startswith("$2"):
+        if bcrypt is None:
+            return False
+        try:
+            return bcrypt.verify(s_in, s_st)
+        except Exception:
+            return False
+
+    # 3) legacy puntos
+    if lp is not None:
+        try:
+            return lp.codificar_clave(s_in) == s_st
+        except Exception:
+            pass
+
+    return False
+
+def _fetch_user_santiago_login1(uq: str):
+    """Busca al usuario por COD o NOMBRE directamente en SANTIAGO.dbo.USER_DB (BB1/SPT)."""
+    uq = (uq or "").strip()
+    if not uq:
         return None
 
-    # Normalizaciones
+    # Tabla y columnas fijas
+    table = "[SANTIAGO].[dbo].[USER_DB]"
+    col_id, col_cod, col_nom, col_pwd, col_grp = "ID", "COD", "NOMBRE", "PASSWORD", "GRUPO"
+
+    sql = f"""
+        SELECT TOP 1
+            {col_id}  AS ID,
+            {col_cod} AS COD,
+            {col_nom} AS NOMBRE,
+            {col_pwd} AS PASSWORD,
+            {col_grp} AS GRUPO
+        FROM {table}
+        WHERE ({col_cod} = :uq OR {col_nom} = :uq)
+          AND {col_cod} IN ('BB1','SPT')
+        ORDER BY {col_id} DESC;
+    """
+    try:
+        df = db.query_df(sql, {"uq": uq})
+    except Exception:
+        return None
+
+    if df is None or df.empty:
+        return None
+    return df.iloc[0].to_dict()
+
+def login_usuario(usuario_query: str, clave: str):
+    """
+    Login 1: autentica EXCLUSIVAMENTE contra SANTIAGO.dbo.USER_DB
+    y SOLO permite los COD 'BB1' y 'SPT'.
+    """
+    uq = (usuario_query or "").strip()
+    if not uq:
+        return None
+
+    # Comparación insensible a may/minus y sin espacios alrededor
+    sql = """
+        SELECT TOP 1
+            ID,
+            COD,
+            NOMBRE,
+            PASSWORD,
+            GRUPO
+        FROM [SANTIAGO].[dbo].[USER_DB]
+        WHERE (UPPER(LTRIM(RTRIM(COD)))    = UPPER(:uq)
+            OR UPPER(LTRIM(RTRIM(NOMBRE))) = UPPER(:uq))
+          AND COD IN ('BB1','SPT')
+        ORDER BY ID DESC;
+    """
+    try:
+        df = _q(sql, {"uq": uq})
+    except Exception:
+        return None
+
+    if df is None or df.empty:
+        return None
+
+    row = df.iloc[0].to_dict()
+
+    # Verifica contraseña (texto/bcrypt/“puntos”)
     input_pwd = (clave or "").strip()
-    stored = (row.get("password") or "").strip()
+    stored = (row.get("PASSWORD") or "").strip()
 
     if stored:
-        # Hay password en BD -> verificar
-        if not _verify_pwd(input_pwd, stored):
+        try:
+            ok = _verify_pwd_login1(input_pwd, stored)  # si la definiste
+        except NameError:
+            ok = _verify_pwd(input_pwd, stored)
+        if not ok:
             return None
     else:
-        # No hay password en BD -> solo permitir si el input viene vacío (regla de pruebas)
-        if input_pwd:
+        if input_pwd:   # si en BD está vacía, solo aceptamos input vacío
             return None
 
+    # Rol lógico (usa tu mapper por GRUPO si existe)
+    nombre = (row.get("NOMBRE") or "").strip()
+    try:
+        rol = _map_rol_safe(row.get("GRUPO"))
+    except Exception:
+        rol = ROL_JEFE if _norm(nombre) == _norm("Bodega") else ROL_OPERARIO
+
     return {
-        "usuario": (row.get("cod") or "").strip() or (usuario_query or "").strip().upper(),
-        "nombre": (row.get("nombre") or "").strip() or (usuario_query or "").strip(),
-        "rol": _map_rol_safe(row.get("grupo")),
-        "tabla": row.get("tabla_origen"),
+        "usuario": (row.get("COD") or "").strip(),
+        "nombre": nombre,
+        "rol": rol,
+        "tabla": "SANTIAGO.dbo.USER_DB",
     }
 
-def _build_session_user(usuario_row):
-    """Convierte una fila a dict estándar de sesión."""
-    return {
-        "usuario": (usuario_row.get("cod") or usuario_row.get("usuario") or "").strip(),
-        "nombre": (usuario_row.get("nombre") or "").strip(),
-        "rol": _map_rol_safe(usuario_row.get("grupo")),
-        "tabla": usuario_row.get("tabla_origen"),
-    }
 
 def login_nivel1(usuario_query: str, clave: str):
-    """
-    Login 1: restringido a COD 'BB1' (Jefe Bodega) y 'SPT' (Operario Bodega).
-    """
+    """Login 1: restringido a COD 'BB1' y 'SPT'."""
     cod = (usuario_query or '').strip().upper()
     if cod not in LOGIN1_ALLOWED:
         return None
 
     u = login_usuario(cod, clave)
     if u:
-        # is_admin según rol lógico ya mapeado por grupo
         u["is_admin"] = (u.get("rol") == ROL_JEFE)
     return u
 
 def login_nivel1_debug(usuario_query: str, clave: str):
-    """
-    Igual que login_nivel1 pero con motivo para diagnóstico.
-    """
+    """Igual que login_nivel1 pero con motivo para diagnóstico."""
     cod = (usuario_query or "").strip().upper()
     if cod not in LOGIN1_ALLOWED:
         return None, "whitelist"
 
-    row = _find_user_any_db(cod)
+    row = _fetch_user_santiago_login1(cod)
     if not row:
         return None, "no_user"
 
     input_pwd = (clave or "").strip()
-    stored = (row.get("password") or "").strip()
+    stored = (row.get("PASSWORD") or "").strip()
 
     if not stored and input_pwd:
         return None, "no_pwd"  # sin pwd en BD pero ingresaron algo
 
-    if stored and not _verify_pwd(input_pwd, stored):
+    if stored and not _verify_pwd_login1(input_pwd, stored):
         return None, "bad_pwd"
 
-    u = _build_session_user(row)
-    u["is_admin"] = (u.get("rol") == ROL_JEFE)
+    u = {
+        "usuario": row.get("COD"),
+        "nombre": row.get("NOMBRE"),
+        "rol": _map_rol_safe(row.get("GRUPO")),
+        "tabla": "SANTIAGO.dbo.USER_DB",
+        "is_admin": _map_rol_safe(row.get("GRUPO")) == ROL_JEFE
+    }
     return u, "ok"
 
 def login_nivel2_operario(codigo: str, clave_nombre: str):
-    """
-    Login 2 SOLO si rol = OPERARIO.
+    """Login 2 SOLO si rol = OPERARIO.
+
     Busca por CODIGO en PERSO_DB de Santiago y RIMA (en ese orden),
-    y valida que la 'clave' sea el NOMBRE normalizado (case/espacios-insensible).
-    """
+    y valida que la 'clave' sea el NOMBRE normalizado (case/espacios-insensible)."""
 
     # --- columnas desde auth_map (con fallbacks seguros) ---
     try:

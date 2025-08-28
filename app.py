@@ -15,24 +15,11 @@ import unicodedata
 import db
 import db_utils
 from db_utils import get_oc_detalle
-<<<<<<< ours
-from auth_map import ROL_JEFE, ROL_OPERARIO, ROL_ALIASES
-from decorators import admin_required
-
-from auth_service import login_nivel1, login_nivel2_operario
-try:
-    from auth_service import login_nivel1_debug   # <-- importa la versión con diagnóstico
-    HAS_DEBUG_LOGIN = True
-except Exception:
-    HAS_DEBUG_LOGIN = False
-=======
 from auth_map import ROL_JEFE, ROL_OPERARIO
 try:
     from auth_service import login_nivel2_operario
 except ImportError:
     login_nivel2_operario = None
->>>>>>> theirs
-
 
 # Usuarios disponibles para Login 1 (value=COD, label visible)
 LOGIN1_USUARIOS = [
@@ -44,16 +31,25 @@ LOGIN1_USUARIOS = [
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-
-
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-change-me')
-
 
 @app.context_processor
 def inject_roles():
     """Hace disponibles las constantes de roles en las plantillas."""
     return {"ROL_JEFE": ROL_JEFE, "ROL_OPERARIO": ROL_OPERARIO}
+
+# ---------- Decorador admin_required (NECESARIO) ----------
+from functools import wraps
+def admin_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not session.get("is_admin"):
+            flash("Requiere rol administrador.", "error")
+            return redirect(url_for("login1"))
+        return f(*args, **kwargs)
+    return wrapper
+# ---------------------------------------------------------
 
 # --- Directorios y rutas de archivos ---
 BASE_DIR     = os.path.dirname(__file__)
@@ -228,39 +224,12 @@ def login1():
     # Si ya hay alguien en sesión, enrutar según rol
     cu = session.get('current_user')
     if cu:
-        if (cu.get('rol') or '').casefold() == (ROL_JEFE or '').casefold():
+        if cu.get('rol') == ROL_JEFE:
             session['is_admin'] = True
             return redirect(url_for('admin_index'))
         session['is_admin'] = False
         return redirect(url_for('login2'))
 
-<<<<<<< ours
-    # Si es GET, mostrar formulario
-    if request.method != 'POST':
-        return render_template('login1.html', usuarios=LOGIN1_USUARIOS)
-
-    # --- POST: procesar login ---
-    usuario = (request.form.get('usuario') or '').strip().upper()  # 'BB1' o 'SPT'
-    clave   = (request.form.get('clave') or '').strip()
-
-    u = None
-    if HAS_DEBUG_LOGIN:
-        u, motivo = login_nivel1_debug(usuario, clave)
-        if not u:
-            if motivo == "whitelist":
-                flash("Solo se permiten BB1 (Jefe) y SPT (Operario).", "error")
-            elif motivo == "no_user":
-                flash(f"No se encontró el usuario '{usuario}' en USERS_DB.", "error")
-            elif motivo == "no_pwd":
-                flash(f"El usuario '{usuario}' no tiene PASSWORD en la BD.", "error")
-            elif motivo == "bad_pwd":
-                flash("Contraseña incorrecta. Ingresa la clave en claro (no el string con puntos).", "error")
-            else:
-                flash("Usuario o clave inválidos.", "error")
-            return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
-    else:
-        u = login_nivel1(usuario, clave)
-=======
     if request.method == 'POST':
         usuario_input = (request.form.get('usuario') or '').strip()
         clave_input   = (request.form.get('clave')   or '').strip()
@@ -268,10 +237,9 @@ def login1():
         from auth_service import login_usuario
         u = login_usuario(usuario_input, clave_input)
 
->>>>>>> theirs
         if not u:
             flash(f"No se encontró el usuario '{usuario_input}' en USERS_DB o la clave es inválida.", "error")
-            return render_template('login1.html')
+            return render_template('login1.html', usuarios=LOGIN1_USUARIOS)
 
         # Guarda sesión y rutea según rol
         session['current_user'] = {
@@ -280,32 +248,17 @@ def login1():
             'rol':     u['rol'],
         }
 
-<<<<<<< ours
-    # --- éxito: guardar sesión y redirigir ---
-    rol_normalizado = (u.get('rol') or '').strip().casefold()
-
-    session['current_user'] = {
-        'nombre': u.get('nombre') or u.get('NOMBRE') or usuario,
-        'rol': rol_normalizado
-    }
-
-    if rol_normalizado == (ROL_JEFE or '').casefold():
-        session['is_admin'] = bool(u.get('is_admin', True))
-        return redirect(url_for('admin_index'))
-
-    session['is_admin'] = False
-    return redirect(url_for('login2'))
-
-=======
         # Admin si rol == ROL_JEFE
         if u['rol'] == ROL_JEFE:
             session['is_admin'] = True
             return redirect(url_for('admin_index'))
 
         # Caso contrario va a Login 2 (operario)
+        session['is_admin'] = False
         return redirect(url_for('login2'))
->>>>>>> theirs
 
+    # GET → renderizar formulario
+    return render_template('login1.html', usuarios=LOGIN1_USUARIOS)
 
 
 @app.route('/login2', methods=['GET', 'POST'])
@@ -339,7 +292,6 @@ def logout():
 
 
 @app.route('/admin')
-@admin_required
 def admin_index():
     """Panel principal de administración.
 
@@ -704,14 +656,10 @@ def listado_nv():
         total_pages=total_pages
     )
 
-
-
-
-
 @app.route('/nv/gestionar')
 def nv_gestionar():
     if not session.get('is_admin'):
-        return redirect(url_for('admin_login'))
+        return redirect(url_for('login1'))  # <- antes apuntaba a admin_login (no existe)
     return render_template('nv_gestionar.html', rows=[], hubs=[])
 
 @app.route('/notas/preview')
@@ -746,13 +694,10 @@ def notas_preview():
 
     return render_template('notas_preview.html')
 
-
 @app.route('/nota_credito')
 def nota_credito():
     """Renderiza la página de Nota de Crédito."""
     return render_template('nota_credito.html')
-
-
 
 def ingreso_core(
     template,
@@ -1056,7 +1001,6 @@ def ingreso_core(
         }
     )
 
-
 @app.route('/ingreso', methods=['GET', 'POST'])
 def ingreso():
     cu = session.get('current_user')
@@ -1066,9 +1010,6 @@ def ingreso():
     if cu.get('rol') == ROL_OPERARIO and not op:
         return redirect(url_for('login2'))
     return ingreso_core('ingreso.html', 'ingreso', db_fetcher=fetch_oc_items)
-
-
-
 
 @app.route('/ingreso/diferencias.xls')
 def download_diferencias():
@@ -1090,8 +1031,6 @@ def download_diferencias():
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
-
-
 @app.route('/ingreso/guia.xls')
 def download_guia():
         cu = session.get('current_user')
@@ -1111,7 +1050,6 @@ def download_guia():
             as_attachment=True,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-
 
 @app.route('/salida', methods=['GET', 'POST'])
 def salida():
@@ -1396,9 +1334,6 @@ def salida():
         lista_nv=lista_nv
     )
 
-
-
-
 @app.route('/inventario', methods=['GET', 'POST'])
 @app.route('/inventario/sesion/<sesion_id>', methods=['GET', 'POST'])
 def inventario(sesion_id=None):
@@ -1532,7 +1467,6 @@ def inventario(sesion_id=None):
                            inv_sesion_id=inv_id,
                            inv_estado=inv_estado)
 
-
 # ─── Ruta /importar ─────────────────────────────────────────────────────────
 
 # Asume que ya tienes definidos:
@@ -1627,7 +1561,6 @@ def importar():
         # ── 5. Normalización de columnas ─────────────────────────────────
         df.columns = [
             str(c).strip().replace("\ufeff", "")
-            for c in df.columns
         ]
         # Eliminar Unnamed y columnas vacías
         df = df.loc[:, ~df.columns.str.match(r"^Unnamed", case=False)]
@@ -1651,8 +1584,6 @@ def importar():
 
     # GET
     return render_template("importar.html", tipos=["oc", "nv", "master", "stock"])
-
-
 
 @app.route('/finalizar')
 def finalizar():
@@ -1684,7 +1615,6 @@ def finalizar_salida():
 
     # Renderiza la plantilla final pasando el número de nota
     return render_template('finalizar_salida.html', num_nota=num_nota)
-
 
 EXPORT_DIR = os.path.join(os.getcwd(), 'exports')
 os.makedirs(EXPORT_DIR, exist_ok=True)
@@ -1830,7 +1760,6 @@ def guia_despacho_view(template_name: str = 'guia_despacho.html',
         datetime=datetime
     )
 
-
 @app.route('/guia-despacho')
 def guia_despacho():
     """
@@ -1860,7 +1789,6 @@ def guia_despacho():
 
     return render_template('guia_despacho.html', header=header, detalles=detalles, num_nota=num_nota, datos={}, datetime=datetime)
 
-
 @app.route('/guia_traslado', methods=['GET', 'POST'])
 def guia_traslado():
     """Genera la vista de la Guía de Traslado reutilizando la lógica de
@@ -1872,8 +1800,6 @@ def guia_traslado():
         template_name='guia_traslado.html',
         flash_msg='Guía de traslado guardada correctamente.'
     )
-
-
 
 @app.route('/descargar_xls')
 def descargar_xls():
@@ -1896,4 +1822,3 @@ def descargar_xls():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
