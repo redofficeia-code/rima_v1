@@ -220,44 +220,57 @@ def login1():
     # Si ya hay alguien en sesión, enrutar según rol
     cu = session.get('current_user')
     if cu:
-        if cu.get('rol') == ROL_JEFE:
+        if (cu.get('rol') or '').casefold() == (ROL_JEFE or '').casefold():
             session['is_admin'] = True
             return redirect(url_for('admin_index'))
+        session['is_admin'] = False
         return redirect(url_for('login2'))
 
-    if request.method == 'POST':
-        usuario = (request.form.get('usuario') or '').strip().upper()  # 'BB1' o 'SPT'
-        clave   = (request.form.get('clave') or '').strip()
+    # Si es GET, mostrar formulario
+    if request.method != 'POST':
+        return render_template('login1.html', usuarios=LOGIN1_USUARIOS)
 
-        if HAS_DEBUG_LOGIN:
-            u, motivo = login_nivel1_debug(usuario, clave)
-            if not u:
-                if motivo == "whitelist":
-                    flash("Solo se permiten BB1 (Jefe) y SPT (Operario).", "error")
-                elif motivo == "no_user":
-                    flash(f"No se encontró el usuario '{usuario}' en USERS_DB.", "error")
-                elif motivo == "no_pwd":
-                    flash(f"El usuario '{usuario}' no tiene PASSWORD en la BD.", "error")
-                elif motivo == "bad_pwd":
-                    flash("Contraseña incorrecta. Ingresa la clave en claro (no el string con puntos).", "error")
-                else:
-                    flash("Usuario o clave inválidos.", "error")
-                return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
-        else:
-            u = login_nivel1(usuario, clave)
-            if not u:
-                flash('Usuario o clave inválidos.', 'error')
-                return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
+    # --- POST: procesar login ---
+    usuario = (request.form.get('usuario') or '').strip().upper()  # 'BB1' o 'SPT'
+    clave   = (request.form.get('clave') or '').strip()
 
-        # Guardar sesión y redirigir según rol
-        session['current_user'] = {'nombre': u['nombre'], 'rol': u['rol']}
-        if u['rol'] == ROL_JEFE:
-            session['is_admin'] = u.get('is_admin', True)
-            return redirect(url_for('admin_index'))
-        return redirect(url_for('login2'))
+    u = None
+    if HAS_DEBUG_LOGIN:
+        u, motivo = login_nivel1_debug(usuario, clave)
+        if not u:
+            if motivo == "whitelist":
+                flash("Solo se permiten BB1 (Jefe) y SPT (Operario).", "error")
+            elif motivo == "no_user":
+                flash(f"No se encontró el usuario '{usuario}' en USERS_DB.", "error")
+            elif motivo == "no_pwd":
+                flash(f"El usuario '{usuario}' no tiene PASSWORD en la BD.", "error")
+            elif motivo == "bad_pwd":
+                flash("Contraseña incorrecta. Ingresa la clave en claro (no el string con puntos).", "error")
+            else:
+                flash("Usuario o clave inválidos.", "error")
+            return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
+    else:
+        u = login_nivel1(usuario, clave)
+        if not u:
+            flash('Usuario o clave inválidos.', 'error')
+            return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=usuario)
 
-    # GET
-    return render_template('login1.html', usuarios=LOGIN1_USUARIOS, selected_usuario=None)
+    # --- éxito: guardar sesión y redirigir ---
+    rol_normalizado = (u.get('rol') or '').strip().casefold()
+
+    session['current_user'] = {
+        'nombre': u.get('nombre') or u.get('NOMBRE') or usuario,
+        'rol': rol_normalizado
+    }
+
+    if rol_normalizado == (ROL_JEFE or '').casefold():
+        session['is_admin'] = bool(u.get('is_admin', True))
+        return redirect(url_for('admin_index'))
+
+    session['is_admin'] = False
+    return redirect(url_for('login2'))
+
+
 
 
 @app.route('/login2', methods=['GET', 'POST'])
@@ -293,9 +306,6 @@ def logout():
 @app.route('/admin')
 @admin_required
 def admin_index():
-<<<<<<< ours
-    return render_template('admin/index.html')
-=======
     """Panel principal de administración.
 
     Requiere que el usuario esté autenticado como administrador. En modo
@@ -309,7 +319,6 @@ def admin_index():
         return abort(403)
 
     return render_template('admin/menu.html')
->>>>>>> theirs
 
 
 @app.route('/admin/listados')

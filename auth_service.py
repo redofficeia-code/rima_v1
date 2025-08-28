@@ -30,7 +30,7 @@ LOGIN1_ALLOWED = {'BB1', 'SPT'}  # 'BB1' = JEFE BODEGA, 'SPT' = OPERARIO BODEGA
 # ---------------------------------------------------------------------
 def _engine_from_env():
     # 1) ODBC string directa
-    odbc_str = os.getenv("USERS_DB_ODBC")
+    odbc_str = os.getenv("USER_DB_ODBC")
     if odbc_str:
         odbc = odbc_str
         if "TrustServerCertificate" not in odbc:
@@ -63,7 +63,7 @@ def _engine_from_env():
         )
 
     # 3) URL directa (¡OJO: plural!)
-    url = os.getenv("USERS_DB_URL")
+    url = os.getenv("USER_DB_URL")
     if url:
         # Si es URL mssql y contiene "host,port", conviértela a odbc_connect
         if url.lower().startswith("mssql") and "," in url.split("@")[-1].split("/")[0]:
@@ -148,51 +148,58 @@ def _safe_get(name: str, default=None):
 
 def _find_user_any_db(usuario_query: str):
     """
-    Busca el usuario por COD o NOMBRE en posibles tablas de usuarios.
-    Intenta primero en RIMA y luego en SANTIAGO (o defaults si no hay constantes).
-    Devuelve un dict estandarizado o None.
+    Busca el usuario por COD (o nombre) en tablas de usuarios posibles.
+    Respeta columnas definidas en auth_map (si existen).
+    Devuelve dict estandarizado o None.
     """
-    candidate_tables = []
-    tbl_rima = _safe_get("USERS_TABLE_RIMA", None)
-    tbl_scl  = _safe_get("USERS_TABLE_SCL", None)
+    # --- columnas (desde auth_map con fallback seguro) ---
+    col_login = globals().get("USER_COL_LOGIN", "COD")
+    col_nom   = globals().get("USER_COL_NOM",   "NOMBRE")
+    col_pwd   = globals().get("USER_COL_PWD",   "PASSWORD")
+    col_grp   = globals().get("USER_COL_GRP",   "GRUPO")
 
-    if tbl_rima:
-        candidate_tables.append(tbl_rima)
-    if tbl_scl:
-        candidate_tables.append(tbl_scl)
-    if not candidate_tables:
-        # Fallback correcto: nombre real de tu tabla es USER_DB (singular)
-        candidate_tables = ["USER_DB"]
+    # --- tablas candidatas ---
+    candidates = []
+    for name in ["USERS_TABLE_RIMA", "USERS_TABLE_SCL", "USER_TABLE"]:
+        v = globals().get(name)
+        if v:
+            candidates.append(v)
+
+    if not candidates:
+        # Fallbacks: probar singular y plural en la BD actual
+        candidates = ["USER_DB", "USERS_DB"]
 
     uparam = (usuario_query or "").strip().upper()
     seen = set()
-    for tbl in candidate_tables:
+
+    for tbl in candidates:
         if not tbl or tbl in seen:
             continue
         seen.add(tbl)
         try:
-            df = _q(
-                f"""
+            sql = f"""
                 SELECT TOP 1
-                    LTRIM(RTRIM(COD))      AS cod,
-                    LTRIM(RTRIM(NOMBRE))   AS nombre,
-                    LTRIM(RTRIM(PASSWORD)) AS password,
-                    GRUPO                  AS grupo
+                    LTRIM(RTRIM({col_login})) AS cod,
+                    LTRIM(RTRIM({col_nom}))   AS nombre,
+                    LTRIM(RTRIM({col_pwd}))   AS password,
+                    {col_grp}                 AS grupo
                 FROM {tbl}
-                WHERE UPPER(LTRIM(RTRIM(COD))) = :u
-                   OR UPPER(LTRIM(RTRIM(NOMBRE))) = :u
-                """,
-                {"u": uparam},
-            )
+                WHERE UPPER(LTRIM(RTRIM({col_login}))) = :u
+                   OR UPPER(LTRIM(RTRIM({col_nom})))   = :u
+            """
+            df = _q(sql, {"u": uparam})
         except Exception:
-            # La tabla puede no existir o no estar accesible con este ENGINE
+            # puede fallar si la BD/tabla no existe o hay permisos
             continue
 
         if not df.empty:
             row = df.iloc[0].to_dict()
             row["tabla_origen"] = tbl
             return row
+
     return None
+
+import auth_map as am
 
 # -------------------- login nivel 1 y helpers --------------------
 def _map_rol_safe(grupo_val):
@@ -215,24 +222,50 @@ def _map_rol_safe(grupo_val):
             return ROL_OPERARIO
         return ROL_OPERARIO
 
+def _map_rol_safe(grupo):
+    """Mapea el grupo a rol lógico usando tu auth_map; tolerante a None/cadenas."""
+    try:
+        return am._map_rol(grupo)
+    except Exception:
+        return am.ROL_OPERARIO  # fallback
+
 def login_usuario(usuario_query: str, clave: str):
     """
     Autentica un usuario por COD o NOMBRE contra RIMA/SANTIAGO.
     Retorna dict {usuario, nombre, rol, tabla} o None si falla.
+    - Acepta PASSWORD vacío/NULL solo si la clave ingresada también es vacía (regla de pruebas).
     """
-    usuario = _find_user_any_db(usuario_query)
-    if not usuario:
+    row = _find_user_any_db(usuario_query)
+    if not row:
         return None
 
-    stored = usuario.get("password")
-    if stored is None or not _verify_pwd(clave, stored):
-        return None
+    # Normalizaciones
+    input_pwd = (clave or "").strip()
+    stored = (row.get("password") or "").strip()
+
+    if stored:
+        # Hay password en BD -> verificar
+        if not _verify_pwd(input_pwd, stored):
+            return None
+    else:
+        # No hay password en BD -> solo permitir si el input viene vacío (regla de pruebas)
+        if input_pwd:
+            return None
 
     return {
-        "usuario": usuario["cod"],
-        "nombre": usuario["nombre"],
-        "rol": _map_rol_safe(usuario.get("grupo")),
-        "tabla": usuario.get("tabla_origen"),
+        "usuario": (row.get("cod") or "").strip() or (usuario_query or "").strip().upper(),
+        "nombre": (row.get("nombre") or "").strip() or (usuario_query or "").strip(),
+        "rol": _map_rol_safe(row.get("grupo")),
+        "tabla": row.get("tabla_origen"),
+    }
+
+def _build_session_user(usuario_row):
+    """Convierte una fila a dict estándar de sesión."""
+    return {
+        "usuario": (usuario_row.get("cod") or usuario_row.get("usuario") or "").strip(),
+        "nombre": (usuario_row.get("nombre") or "").strip(),
+        "rol": _map_rol_safe(usuario_row.get("grupo")),
+        "tabla": usuario_row.get("tabla_origen"),
     }
 
 def login_nivel1(usuario_query: str, clave: str):
@@ -245,26 +278,13 @@ def login_nivel1(usuario_query: str, clave: str):
 
     u = login_usuario(cod, clave)
     if u:
+        # is_admin según rol lógico ya mapeado por grupo
         u["is_admin"] = (u.get("rol") == ROL_JEFE)
     return u
 
-def _build_session_user(usuario_row):
-    """Convierte una fila de USER_DB a dict estándar de sesión."""
-    return {
-        "usuario": usuario_row["cod"],
-        "nombre": usuario_row["nombre"],
-        "rol": _map_rol_safe(usuario_row.get("grupo")),
-        "tabla": usuario_row.get("tabla_origen"),
-    }
-
 def login_nivel1_debug(usuario_query: str, clave: str):
     """
-    Igual que login_nivel1, pero devuelve (usuario_dict|None, motivo:str) para diagnóstico:
-      - "whitelist"   -> el valor no es BB1 ni SPT
-      - "no_user"     -> no se encontró el usuario en la(s) tabla(s)
-      - "no_pwd"      -> el campo PASSWORD en BD está NULL/vacío
-      - "bad_pwd"     -> la contraseña no coincide
-      - "ok"          -> autenticación correcta
+    Igual que login_nivel1 pero con motivo para diagnóstico.
     """
     cod = (usuario_query or "").strip().upper()
     if cod not in LOGIN1_ALLOWED:
@@ -274,14 +294,17 @@ def login_nivel1_debug(usuario_query: str, clave: str):
     if not row:
         return None, "no_user"
 
+    input_pwd = (clave or "").strip()
     stored = (row.get("password") or "").strip()
-    if not stored:
-        return None, "no_pwd"
 
-    if not _verify_pwd(clave or "", stored):
+    if not stored and input_pwd:
+        return None, "no_pwd"  # sin pwd en BD pero ingresaron algo
+
+    if stored and not _verify_pwd(input_pwd, stored):
         return None, "bad_pwd"
 
     u = _build_session_user(row)
+    u["is_admin"] = (u.get("rol") == ROL_JEFE)
     return u, "ok"
 
 def login_nivel2_operario(codigo: str, clave_nombre: str):
