@@ -1,137 +1,134 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="es">
 <head>
-  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Devolución Ingreso de Mercancía – WMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
+  <style type="text/css">
+    *, *:before, *:after { box-sizing: border-box; }
     body {
-      margin: 0; padding: 0;
-      font-family: 'Roboto', sans-serif;
+      margin:0; padding:0;
+      font-family:'Roboto', Arial, Helvetica, sans-serif;
       background: linear-gradient(to right, #00c0cb, #0057d1);
-      color: #333;
-      text-align: center;
-      text-transform: uppercase;
+      color:#333; text-align:center; text-transform:uppercase;
     }
-    input, button, select, textarea { font-family: inherit; }
+    input, button, select, textarea { font-family:inherit; }
+
     .container {
-      width: 80%; max-width: 1200px;
-      margin: 2em auto;
-      background: #cce5ff;
-      border-radius: 8px;
-      padding: 1em;
-      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+      width:92%; max-width:1200px; margin:1em auto;
+      background:#cce5ff; border-radius:8px; padding:1em;
+      box-shadow:2px 2px 8px rgba(0,0,0,.2);
+      text-align:left;  /* contenido interno alineado a la izquierda */
     }
-    h1 { margin-top: 0; }
-    form { margin-bottom: 1.5em; text-align:left; }
+    h1 { margin:0 0 .6em 0; text-align:center; }
+
+    a.btn-back {
+      display:inline-block; margin:1.2em 0;
+      background:#ffc107; color:#333; padding:.6em 1em;
+      border-radius:8px; text-decoration:none; font-weight:bold;
+    }
+
+    /* ------- Formularios ------- */
+    form { margin-bottom:1.2em; }
     label { display:block; margin-top:.5em; font-weight:bold; }
-    input[type="text"], input[type="number"], button {
-      width: 100%; padding:.5em; margin-top:.25em;
-      border:1px solid #ccc; border-radius:4px; font-size:1em;
+    .field { margin-top:.25em; }
+
+    input.text, input.num, button.btn {
+      width:100%; padding:.75em; font-size:1.05em;
+      border:1px solid #ccc; border-radius:8px;
     }
-    button { background:#0057d1; color:white; cursor:pointer; }
-    button:hover { background:#00c0cb; color:#0057d1; }
-    .search-form {
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:0.5em;
-    }
-    .search-form label {
-      margin:0;
-    }
-    .search-form input[type="text"] {
-      width:auto;
-      flex:0 0 300px;
-    }
-    .search-form button {
-      width:auto;
-      background:#0057d1;
-      color:white;
-    }
-    .search-form button:hover {
-      background:#00c0cb;
-      color:#0057d1;
-    }
-    .tables {
-      display:flex; flex-wrap:wrap; gap:2em; justify-content:space-between;
-    }
-    .table-box {
-      flex:1 1 45%; overflow-x:auto; margin-top:1em;
-    }
-    table {
-      width:100%; border-collapse:collapse; margin-top:.5em;
-      font-size: 0.85em;
-      table-layout: fixed;
-    }
-    th, td {
-      border:1px solid #ccc;
-      padding:.3em .5em;
-      white-space:nowrap;
-      text-align:left;
-    }
+    button.btn { background:#0057d1; color:#fff; cursor:pointer; font-weight:bold; }
+    button.btn:hover { background:#00c0cb; color:#0057d1; }
+
+    /* Buscador en línea (desktop), apilado en móvil */
+    .search-form .row { zoom:1; }
+    .search-form .row:after { content:""; display:block; clear:both; }
+    .search-form .col { float:left; }
+    .search-form .col.label { width:20%; min-width:140px; padding-right:.5em; }
+    .search-form .col.input { width:50%; }
+    .search-form .col.action { width:30%; padding-left:.5em; }
+    .search-form .col.action button { width:100%; }
+
+    /* ------- Tablas (desktop) ------- */
+    .tables { display:flex; flex-wrap:wrap; gap:1.5em; justify-content:space-between; }
+    .table-box { flex:1 1 46%; min-width:280px; }
+    .table-box h2 { margin:.2em 0; font-size:1em; }
+
+    table { width:100%; border-collapse:collapse; margin-top:.4em; table-layout:fixed; font-size:.95em; }
+    th, td { border:1px solid #ccc; padding:.4em .5em; white-space:nowrap; text-align:left; }
     th { background:#eee; }
-    td:nth-child(2), th:nth-child(2) {
-      max-width: 200px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    input:disabled, button:disabled {
-      background: #eee;
-      color: #999;
-      cursor: not-allowed;
-    }
-    .faltan-0 { background-color: #8ce0a1; }
-    .faltan-menor { background-color: #f8bc63; }
-    .faltan-total { background-color: #f6b8b8; }
+    td.trunc, th.trunc { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
+    input[disabled], button[disabled] { background:#eee; color:#999; cursor:not-allowed; }
+
+    .faltan-0     { background:#8ce0a1; }
+    .faltan-menor { background:#f8bc63; }
+    .faltan-total { background:#f6b8b8; }
+
+    /* ------- Toast ------- */
     #toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  max-width: 500px;
-  min-width: 300px;
-  background-color: #fff3cd;
-  color: #856404;
-  padding: 1em 1.5em;
-  border-left: 6px solid #ffc107;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  border-radius: 8px;
-  font-weight: normal;
-  z-index: 9999;
-  opacity: 1;
-  transition: opacity 0.4s ease, top 0.4s ease;
-  display: flex;
-  align-items: center;
-  gap: 1em;
-}
-
-    #toast button {
-      background: none;
-      border: none;
-      color: #856404;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 1em;
+      position:fixed; top:20px; right:20px;
+      max-width:500px; min-width:260px;
+      background:#fff3cd; color:#856404;
+      padding:1em 1.2em; border-left:6px solid #ffc107;
+      box-shadow:0 2px 6px rgba(0,0,0,.3);
+      border-radius:8px; font-weight:normal; z-index:9999;
+      opacity:1; transition:opacity .4s ease, top .4s ease;
+      display:flex; align-items:center; gap:1em;
     }
+    #toast button { background:none; border:0; color:#856404; font-weight:bold; cursor:pointer; font-size:1em; }
+    .toast-hidden { opacity:0; top:-100px; pointer-events:none; }
 
-    .toast-hidden {
-      opacity: 0;
-      top: -100px;
-      pointer-events: none;
+    /* ------- Modo móvil / RF ------- */
+    @media (max-width: 900px) {
+      .tables { display:block; }
+      .table-box { width:100%; }
     }
+    @media (max-width: 720px) {
+      /* Buscador apilado */
+      .search-form .col { float:none; width:100%; padding:0; }
+      .search-form .col.action { margin-top:.5em; }
+      .search-form .col.label { min-width:0; }
 
-    @media (max-width:600px) {
-      .tables { flex-direction:column; }
-      .table-box { flex:1 1 100%; }
+      /* Tabla -> tarjetas: FACTURA */
+      table.tabla-factura, table.tabla-ingreso,
+      table.tabla-factura thead, table.tabla-ingreso thead,
+      table.tabla-factura tbody, table.tabla-ingreso tbody,
+      table.tabla-factura th,   table.tabla-ingreso th,
+      table.tabla-factura td,   table.tabla-ingreso td,
+      table.tabla-factura tr,   table.tabla-ingreso tr { display:block; }
+
+      table.tabla-factura thead, table.tabla-ingreso thead { display:none; }
+
+      table.tabla-factura tr, table.tabla-ingreso tr {
+        border:1px solid #e9edf3; border-radius:10px; padding:.6em; margin-bottom:.8em; background:#fff;
+      }
+      table.tabla-factura td, table.tabla-ingreso td { border:0; padding:.35em 0; font-size:1.05em; white-space:normal; }
+
+      /* Etiquetas FACTURA (orden: Código, Nombre, Cant., Prec.Unit., Faltan) */
+      table.tabla-factura td:nth-of-type(1):before { content:"Código"; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-factura td:nth-of-type(2):before { content:"Nombre"; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-factura td:nth-of-type(3):before { content:"Cant."; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-factura td:nth-of-type(4):before { content:"Prec.Unit."; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-factura td:nth-of-type(5):before { content:"Faltan"; display:block; font-weight:bold; color:#5b667a; }
+
+      /* Etiquetas INGRESO (orden: Guía, Código, Cant., Hora) */
+      table.tabla-ingreso td:nth-of-type(1):before { content:"Guía"; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-ingreso td:nth-of-type(2):before { content:"Código"; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-ingreso td:nth-of-type(3):before { content:"Cant."; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-ingreso td:nth-of-type(4):before { content:"Hora"; display:block; font-weight:bold; color:#5b667a; }
+    }
+    @media (max-width: 480px) {
+      input.text, input.num, button.btn { font-size:1.1em; padding:0.85em; }
     }
   </style>
 </head>
+
 <body onload="focusScan();">
-  <a href="{{ url_for('devoluciones') }}" style="display:inline-block;margin:1.5em 0;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Volver a devoluciones</a>
+  <a href="{{ url_for('devoluciones') }}" class="btn-back">Volver a devoluciones</a>
+
   <div class="container">
     <h1>Devolución Ingreso de Mercancía</h1>
 
@@ -143,23 +140,32 @@
       {% endif %}
     {% endwith %}
 
-
-    <form method="post" class="search-form">
+    <!-- Buscar factura -->
+    <form method="post" class="search-form" onsubmit="return validarFactura();">
       <input type="hidden" name="action" value="buscar_factura">
-      <label for="factura">No. Factura:</label>
-      <input id="factura" name="factura" type="text" value="{{ request.args.get('factura') or factura or '' }}" required autocomplete="off">
-      <button type="submit">Buscar Factura</button>
+      <div class="row">
+        <div class="col label">
+          <label for="factura">No. Factura:</label>
+        </div>
+        <div class="col input">
+          <input id="factura" name="factura" type="text" class="text"
+                 value="{{ request.args.get('factura') or factura or '' }}" autocomplete="off">
+        </div>
+        <div class="col action">
+          <button type="submit" class="btn">Buscar Factura</button>
+        </div>
+      </div>
     </form>
 
     {% if factura_items %}
       <div class="tables">
         <div class="table-box">
           <h2>Factura de Compra {{ factura }}</h2>
-          <table>
+          <table class="tabla-factura">
             <thead>
               <tr>
                 <th>Código</th>
-                <th>Nombre</th>
+                <th class="trunc">Nombre</th>
                 <th>Cant.</th>
                 <th>Prec.Unit.</th>
                 <th>Faltan</th>
@@ -174,7 +180,7 @@
                   {% else %}faltan-0
                   {% endif %}">
                   <td>{{ item['Código'] }}</td>
-                  <td>{{ item['Nombre'] }}</td>
+                  <td class="trunc">{{ item['Nombre'] }}</td>
                   <td>{{ item['Cantidad'] }}</td>
                   <td>{{ item['Prec.Unit.'] }}</td>
                   <td>{{ item.Faltan }}</td>
@@ -186,7 +192,7 @@
 
         <div class="table-box">
           <h2>Ingreso</h2>
-          <table>
+          <table class="tabla-ingreso">
             <thead>
               <tr><th>Guía</th><th>Código</th><th>Cant.</th><th>Hora</th></tr>
             </thead>
@@ -204,113 +210,124 @@
         </div>
       </div>
 
-      <form method="post" id="scanForm">
+      <!-- Escaneo -->
+      <form method="post" id="scanForm" onsubmit="return validarScan();">
         <input type="hidden" name="action" value="scan">
         <input type="hidden" name="factura" value="{{ factura }}">
+
         <label for="guia">No. Guía:</label>
-        <input id="guia" name="guia" type="text" value="{{ guia or '' }}" required>
+        <div class="field">
+          <input id="guia" name="guia" type="text" class="text" value="{{ guia or '' }}">
+        </div>
+
         <label for="cantidad">Cantidad (default 1):</label>
-        <input id="cantidad" name="cantidad" type="number" value="1" min="1" max="100000000"
-               onkeydown="if(event.key === 'Enter'){ document.getElementById('scanInput').focus(); }">
+        <div class="field">
+          <input id="cantidad" name="cantidad" type="number" class="num" value="1" min="1" max="100000000"
+                 onkeydown="if(event.key==='Enter'){ document.getElementById('scanInput').focus(); }">
+        </div>
+
         <label for="scanInput">Escanee producto:</label>
-        <input id="scanInput" name="codigo" type="text" autocomplete="off" required disabled>
+        <div class="field">
+          <input id="scanInput" name="codigo" type="text" class="text" autocomplete="off" disabled>
+        </div>
       </form>
 
       <form method="post" style="margin-top:1em">
         <input type="hidden" name="action" value="finish">
-        <button type="submit" style="background:#28a745;color:white;border:none;padding:.5em 1em;border-radius:4px;cursor:pointer">
-          Finalizar Recepción
-        </button>
+        <button type="submit" class="btn" style="background:#28a745;">Finalizar Recepción</button>
       </form>
     {% endif %}
   </div>
 
   <div id="toast" class="toast-hidden"></div>
 
-  <script>
-  function showToast(message, duration = 0) {
-    const toast = document.getElementById('toast');
-    toast.innerHTML = `
-    <div style="flex:1; text-align:left; white-space:nowrap;">${message}</div>
-    <button onclick="hideToast()">OK</button>
-`;
-
-
-    toast.classList.remove('toast-hidden');
-
-    if (duration > 0) {
-      setTimeout(hideToast, duration);
+  <script type="text/javascript">
+    function showToast(message, duration) {
+      var toast = document.getElementById('toast');
+      toast.innerHTML =
+        '<div style="flex:1; text-align:left; white-space:normal;">' + message + '</div>' +
+        '<button onclick="hideToast()">OK</button>';
+      toast.className = '';
+      if (duration && duration > 0) setTimeout(hideToast, duration);
     }
-  }
+    function hideToast() {
+      var toast = document.getElementById('toast');
+      toast.className = 'toast-hidden';
+      setTimeout(function(){ toast.innerHTML = ''; }, 400);
+    }
 
-  function hideToast() {
-    const toast = document.getElementById('toast');
-    toast.classList.add('toast-hidden');
-    setTimeout(() => {
-      toast.innerHTML = '';
-    }, 400); // coincide con la transición CSS
-  }
+    function validarFactura(){
+      var f = document.getElementById('factura');
+      var v = (f && f.value ? f.value : '').replace(/^\s+|\s+$/g,'');
+      if (v===''){ alert('Ingresa el número de factura.'); if(f) f.focus(); return false; }
+      return true;
+    }
+    function validarScan(){
+      var g = document.getElementById('guia');
+      var s = document.getElementById('scanInput');
+      var gv = (g && g.value ? g.value : '').replace(/^\s+|\s+$/g,'');
+      if (gv===''){ alert('Ingresa el número de guía para habilitar el escaneo.'); if(g) g.focus(); return false; }
+      if (s && s.disabled){ alert('El campo de escaneo está deshabilitado.'); return false; }
+      return true;
+    }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    // Activa el input solo si hay guía
-    const guiaInput = document.getElementById('guia'),
-          scanInput = document.getElementById('scanInput');
-    if (guiaInput && scanInput) {
+    document.addEventListener('DOMContentLoaded', function () {
+      var guiaInput = document.getElementById('guia');
+      var scanInput = document.getElementById('scanInput');
+
       function checkGuia() {
-        const valido = guiaInput.value.trim().length >= 1;
-        scanInput.disabled = !valido;
+        var valido = (guiaInput && guiaInput.value.replace(/^\s+|\s+$/g,'').length >= 1);
+        if (scanInput) scanInput.disabled = !valido;
       }
-      guiaInput.addEventListener('input', checkGuia);
-      checkGuia();
+      if (guiaInput) {
+        guiaInput.addEventListener('input', checkGuia);
+        checkGuia();
+      }
+
+      var msgs = document.getElementsByClassName('toast-msg');
+      for (var i=0;i<msgs.length;i++){
+        var m = msgs[i].getAttribute('data-msg');
+        if (m) showToast(m);
+      }
+    });
+
+    (function () {
+      var buffer = '', lastTs = (new Date()).getTime();
+      var TH = 50;
+      var scanInput = document.getElementById('scanInput');
+      var scanForm  = document.getElementById('scanForm');
+      if (!scanInput || !scanForm) return;
+
+      window.addEventListener('keydown', function (e) {
+        if (document.activeElement !== scanInput) return;
+        var now = (new Date()).getTime();
+        if (now - lastTs > TH) buffer = '';
+        if (e.key === 'Enter') {
+          if (e.preventDefault) e.preventDefault();
+          scanInput.value = buffer;
+          buffer = '';
+          scanForm.submit();
+        } else if (e.key && e.key.length === 1) {
+          buffer += e.key;
+        }
+        lastTs = now;
+      });
+
+      if (scanForm.addEventListener) {
+        scanForm.addEventListener('submit', function () {
+          setTimeout(function () {
+            buffer = '';
+            scanInput.value = '';
+            scanInput.focus();
+          }, 50);
+        });
+      }
+    })();
+
+    function focusScan() {
+      var scanInput = document.getElementById('scanInput');
+      if (scanInput && !scanInput.disabled) scanInput.focus();
     }
-
-    // Mostrar mensaje flash si lo hay
-    document.querySelectorAll('.toast-msg').forEach(el => {
-      const message = el.dataset.msg;
-      if (message) showToast(message);
-    });
-  });
-
-  // Simula escaneo rápido
-  (function () {
-    let buffer = '', lastTs = Date.now();
-    const TH = 50;
-    const scanInput = document.getElementById('scanInput'),
-          scanForm = document.getElementById('scanForm');
-    if (!scanInput || !scanForm) return;
-
-    window.addEventListener('keydown', function (e) {
-      if (document.activeElement !== scanInput) return;
-      const now = Date.now();
-      if (now - lastTs > TH) buffer = '';
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        scanInput.value = buffer;
-        buffer = '';
-        scanForm.submit();
-      } else if (e.key.length === 1) {
-        buffer += e.key;
-      }
-      lastTs = now;
-    });
-
-    scanForm.addEventListener('submit', () => {
-      setTimeout(() => {
-        buffer = '';
-        scanInput.value = '';
-        scanInput.focus();
-      }, 50);
-    });
-  })();
-
-  function focusScan() {
-    const scanInput = document.getElementById('scanInput');
-    if (scanInput && !scanInput.disabled) scanInput.focus();
-  }
-</script>
-
-
-
-
+  </script>
 </body>
 </html>

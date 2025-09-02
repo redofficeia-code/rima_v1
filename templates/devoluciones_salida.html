@@ -3,104 +3,128 @@
 <html lang="es">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <title>Salida de Mercancía</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Devolución Salida de Mercancía</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style type="text/css">
-    *, *::before, *::after { box-sizing: border-box; }
+    *, *:before, *:after { box-sizing: border-box; }
     body {
-      margin: 0; padding: 0;
-      font-family: 'Roboto', sans-serif;
+      margin:0; padding:0;
+      font-family:'Roboto', Arial, Helvetica, sans-serif;
       background: linear-gradient(to right, #00c0cb, #0057d1);
-      color: #333;
-      text-align: center;
-      text-transform: uppercase;
+      color:#333; text-align:center; text-transform:uppercase;
     }
-    input, button, select, textarea { font-family: inherit; }
+    input, button { font-family:inherit; }
+
     .container {
-      width: 80%; max-width: 1200px;
-      margin: 2em auto;
-      background: #cce5ff;
-      border-radius: 8px;
-      padding: 1em;
-      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-    }
-    h1 { margin-top: 0; }
-    .flash-message {
-      padding: 10px; margin: 10px 0;
-      border-left: 5px solid; background: #f9f9f9;
-      text-align: left;
-    }
-    .flash-success { border-color: green; }
-    .flash-warning { border-color: orange; }
-    .flash-error, .flash-danger { border-color: red; }
-
-    form { margin-bottom: 1.5em; text-align:left; }
-    label { display:block; margin-top:.5em; font-weight:bold; }
-    input[type="text"], input[type="number"], button {
-      width: 100%; padding:.5em; margin-top:.25em;
-      border:1px solid #ccc; border-radius:4px; font-size:1em;
-    }
-    button { background:#0057d1; color:white; cursor:pointer; }
-    button:hover { background:#00c0cb; color:#0057d1; }
-
-    .search-form {
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:0.5em;
-    }
-    .search-form label { margin:0; }
-    .search-form input[type="text"] {
-      width:auto;
-      flex:0 0 300px;
-    }
-    .search-form button {
-      width:auto;
-      background:#ffc107;
-      color:#333;
-    }
-    .search-form button:hover {
-      background:#ffdd57;
-      color:#333;
-    }
-
-    .row { display:flex; flex-wrap:wrap; gap:2em; justify-content:space-between; }
-    .col { flex:1 1 45%; overflow-x:auto; margin-top:1em; }
-
-    table {
-      width:100%; border-collapse:collapse; margin-top:.5em;
-      font-size:0.85em; table-layout:fixed;
-    }
-    th, td {
-      border:1px solid #ccc;
-      padding:.3em .5em;
-      white-space:nowrap;
+      width:92%; max-width:1200px; margin:1.2em auto;
+      background:#cce5ff; border-radius:10px; padding:1em;
+      box-shadow:2px 2px 8px rgba(0,0,0,.2);
       text-align:left;
     }
+    h1 { margin:0 0 .8em 0; text-align:center; }
+
+    .flash-message { padding:10px; margin:10px 0; border-left:5px solid; background:#f9f9f9; text-align:left; }
+    .flash-success { border-color:green; }
+    .flash-warning { border-color:orange; }
+    .flash-error, .flash-danger { border-color:red; }
+
+    a.btn-back {
+      display:inline-block; margin:1.2em 0;
+      background:#ffc107; color:#333; padding:.6em 1em;
+      border-radius:8px; text-decoration:none; font-weight:bold;
+    }
+
+    form { margin-bottom:1.2em; }
+    label { display:block; margin-top:.5em; font-weight:bold; }
+    .field { margin-top:.25em; }
+
+    input.text, input.num, button.btn {
+      width:100%; padding:.75em; font-size:1.05em;
+      border:1px solid #ccc; border-radius:8px;
+    }
+    button.btn { background:#0057d1; color:#fff; cursor:pointer; font-weight:bold; }
+    button.btn:hover { background:#00c0cb; color:#0057d1; }
+
+    /* Buscador (floats para compatibilidad) */
+    .search-form .row { zoom:1; }
+    .search-form .row:after { content:""; display:block; clear:both; }
+    .search-form .col { float:left; }
+    .search-form .col.label  { width:26%; min-width:160px; padding-right:.5em; }
+    .search-form .col.input  { width:44%; }
+    .search-form .col.action { width:30%; padding-left:.5em; }
+    .search-form .col.action .btn { width:100%; background:#ffc107; color:#333; }
+    .search-form .col.action .btn:hover { background:#ffdd57; color:#333; }
+
+    /* Columnas (desktop) */
+    .row2 { zoom:1; margin-top:.5em; }
+    .row2:after { content:""; display:block; clear:both; }
+    .col2 { float:left; width:48%; margin-right:4%; }
+    .col2.last { margin-right:0; }
+    .col2 h2 { margin:.2em 0; font-size:1em; }
+
+    table { width:100%; border-collapse:collapse; margin-top:.4em; table-layout:fixed; font-size:.95em; }
+    th, td { border:1px solid #ccc; padding:.4em .5em; white-space:nowrap; text-align:left; }
     th { background:#eee; }
-    td:nth-child(2), th:nth-child(2) {
-      max-width:200px;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-    input:disabled, button:disabled {
-      background:#eee;
-      color:#999;
-      cursor:not-allowed;
-    }
+    td.trunc, th.trunc { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     /* estados de escaneo */
     .red-row td    { background-color:#f6b8b8; }
     .yellow-row td { background-color:#f8bc63; }
     .green-row td  { background-color:#8ce0a1; }
 
-    .form-row { display:flex; gap:1em; flex-wrap:wrap; }
-    .form-col { flex:1 1 180px; }
+    .form-row { zoom:1; }
+    .form-row:after { content:""; display:block; clear:both; }
+    .form-col { float:left; width:48%; margin-right:4%; }
+    .form-col.last { margin-right:0; }
+
+    /* ----- Responsive / RF ----- */
+    @media (max-width: 900px) {
+      .col2, .form-col { float:none; width:100%; margin-right:0; }
+    }
+    @media (max-width: 720px) {
+      /* Buscador apilado */
+      .search-form .col { float:none; width:100%; padding:0; }
+      .search-form .col.action { margin-top:.5em; }
+
+      /* Tablas -> tarjetas con etiquetas */
+      table.tabla-factura, table.tabla-stock,
+      table.tabla-factura thead, table.tabla-stock thead,
+      table.tabla-factura tbody, table.tabla-stock tbody,
+      table.tabla-factura th,   table.tabla-stock th,
+      table.tabla-factura td,   table.tabla-stock td,
+      table.tabla-factura tr,   table.tabla-stock tr { display:block; }
+
+      table.tabla-factura thead, table.tabla-stock thead { display:none; }
+
+      table.tabla-factura tr, table.tabla-stock tr {
+        border:1px solid #e9edf3; border-radius:10px;
+        padding:.6em; margin-bottom:.8em; background:#fff;
+      }
+      table.tabla-factura td, table.tabla-stock td { border:0; padding:.35em 0; font-size:1.05em; white-space:normal; }
+
+      /* Etiquetas Factura: Código, Nombre, Cant., Prec.Unit., Escaneado, Faltan */
+      table.tabla-factura td:nth-of-type(1):before { content:"Código"; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-factura td:nth-of-type(2):before { content:"Nombre"; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-factura td:nth-of-type(3):before { content:"Cant."; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-factura td:nth-of-type(4):before { content:"Prec.Unit."; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-factura td:nth-of-type(5):before { content:"Escaneado"; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-factura td:nth-of-type(6):before { content:"Faltan"; display:block; font-weight:bold; color:#5b667a; }
+
+      /* Etiquetas Stock: Código, Nombre, Cantidad */
+      table.tabla-stock td:nth-of-type(1):before { content:"Código"; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-stock td:nth-of-type(2):before { content:"Nombre"; display:block; font-weight:bold; color:#5b667a; }
+      table.tabla-stock td:nth-of-type(3):before { content:"Cantidad"; display:block; font-weight:bold; color:#5b667a; }
+
+      /* Botones grandes */
+      button.btn { font-size:1.1em; padding:.9em; }
+      input.text, input.num { font-size:1.1em; padding:.85em; }
+    }
   </style>
 </head>
 <body>
-  <a href="{{ url_for('devoluciones') }}" style="display:inline-block;margin:1.5em 0;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Volver a devoluciones</a>
+  <a href="{{ url_for('devoluciones') }}" class="btn-back">Volver a devoluciones</a>
+
   <div class="container">
     <h1>Devolución Salida de Mercancía</h1>
 
@@ -112,99 +136,102 @@
       {% endif %}
     {% endwith %}
 
-    <!-- ── Buscar Factura de Compra ──────────────────────────────────── -->
+    <!-- Buscar Factura -->
     <form method="POST" class="search-form">
       <input type="hidden" name="action" value="buscar_factura">
-      <label for="factura">N° Factura de Compra:</label>
-      <input id="factura" type="text" name="factura" value="{{ factura|e }}" autofocus>
-      <button type="submit">Buscar Factura</button>
+      <div class="row">
+        <div class="col label">
+          <label for="factura">N° Factura de Compra:</label>
+        </div>
+        <div class="col input">
+          <input id="factura" type="text" name="factura" class="text" value="{{ factura|e }}">
+        </div>
+        <div class="col action">
+          <button type="submit" class="btn">Buscar Factura</button>
+        </div>
+      </div>
     </form>
 
     {% if factura_items %}
-    <div class="row">
-      <!-- ── IZQUIERDA: Factura de Compra ───────────────────────────── -->
-      <div class="col">
-        <h2>Factura de Compra {{ factura }}</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Nombre</th>
-              <th>Cant.</th>
-              <th>Prec.Unit.</th>
-              <th>Escaneado</th>
-              <th>Faltan</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in factura_items %}
-            <tr class="
-              {% if item.scanned == 0 %}
-                red-row
-              {% elif item.scanned < item['Cant.'] %}
-                yellow-row
-              {% else %}
-                green-row
-              {% endif %}
-            ">
-              <td>{{ item['Código'] }}</td>
-              <td>{{ item['Nombre'] }}</td>
-              <td>{{ item['Cant.'] }}</td>
-              <td>{{ item['Prec.Unit.'] }}</td>
-              <td>{{ item.scanned }}</td>
-              <td>{{ item['Faltan'] }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- ── DERECHA: Stock Actual ──────────────────────────────────── -->
-      <div class="col">
-        <h2>Stock Actual</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Nombre</th>
-              <th>Cantidad</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for stk in stock_items %}
-            <tr>
-              <td>{{ stk['Código'] }}</td>
-              <td>{{ stk['Nombre'] }}</td>
-              <td>{{ stk['Cantidad'] }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ── Formulario de Escaneo ─────────────────────────────────────── -->
-    <form method="POST">
-      <input type="hidden" name="action" value="scan">
-      <div class="form-row">
-        <div class="form-col">
-          <label><strong>Código:</strong>
-            <input type="text" name="codigo" autofocus>
-          </label>
+      <div class="row2">
+        <!-- IZQUIERDA -->
+        <div class="col2">
+          <h2>Factura de Compra {{ factura }}</h2>
+          <table class="tabla-factura">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th class="trunc">Nombre</th>
+                <th>Cant.</th>
+                <th>Prec.Unit.</th>
+                <th>Escaneado</th>
+                <th>Faltan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in factura_items %}
+              <tr class="
+                {% if item.scanned == 0 %}red-row
+                {% elif item.scanned < item['Cant.'] %}yellow-row
+                {% else %}green-row{% endif %}">
+                <td>{{ item['Código'] }}</td>
+                <td class="trunc">{{ item['Nombre'] }}</td>
+                <td>{{ item['Cant.'] }}</td>
+                <td>{{ item['Prec.Unit.'] }}</td>
+                <td>{{ item.scanned }}</td>
+                <td>{{ item['Faltan'] }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-        <div class="form-col">
-          <label><strong>Cantidad:</strong>
-            <input type="number" name="cantidad" value="1" min="1">
-          </label>
+
+        <!-- DERECHA -->
+        <div class="col2 last">
+          <h2>Stock Actual</h2>
+          <table class="tabla-stock">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th class="trunc">Nombre</th>
+                <th>Cantidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for stk in stock_items %}
+              <tr>
+                <td>{{ stk['Código'] }}</td>
+                <td class="trunc">{{ stk['Nombre'] }}</td>
+                <td>{{ stk['Cantidad'] }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
-      <button type="submit">Registrar Escaneo</button>
-    </form>
 
-    <!-- ── Botón para terminar el proceso ────────────────────────────── -->
-    <form method="GET" action="{{ url_for('finalizar_salida') }}">
-      <button type="submit">Terminar Proceso</button>
-    </form>
+      <!-- Formulario de escaneo -->
+      <form method="POST">
+        <input type="hidden" name="action" value="scan">
+        <div class="form-row">
+          <div class="form-col">
+            <label>Código:
+              <input type="text" name="codigo" class="text" autofocus>
+            </label>
+          </div>
+          <div class="form-col last">
+            <label>Cantidad:
+              <input type="number" name="cantidad" class="num" value="1" min="1">
+            </label>
+          </div>
+        </div>
+        <button type="submit" class="btn">Registrar Escaneo</button>
+      </form>
+
+      <!-- Terminar proceso -->
+      <form method="GET" action="{{ url_for('finalizar_salida') }}">
+        <button type="submit" class="btn" style="background:#28a745;">Terminar Proceso</button>
+      </form>
     {% endif %}
   </div>
 </body>

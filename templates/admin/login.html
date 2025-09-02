@@ -1,19 +1,92 @@
-<!doctype html>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="es">
-  <head><meta charset="utf-8"><title>Login Admin</title></head>
-  <body>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <!-- Necesario para móvil/RF -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Login Admin</title>
+  <style type="text/css">
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f7f9fc;
+      color: #111827;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-card {
+      width: 92%;
+      max-width: 360px;
+      background: #fff;
+      border: 1px solid #e0e6ef;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.08);
+      padding: 24px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 16px;
+      text-transform: uppercase;
+    }
+    .flash-error {
+      margin-bottom: 12px;
+      padding: 10px;
+      border: 1px solid #dc2626;
+      border-radius: 8px;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-size: 14px;
+    }
+    form { margin: 0; }
+    .input {
+      display: block;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 16px;
+      margin-bottom: 14px;
+      min-height: 44px; /* tamaño táctil */
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      background: #0057d1;
+      color: #fff;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .btn:active { position: relative; top: 1px; }
+    small { display: block; margin-top: 12px; color: #6b7280; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
     <h1>Acceso Administrador</h1>
+
     {% with msgs = get_flashed_messages(category_filter=["error"]) %}
       {% if msgs %}
-        <div style="color:red">{{ msgs[0] }}</div>
+        <div class="flash-error">{{ msgs[0] }}</div>
       {% endif %}
     {% endwith %}
+
     <form method="post">
-      <input type="password" name="password" placeholder="Clave admin" required>
-      <button type="submit">Entrar</button>
+      <input type="password" name="password" class="input" placeholder="Clave admin" required>
+      <button type="submit" class="btn">Entrar</button>
     </form>
-    <p style="margin-top:10px">
-      <small>Dev shortcut: /admin?key=admin123 (solo desarrollo)</small>
-    </p>
-  </body>
+
+    <small>Dev shortcut: /admin?key=admin123 (solo desarrollo)</small>
+  </div>
+</body>
 </html>

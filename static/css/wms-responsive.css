@@ -1,0 +1,222 @@
+/* =====================
+FILE: static/css/wms-responsive.css
+Purpose: CSS global reutilizable para TODO el WMS (PC + pistolas RF)
+===================== */
+:root{
+  --bg: #f7f9fc; --card:#fff; --text:#111827; --muted:#6b7280; --border:#e9edf3;
+  --brand:#0057d1; --brand2:#00c0cb; --accent:#ffd400; --danger:#ef4444; --ok:#10b981;
+  --radius:14px; --container:1200px;
+  --fs-1: clamp(14px, 3.2vw, 16px);
+  --fs-2: clamp(16px, 3.6vw, 18px);
+  --fs-3: clamp(18px, 4.2vw, 22px);
+  --fs-4: clamp(20px, 4.8vw, 28px);
+  --touch: 48px; /* altura mínima táctil */
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,Arial;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-tap-highlight-color:transparent
+}
+.container{
+  max-width:var(--container);
+  margin:calc(env(safe-area-inset-top) + 16px) auto calc(env(safe-area-inset-bottom) + 16px);
+  padding:0 16px
+}
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:0 6px 24px rgba(0,0,0,.06)
+}
+.row{display:flex;gap:12px}
+.center{align-items:center}
+.between{justify-content:space-between}
+.grid{display:grid;gap:12px}
+
+/* Header/Footer */
+.wms-header{background:linear-gradient(120deg,var(--brand),var(--brand2));color:#fff}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
+.logo{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--accent);color:#000;font-weight:800}
+.brand-text{font-weight:700;letter-spacing:.2px}
+.wms-footer{margin:24px 0;color:var(--muted)}
+
+/* Botones */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:var(--touch);padding:10px 14px;border-radius:12px;
+  border:1px solid var(--border);background:#fff;color:var(--text);
+  text-decoration:none;cursor:pointer
+}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent);border-color:#d6b600}
+.btn.brand{background:var(--brand);color:#fff;border-color:#0a47a8}
+.btn.ghost{background:transparent}
+.btn.sm{min-height:40px;padding:6px 10px}
+.btn.icon{width:var(--touch);aspect-ratio:1/1;padding:0}
+
+/* Formularios */
+.input{
+  display:flex;align-items:center;gap:8px;
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  padding:0 12px;min-height:var(--touch)
+}
+.input input,.input select,.input textarea{
+  width:100%;border:0;outline:0;font-size:var(--fs-2);background:transparent
+}
+.input input::placeholder{color:var(--muted)}
+.form-grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
+@media (max-width: 900px){.form-grid{grid-template-columns:1fr}}
+
+/* Tablas (desktop) */
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:var(--fs-1)}
+thead th{
+  text-align:left;background:#f0f4fa;border-bottom:1px solid var(--border);
+  padding:10px;position:sticky;top:0;z-index:1
+}
+td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* Tabla -> tarjetas (móvil) usando data-label si existe */
+@media (max-width: 768px){
+  thead{display:none}
+  table,tbody,tr,td{display:block;width:100%}
+  tbody{display:grid;gap:12px}
+  tr{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.03);overflow:hidden}
+  td{display:grid;grid-template-columns:40% 1fr;gap:10px;padding:12px}
+  td::before{content:attr(data-label);color:var(--muted);font-weight:600}
+  td.actions-cell{grid-template-columns:1fr}
+}
+
+/* Barras sticky (acciones / filtros) */
+.toolbar{
+  position:sticky;top:0;z-index:10;background:#fff;
+  border-bottom:1px solid var(--border);padding:8px;
+  display:flex;flex-wrap:wrap;gap:8px
+}
+.dock{
+  position:sticky;bottom:0;inset-inline:0;background:#fff;
+  border-top:1px solid var(--border);padding:8px;
+  display:grid;grid-template-columns:1fr 1fr;gap:8px
+}
+
+/* Estados / flashes */
+.flash-wrap{margin:12px 0}
+.flash{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#fff}
+.flash.success{border-color:#059669;background:#ecfdf5}
+.flash.error{border-color:#dc2626;background:#fef2f2}
+.muted{color:var(--muted)}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+
+/* Compatibilidad con plantillas antiguas */
+.flash-message{padding:10px 12px;border-left:5px solid #e9edf3;background:#fff;border-radius:8px}
+.flash-success{border-color:#059669}
+.flash-warning{border-color:#f59e0b}
+.flash-error,.flash-danger{border-color:#dc2626}
+
+/* Utilidades rápidas */
+.hide-mobile{@media (max-width:768px){display:none!important}}
+.show-mobile{display:none}@media (max-width:768px){.show-mobile{display:block}}
+.mt-1{margin-top:8px}.mt-2{margin-top:12px}.mt-3{margin-top:16px}
+.mb-1{margin-bottom:8px}.mb-2{margin-bottom:12px}.mb-3{margin-bottom:16px}
+.p-1{padding:8px}.p-2{padding:12px}.p-3{padding:16px}
+
+/* Pages comunes (login, dashboard, listados) */
+.page{padding:12px}
+.page-title{margin:0 0 12px;font-size:var(--fs-4);font-weight:800}
+.section{padding:12px}
+
+/* =====================
+JS helpers esperados (no CSS, solo referencia)
+- [data-scan] mantiene foco y procesa Enter (wms-app.js)
+- autoDataLabels añade data-label a <td> según <th>
+===================== */
+
+
+/* =========================================================
+   ESTILOS ESPECÍFICOS DE LA PÁGINA: SALIDA (mantener look actual)
+   Usa un contenedor .salida-page para aislarlos
+========================================================= */
+.salida-page h1{
+  text-align:center;
+  text-transform:uppercase;
+  margin-bottom:.6em
+}
+
+/* Toolbar de búsqueda (sticky) */
+.salida-page .search-form{
+  display:flex;flex-wrap:wrap;align-items:center;gap:.5em;justify-content:flex-start;
+  background:#fff;border:1px solid #e8eef6;border-radius:10px;padding:.6em;
+  position:sticky;top:0;z-index:10
+}
+.salida-page .search-form .field{flex:1 1 240px;min-width:220px}
+.salida-page .search-form .actions{flex:0 0 auto}
+
+/* Layout de columnas */
+.salida-page .row{display:flex;flex-wrap:wrap;gap:1.5em;justify-content:space-between}
+.salida-page .col{
+  flex:1 1 380px;overflow-x:auto;margin-top:.3em;
+  background:#fff;border-radius:10px;padding:12px;border:1px solid #e8eef6
+}
+
+/* Tablas principales */
+.salida-page .table-wrap{overflow:auto}
+.salida-page table{
+  width:100%;border-collapse:collapse;margin-top:.5em;
+  font-size:14px;table-layout:fixed;background:#fff;border-radius:10px;overflow:hidden
+}
+.salida-page th,.salida-page td{
+  border:1px solid #e0e6ef;padding:10px 12px;white-space:nowrap;text-align:left
+}
+.salida-page th{background:#f0f4fa}
+.salida-page td:nth-child(2), .salida-page th:nth-child(2){
+  max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+
+/* Estados de escaneo */
+.salida-page .red-row td   { background-color:#f6b8b8 }
+.salida-page .yellow-row td{ background-color:#f8dc96 }
+.salida-page .green-row td { background-color:#bdf1c9 }
+
+/* Grilla de zonas */
+.salida-page .zones-grid{
+  display:grid;grid-template-columns:repeat(2, minmax(220px,1fr));
+  gap:16px;max-width:1100px;margin:16px auto 48px;align-items:stretch
+}
+@media (max-width:520px){ .salida-page .zones-grid{ grid-template-columns:1fr } }
+
+.salida-page .zone-btn{
+  display:block;text-align:center;padding:18px 24px;border-radius:14px;
+  background:#fff;color:#0b57d1;font-weight:700;text-transform:uppercase;text-decoration:none;
+  box-shadow:0 6px 16px rgba(0,0,0,.12);border:none;transition:transform .08s ease, box-shadow .08s ease;
+  line-height:1.2;min-height:60px
+}
+.salida-page .zone-btn:hover{ transform:translateY(-2px); box-shadow:0 10px 22px rgba(0,0,0,.16) }
+
+/* Formulario doble (código/cantidad) */
+.salida-page .form-row{display:flex;gap:1em;flex-wrap:wrap}
+.salida-page .form-col{flex:1 1 180px}
+
+/* Modo móvil HTML4-safe para tablas de salida:
+   en móvil ocultamos thead y usamos .cell .label/.value */
+@media (max-width:780px){
+  .salida-page thead{display:none}
+  .salida-page table,
+  .salida-page tbody,
+  .salida-page tr,
+  .salida-page td{display:block;width:100%}
+  .salida-page tbody{display:block}
+  .salida-page tr{
+    border:1px solid #e0e6ef;border-radius:10px;
+    box-shadow:0 2px 10px rgba(0,0,0,.04);margin-bottom:12px;overflow:hidden
+  }
+  .salida-page td{padding:12px;border:none;border-bottom:1px solid #eef3fa}
+  .salida-page td:last-child{border-bottom:none}
+  .salida-page .cell{display:flex}
+  .salida-page .cell .label{width:40%;color:#6b7280;font-weight:bold;padding-right:10px}
+  .salida-page .cell .value{width:60%;white-space:normal}
+}

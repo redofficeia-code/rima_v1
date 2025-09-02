@@ -1,113 +1,98 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">  
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Menú WMS</title>
+  <style type="text/css">
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
       margin: 0; padding: 0;
-      font-family: sans-serif;
-      background: linear-gradient(to right, #00c0cb, #0057d1);
-      color: white;
-      text-align: center;
-    }
-
-    .container {
-      width: 95%;
-      max-width: 1000px;
-      margin: 0.5em auto;
-      padding-top: 0%;
-      padding-bottom: 10px;
-    }
-
-
-    .primary, .secondary {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 1%;
-      margin-bottom: 1;
-      padding-top: 10px;
-    }
-
-    .primary a, .secondary a {
-      display: block;
-      text-decoration: none;
+      font-family: Arial, Helvetica, sans-serif;
       background: #0057d1;
-      border-radius: 12px;
-      box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-      position: relative;
-      transition: background .2s;
+      background: -webkit-linear-gradient(left, #00c0cb, #0057d1);
+      background: linear-gradient(to right, #00c0cb, #0057d1);
+      color: #fff; text-align: center;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .primary a span, .secondary a span {
-      position: absolute;
-      top: 50%; left: 50%;
+    /* Barra superior */
+    .topbar { text-align: right; padding: 10px 12px; }
+    .topbar a { color: #fff; text-decoration: none; font-weight: 600; }
+    .topbar a:active { position: relative; top: 1px; }
+
+    /* Contenedor principal */
+    .container { width: 95%; max-width: 1000px; margin: 8px auto 16px; }
+
+    /* Logo */
+    .logo { display: block; max-width: 260px; width: 60%; height: auto; margin: -12px auto 8px; }
+
+    /* Grupos de botones */
+    .group {
+      display: -webkit-box; display: -ms-flexbox; display: flex;
+      -ms-flex-wrap: wrap; flex-wrap: wrap;
+      -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center;
+      gap: 12px; margin: 12px 0 18px;
+    }
+
+    /* Botón base */
+    .tile {
+      display: block; position: relative;
+      background: #0057d1; border-radius: 12px;
+      box-shadow: 2px 2px 6px rgba(0,0,0,.35);
+      text-decoration: none; color: #fff; overflow: hidden;
+      transition: background .15s ease;
+      min-width: 120px; min-height: 44px;
+    }
+    .tile:active { top: 1px; }
+    .tile:hover { background: #00c0cb; }
+
+    /* Texto dentro del botón */
+    .tile > span {
+      position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      font-weight: bold;
+      font-weight: 800; letter-spacing: .3px;
       white-space: nowrap;
-      color: white;
     }
 
-    .primary a:hover, .secondary a:hover {
-      background: #00c0cb;
-    }
+    /* Desktop */
+    .primary .tile   { width: 31%; padding-bottom: 31%; font-size: 20px; }
+    .secondary .tile { width: 18%; padding-bottom: 18%; font-size: 16px; }
 
-    .primary a {
-      width: 30%;
-      padding-bottom: 30%;
-      font-size: 1.2em;
-    }
-
-    .secondary a {
-      width: 18%;
-      padding-bottom: 18%;
-      font-size: 1em;
-    }
-
-    @media (max-width: 600px) {
-      .primary a, .secondary a {
-        width: 40%;
-        padding-bottom: 4%;
-        padding-top: 2%;
+    /* Responsive móvil */
+    @media screen and (max-width: 760px) {
+      .logo { width: 72%; max-width: 300px; }
+      .primary .tile, .secondary .tile {
+        width: 46%; padding-bottom: 46%; font-size: 18px;
       }
-      .secondary a:nth-child(3) {
-        width: 90%;
-        padding-bottom: 9%;
-      }
+      .secondary .tile.wide { width: 94%; padding-bottom: 24%; font-size: 18px; }
+    }
+    @media screen and (max-width: 420px) {
+      .primary .tile, .secondary .tile { width: 48%; padding-bottom: 48%; font-size: 17px; }
+      .secondary .tile.wide { width: 96%; padding-bottom: 26%; }
     }
   </style>
 </head>
 <body>
-  <div style="text-align: right; padding: 10px;">
-    <a href="{{ url_for('logout') }}" style="color: white; text-decoration: none;">Salir</a>
+  <div class="topbar">
+    <a href="{{ url_for('logout') }}">Salir</a>
   </div>
+
   <div class="container">
-    <img src="{{ url_for('static', filename='img/logo2.png') }}"
-         alt="Logo"
-         style="max-height: 200px; margin: -15px auto;">
+    <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="Logo" class="logo">
 
-
-    <div class="primary">
-      <a href="{{ url_for('ingreso') }}">
-        <span>INGRESO</span>
-      </a>
-      <a href="{{ url_for('salida') }}">
-        <span>SALIDA</span>
-      </a>
+    <!-- fila 1 -->
+    <div class="group primary">
+      <a href="{{ url_for('ingreso') }}" class="tile"><span>INGRESO</span></a>
+      <a href="{{ url_for('salida') }}" class="tile"><span>SALIDA</span></a>
     </div>
 
-    <div class="secondary">
-      <a href="{{ url_for('listados') }}">
-        <span>{{ 'GESTIONAR LISTADOS' if session.get('role') in ['admin','cargar'] else 'LISTADOS' }}</span>
-      </a>
-      <a href="{{ url_for('inventario') }}">
-        <span>INVENTARIO</span>
-      </a>
-      <a href="{{ url_for('devoluciones') }}">
-        <span>DEVOLUCIONES</span>
-      </a>
+    <!-- fila 2 -->
+    <div class="group secondary">
+      <a href="{{ url_for('listados') }}" class="tile"><span>LISTADOS</span></a>
+      <a href="{{ url_for('inventario') }}" class="tile"><span>INVENTARIO</span></a>
+      <a href="{{ url_for('devoluciones') }}" class="tile wide"><span>DEVOLUCIONES</span></a>
     </div>
   </div>
 </body>

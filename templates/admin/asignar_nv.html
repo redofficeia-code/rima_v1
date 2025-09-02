@@ -1,11 +1,130 @@
-<form method="post" action="{{ url_for('admin_asignar_nv') }}">
-  <input type="hidden" name="num_nota" value="{{ num_nota }}">
-  <label>Zona:</label>
-  <select name="zona_id" required>
-    <option value="">– Seleccionar –</option>
-    {% for z in zonas %}
-      <option value="{{ z.id }}">{{ z.nombre }}</option>
-    {% endfor %}
-  </select>
-  <button type="submit">Asignar</button>
-</form>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <!-- No es parte de HTML4, pero es seguro y necesario para móviles/RF -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Asignar Nota de Venta a Zona</title>
+
+  <style type="text/css">
+    /* ============ Micro-kit responsive (HTML4-safe) ============ */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; -webkit-tap-highlight-color: transparent; background:#f7f9fc; color:#111827; }
+
+    /* contenedor */
+    .page-wrap { width:92%; max-width: 800px; margin: 16px auto 32px; }
+
+    /* tarjeta */
+    .card { background:#fff; border:1px solid #e8eef6; border-radius: 12px; box-shadow:0 6px 24px rgba(0,0,0,.06); padding: 16px; }
+
+    /* título */
+    .title { margin: 0 0 12px; font-size: 22px; font-weight: 800; text-transform: uppercase; text-align: center; }
+
+    /* toolbar/formulario inline (se apila en móvil) */
+    .form-inline { display: -webkit-box; display: -ms-flexbox; display: flex; -ms-flex-wrap: wrap; flex-wrap: wrap; gap: 8px; -webkit-box-align: center; -ms-flex-align: center; align-items: center; }
+
+    /* campo "bonito" */
+    .input { display:block; background:#fff; border:1px solid #e8eef6; border-radius:10px; padding:8px 12px; min-height:44px; }
+    .input select { width:100%; border:0; outline:0; font-size:16px; background:transparent; }
+
+    /* botón táctil */
+    .btn { display:inline-block; min-height:44px; padding:8px 14px; border-radius:10px; border:1px solid #e8eef6; background:#0057d1; color:#fff; text-decoration:none; cursor:pointer; font-weight:600; }
+    .btn:active { position: relative; top: 1px; }
+    .btn.secondary { background:#ffd400; color:#111827; border-color:#d6b600; }
+
+    /* layout responsivo del formulario */
+    .field-label { font-weight:bold; }
+    .field-wrap { min-width:220px; -webkit-box-flex:1; -ms-flex:1 1 260px; flex:1 1 260px; }
+
+    /* barra sticky opcional (si la quieres pegada arriba) */
+    .toolbar { position: -webkit-sticky; position: sticky; top:0; z-index:10; background:#fff; border:1px solid #e8eef6; border-radius:10px; padding:8px; }
+
+    /* mensajes */
+    .flash { margin-top: 12px; padding: 10px 12px; border-left: 5px solid #e9edf3; background:#fff; border-radius:8px; }
+    .flash.success { border-color:#059669; }
+    .flash.error { border-color:#dc2626; }
+
+    /* helpers de espaciado */
+    .mt-1{margin-top:8px} .mt-2{margin-top:12px} .mt-3{margin-top:16px}
+  </style>
+</head>
+<body>
+
+  <div class="page-wrap">
+    <div class="card">
+      <h1 class="title">Asignar Nota de Venta a Zona</h1>
+
+      <!-- Si quieres que el formulario quede "pegado" arriba al hacer scroll, agrega class="form-inline toolbar" -->
+      <form method="post" action="{{ url_for('admin_asignar_nv') }}" class="form-inline">
+        <input type="hidden" name="num_nota" value="{{ num_nota }}">
+
+        <label for="zona_id" class="field-label">Zona:</label>
+
+        <div class="input field-wrap">
+          <select id="zona_id" name="zona_id">
+            <option value="">– Seleccionar –</option>
+            {% for z in zonas %}
+              <option value="{{ z.id }}">{{ z.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="btn">Asignar</button>
+      </form>
+
+      <!-- Mensajes de ejemplo -->
+      {# 
+      <div class="flash success mt-2">Zona asignada correctamente.</div>
+      <div class="flash error mt-2">Seleccione una zona válida.</div>
+      #}
+    </div>
+
+    <!-- Botón secundario de navegación (opcional) -->
+    <div class="mt-2" style="text-align:center;">
+      <a href="{{ url_for('index') }}" class="btn secondary">Volver al Inicio</a>
+    </div>
+  </div>
+
+  <!-- (Opcional) Mini JS HTML4-safe para pistolas RF:
+       si luego agregas un input de escaneo con class="scan-input", esto mantiene foco y limpia con Enter.
+       No afecta a este formulario si no hay scan-inputs. -->
+  <script type="text/javascript">
+  (function(){
+    function setupScanInputs(){
+      var inputs=document.getElementsByTagName('input');
+      for(var i=0;i<inputs.length;i++){
+        var el=inputs[i];
+        if((" "+el.className+" ").indexOf(" scan-input ")>-1){
+          (function(input){
+            var refocus=function(){setTimeout(function(){try{if(document.activeElement!==input)input.focus();}catch(e){}},60);};
+            if(input.addEventListener){
+              input.addEventListener('blur',refocus,false);
+              input.addEventListener('keydown',function(e){
+                if((e.key&&e.key==='Enter')||e.keyCode===13){
+                  if(e.preventDefault)e.preventDefault();
+                  var v=(input.value||'').replace(/^\s+|\s+$/g,''); if(!v)return false;
+                  if(typeof window.onScanSubmit==='function'){window.onScanSubmit(v);}
+                  input.value=''; return false;
+                }
+              },false);
+            }else if(input.attachEvent){
+              input.attachEvent('onblur',refocus);
+              input.attachEvent('onkeydown',function(){var e=window.event;var c=e.keyCode||e.which;
+                if(c===13){e.returnValue=false;var v=(input.value||'').replace(/^\s+|\s+$/g,'');if(!v)return false;
+                  if(typeof window.onScanSubmit==='function'){window.onScanSubmit(v);} input.value=''; return false;}
+              });
+            }
+            try{input.focus();}catch(e){}
+          })(el);
+        }
+      }
+    }
+    if(document.addEventListener){document.addEventListener('DOMContentLoaded',setupScanInputs,false);}
+    else{window.attachEvent('onload',setupScanInputs);}
+    window.onScanSubmit=window.onScanSubmit||function(v){ if(window.console&&console.log){console.log('Scan:',v);} };
+  })();
+  </script>
+</body>
+</html>

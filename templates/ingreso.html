@@ -1,146 +1,109 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="es">
 <head>
-  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ingreso de Mercancía – WMS </title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body {
-      margin: 0; padding: 0;
-      font-family: 'Roboto', sans-serif;
-      background: linear-gradient(to right, #00c0cb, #0057d1);
-      color: #333;
-      text-align: center;
-      text-transform: uppercase;
-    }
-    input, button, select, textarea { font-family: inherit; }
-    .container {
-      width: 80%; max-width: 1200px;
-      margin: 2em auto;
-      background: #cce5ff;
-      border-radius: 8px;
-      padding: 1em;
-      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-    }
-    h1 { margin-top: 0; }
-    form { margin-bottom: 1.5em; text-align:left; }
-    label { display:block; margin-top:.5em; font-weight:bold; }
-    input[type="text"], input[type="number"], button {
-      width: 100%; padding:.5em; margin-top:.25em;
-      border:1px solid #ccc; border-radius:4px; font-size:1em;
-    }
-    button { background:#0057d1; color:white; cursor:pointer; }
-    button:hover { background:#00c0cb; color:#0057d1; }
-    .search-form {
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:0.5em;
-    }
-    .search-form label {
-      margin:0;
-    }
-    .search-form input[type="text"] {
-      width:auto;
-      flex:0 0 300px;
-    }
-    .search-form button {
-      width:auto;
-      background:#0057d1;
-      color:white;
-    }
-    .search-form button:hover {
+  <title>Ingreso de Mercancía – WMS</title>
+  <style type="text/css">
+    *{box-sizing:border-box}
+    body{
+      margin:0;padding:0;
+      font-family:Arial,Helvetica,sans-serif;
       background:#00c0cb;
-      color:#0057d1;
+      background:-webkit-linear-gradient(left,#00c0cb,#0057d1);
+      background:   -moz-linear-gradient(left,#00c0cb,#0057d1);
+      background:        linear-gradient(to right,#00c0cb,#0057d1);
+      color:#333;text-align:center;text-transform:uppercase;
     }
-    .tables {
-      display:flex; flex-wrap:wrap; gap:2em; justify-content:space-between;
-    }
-    .table-box {
-      flex:1 1 45%; overflow-x:auto; margin-top:1em;
-    }
-    table {
-      width:100%; border-collapse:collapse; margin-top:.5em;
-      font-size: 0.85em;
-      table-layout: fixed;
-    }
-    th, td {
-      border:1px solid #ccc;
-      padding:.3em .5em;
-      white-space:nowrap;
+    input,button,select,textarea{font-family:inherit}
+
+    .container{
+      width:92%;max-width:1200px;margin:1em auto;
+      background:#cce5ff;border-radius:8px;
+      padding:1em;box-shadow:2px 2px 8px rgba(0,0,0,.2);
       text-align:left;
     }
-    th { background:#eee; }
-    td:nth-child(2), th:nth-child(2) {
-      max-width: 200px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    h1{text-align:center;margin:0 0 1em;color:#0057d1}
+
+    form{margin-bottom:1.5em}
+    label{display:block;margin-top:.5em;font-weight:bold}
+    input[type=text],input[type=number],button,select{
+      width:100%;padding:.5em;margin-top:.25em;
+      border:1px solid #ccc;border-radius:6px;font-size:1em;
     }
-    input:disabled, button:disabled {
-      background: #eee;
-      color: #999;
-      cursor: not-allowed;
+    button{
+      background:#0057d1;color:#fff;font-weight:bold;
+      cursor:pointer
     }
-    /*
-      Color coding for product rows based on scan progress
-      - .scanned-total   : requested quantity fully scanned (green)
-      - .scanned-partial : some units still missing (yellow)
-      - .scanned-none    : nothing scanned yet (red)
-    */
-    .scanned-total  { background-color: #8ce0a1; }
-    .scanned-partial{ background-color: #f8bc63; }
-    .scanned-none   { background-color: #f6b8b8; }
+    button:hover{background:#00c0cb;color:#0057d1}
 
-    #toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  max-width: 500px;
-  min-width: 300px;
-  background-color: #fff3cd;
-  color: #856404;
-  padding: 1em 1.5em;
-  border-left: 6px solid #ffc107;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  border-radius: 8px;
-  font-weight: normal;
-  z-index: 9999;
-  opacity: 1;
-  transition: opacity 0.4s ease, top 0.4s ease;
-  display: flex;
-  align-items: center;
-  gap: 1em;
-}
+    .search-form{
+      display:-ms-flexbox;display:flex;
+      -ms-flex-wrap:wrap;flex-wrap:wrap;
+      -ms-flex-pack:center;justify-content:center;
+      gap:.5em;text-align:left
+    }
+    .search-form label{margin:0}
+    .search-form input[type=text]{flex:0 0 300px}
+    .search-form button{width:auto}
 
+    .tables{
+      display:-ms-flexbox;display:flex;
+      -ms-flex-wrap:wrap;flex-wrap:wrap;
+      gap:1em;justify-content:space-between
+    }
+    .table-box{flex:1 1 45%;overflow:auto;margin-top:1em}
 
+    table{width:100%;border-collapse:collapse;font-size:.85em}
+    th,td{border:1px solid #ccc;padding:.3em .5em;white-space:nowrap}
+    th{background:#eee}
 
-
-    #toast button {
-      background: none;
-      border: none;
-      color: #856404;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 1em;
+    td:nth-child(2),th:nth-child(2){
+      max-width:200px;overflow:hidden;text-overflow:ellipsis
     }
 
-    .toast-hidden {
-      opacity: 0;
-      top: -100px;
-      pointer-events: none;
-    }
+    input:disabled,button:disabled{background:#eee;color:#999;cursor:not-allowed}
 
-    @media (max-width:600px) {
-      .tables { flex-direction:column; }
-      .table-box { flex:1 1 100%; }
+    /* colores según estado de escaneo */
+    .scanned-total{background:#8ce0a1}
+    .scanned-partial{background:#f8bc63}
+    .scanned-none{background:#f6b8b8}
+
+    /* Toast */
+    #toast{
+      position:fixed;top:20px;right:20px;
+      max-width:500px;min-width:300px;
+      background:#fff3cd;color:#856404;
+      padding:1em 1.5em;border-left:6px solid #ffc107;
+      box-shadow:0 2px 6px rgba(0,0,0,.3);
+      border-radius:8px;font-weight:normal;
+      z-index:9999;opacity:1;
+      transition:opacity .4s ease,top .4s ease;
+      display:flex;align-items:center;gap:1em
+    }
+    #toast button{
+      background:none;border:none;color:#856404;
+      font-weight:bold;cursor:pointer;font-size:1em
+    }
+    .toast-hidden{opacity:0;top:-100px;pointer-events:none}
+
+    @media(max-width:600px){
+      .tables{flex-direction:column}
+      .table-box{flex:1 1 100%}
     }
   </style>
 </head>
-<body onload="focusScan();">
-  <a href="{{ url_for('index') }}" style="display:inline-block;margin:1.5em 0;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Inicio</a>
+<body onload="focusScan()">
+
+  <div style="text-align:center;margin:1em 0">
+    <a href="{{ url_for('index') }}" 
+       style="background:#ffc107;color:#333;
+              padding:.5em 1em;border-radius:8px;
+              text-decoration:none;font-weight:bold">
+      Inicio
+    </a>
+  </div>
+
   <div class="container">
     <h1>Ingreso de Mercancía</h1>
 
@@ -152,7 +115,7 @@
       {% endif %}
     {% endwith %}
 
-
+    <!-- Buscar OC -->
     <form method="post" class="search-form">
       <input type="hidden" name="action" value="buscar_oc">
       <label for="oc">N° Orden de Compra:</label>
@@ -162,27 +125,18 @@
 
     {% if oc_items %}
       <div class="tables">
+        <!-- tabla de la OC -->
         <div class="table-box">
           <h2>Orden de Compra {{ oc }}</h2>
           <table>
             <thead>
-              <tr>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Cant.</th>
-                <th>Prec.Unit.</th>
-                <th>Faltan</th>
-              </tr>
+              <tr><th>Código</th><th>Nombre</th><th>Cant.</th><th>Prec.Unit.</th><th>Faltan</th></tr>
             </thead>
             <tbody>
               {% for item in oc_items %}
                 {% set faltan = item.Faltan %}
                 {% set qtyint = item.QtyInt %}
-                <tr class="
-                  {% if faltan == 0 %}scanned-total
-                  {% elif faltan == qtyint %}scanned-none
-                  {% else %}scanned-partial
-                  {% endif %}">
+                <tr class="{% if faltan == 0 %}scanned-total{% elif faltan == qtyint %}scanned-none{% else %}scanned-partial{% endif %}">
                   <td>{{ item[code_key] }}</td>
                   <td>{{ item[name_key] }}</td>
                   <td>{{ item[qty_key] }}</td>
@@ -190,11 +144,11 @@
                   <td>{{ item.Faltan }}</td>
                 </tr>
               {% endfor %}
-
             </tbody>
           </table>
         </div>
 
+        <!-- tabla de ingresos -->
         <div class="table-box">
           <h2>Ingreso</h2>
           <table>
@@ -203,18 +157,19 @@
             </thead>
             <tbody>
               {% for s in scanned_items %}
-                <tr>
-                  <td>{{ s.guia }}</td>
-                  <td>{{ s.codigo_producto }}</td>
-                  <td>{{ s.cantidad }}</td>
-                  <td>{{ s.fecha_hora }}</td>
-                </tr>
+              <tr>
+                <td>{{ s.guia }}</td>
+                <td>{{ s.codigo_producto }}</td>
+                <td>{{ s.cantidad }}</td>
+                <td>{{ s.fecha_hora }}</td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
 
+      <!-- formulario de escaneo -->
       <form method="post" id="scanForm">
         <input type="hidden" name="action" value="scan">
         <input type="hidden" name="oc" value="{{ oc }}">
@@ -222,14 +177,15 @@
         <input id="guia" name="guia" type="text" value="{{ guia or '' }}" required>
         <label for="cantidad">Cantidad (default 1):</label>
         <input id="cantidad" name="cantidad" type="number" value="1" min="1" max="100000000"
-               onkeydown="if(event.key === 'Enter'){ document.getElementById('scanInput').focus(); }">
+               onkeydown="if(event.key==='Enter'){document.getElementById('scanInput').focus();}">
         <label for="scanInput">Escanee producto:</label>
         <input id="scanInput" name="codigo" type="text" autocomplete="off" required disabled>
       </form>
 
-      <form method="post" style="margin-top:1em">
+      <form method="post" style="margin-top:1em;text-align:center">
         <input type="hidden" name="action" value="finish">
-        <button type="submit" style="background:#0057d1;color:white;border:none;padding:.5em 1em;border-radius:4px;cursor:pointer;width:auto;">
+        <button type="submit" style="background:#0057d1;color:white;border:none;
+                                     padding:.6em 1.2em;border-radius:6px;cursor:pointer;width:auto;">
           Finalizar Recepción
         </button>
       </form>
@@ -238,90 +194,32 @@
 
   <div id="toast" class="toast-hidden"></div>
 
-  <script>
-  function showToast(message, duration = 4000) {
-    const toast = document.getElementById('toast');
-    toast.innerHTML = `
-    <div style="flex:1; text-align:left; white-space:nowrap;">${message}</div>
-    <button onclick="hideToast()">OK</button>
-`;
+  <script type="text/javascript">
+    function showToast(message,duration){const t=document.getElementById('toast');t.innerHTML='<div style="flex:1;text-align:left">'+message+'</div><button onclick="hideToast()">OK</button>';t.classList.remove('toast-hidden');if(duration>0)setTimeout(hideToast,duration)}
+    function hideToast(){const t=document.getElementById('toast');t.classList.add('toast-hidden');setTimeout(()=>{t.innerHTML='';},400)}
 
-
-    toast.classList.remove('toast-hidden');
-
-    if (duration > 0) {
-      setTimeout(hideToast, duration);
-    }
-  }
-
-  function hideToast() {
-    const toast = document.getElementById('toast');
-    toast.classList.add('toast-hidden');
-    setTimeout(() => {
-      toast.innerHTML = '';
-    }, 400); // coincide con la transición CSS
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    // Activa el input solo si hay guía
-    const guiaInput = document.getElementById('guia'),
-          scanInput = document.getElementById('scanInput');
-    if (guiaInput && scanInput) {
-      function checkGuia() {
-        const valido = guiaInput.value.trim().length >= 1;
-        scanInput.disabled = !valido;
-      }
-      guiaInput.addEventListener('input', checkGuia);
-      checkGuia();
-    }
-
-    // Mostrar mensaje flash si lo hay
-    document.querySelectorAll('.toast-msg').forEach(el => {
-      const message = el.dataset.msg;
-      if (message) showToast(message);
-    });
-  });
-
-  // Simula escaneo rápido
-  (function () {
-    let buffer = '', lastTs = Date.now();
-    const TH = 50;
-    const scanInput = document.getElementById('scanInput'),
-          scanForm = document.getElementById('scanForm');
-    if (!scanInput || !scanForm) return;
-
-    window.addEventListener('keydown', function (e) {
-      if (document.activeElement !== scanInput) return;
-      const now = Date.now();
-      if (now - lastTs > TH) buffer = '';
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        scanInput.value = buffer;
-        buffer = '';
-        scanForm.submit();
-      } else if (e.key.length === 1) {
-        buffer += e.key;
-      }
-      lastTs = now;
+    document.addEventListener('DOMContentLoaded',function(){
+      const guia=document.getElementById('guia'),scan=document.getElementById('scanInput');
+      if(guia&&scan){function chk(){scan.disabled=guia.value.trim().length<1}guia.addEventListener('input',chk);chk()}
+      document.querySelectorAll('.toast-msg').forEach(el=>{if(el.dataset.msg)showToast(el.dataset.msg,4000)})
     });
 
-    scanForm.addEventListener('submit', () => {
-      setTimeout(() => {
-        buffer = '';
-        scanInput.value = '';
-        scanInput.focus();
-      }, 50);
-    });
-  })();
+    (function(){
+      let buf='',last=Date.now(),TH=50;
+      const scan=document.getElementById('scanInput'),form=document.getElementById('scanForm');
+      if(!scan||!form)return;
+      window.addEventListener('keydown',function(e){
+        if(document.activeElement!==scan)return;
+        const now=Date.now();if(now-last>TH)buf='';
+        if(e.key==='Enter'){e.preventDefault();scan.value=buf;buf='';form.submit()}
+        else if(e.key.length===1){buf+=e.key}
+        last=now;
+      });
+      form.addEventListener('submit',()=>{setTimeout(()=>{buf='';scan.value='';scan.focus()},50)})
+    })();
 
-  function focusScan() {
-    const scanInput = document.getElementById('scanInput');
-    if (scanInput && !scanInput.disabled) scanInput.focus();
-  }
-</script>
-
-
-
+    function focusScan(){const s=document.getElementById('scanInput');if(s&&!s.disabled)s.focus()}
+  </script>
 
 </body>
 </html>

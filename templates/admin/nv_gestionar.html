@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Gestionar Notas de Venta</title>
+  <style>
+    body { font-family: sans-serif; background: #f7f9fc; margin: 0; }
+    .wrap { max-width: 1200px; margin: 24px auto; background:#fff; padding:16px; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.06); }
+    h2 { margin: 0 0 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #e9edf3; font-size: 14px; vertical-align: top; }
+    th { text-align: left; background: #f0f4fa; }
+    td.num { text-align: right; }
+    .btn { padding: 6px 10px; border: 0; border-radius: 8px; cursor: pointer; }
+    .btn-prim { background:#0d6efd; color:#fff; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#eef2ff; color:#283; font-weight:600; }
+    .pill.gray { background:#eef0f4; color:#555; }
+    .zona-select { padding:6px 8px; border:1px solid #cfd6e4; border-radius:8px; min-width: 200px; }
+    .zona-cell { display:flex; gap:8px; align-items:center; }
+    .zona-actual { margin-left: 8px; }
+    .topbar { display:flex;justify-content:space-between;align-items:center;margin-bottom:12px; }
+    .btn-back { background:#e9edf3;color:#111; }
+    /* barra de progreso simple para % stock */
+    .bar { height:14px; background:#e5e7eb; border-radius:8px; overflow:hidden; }
+    .bar > span { display:block; height:14px; width:0; background:#10b981; }
+    .pct { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h2>Gestionar Notas de Venta</h2>
+    <a class="btn btn-back" href="{{ url_for('listado_nv') }}">← Volver</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Num. Nota</th>
+        <th>RUT</th>
+        <th>Ciudad</th>
+        <th>Razón Social</th>
+        <th>Fecha Entrega</th>
+        <th>Cantidad</th>
+        <th>Cant. Desp.</th>
+        <th>Precio Unitario</th>
+        <th>Pendiente</th>
+        <th>Terminado</th>
+        <th>Stock</th> <!-- NUEVO -->
+        <th>Zona</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      {% set pct = (r.StockPct or 0)|round(0)|int %}
+      <tr>
+        <td>{{ r.NumNota }}</td>
+        <td>{{ r.RUT }}</td>
+        <td>{{ r.Ciudad }}</td>
+        <td>{{ r.RazonSocial }}</td>
+        <td>{{ r.FechaEntrega }}</td>
+        <td class="num">{{ r.Cantidad }}</td>
+        <td class="num">{{ r.CantDesp }}</td>
+        <td class="num">{{ r.PrecioUnit }}</td>
+        <td class="num">{{ r.Pendiente }}</td>
+        <td>{% if r.Terminado %}Sí{% else %}No{% endif %}</td>
+        <td>
+          <div class="bar"><span style="width: {{ pct }}%"></span></div>
+          <small class="pct">{{ pct }}%</small>
+        </td>
+        <td>
+          <div class="zona-cell">
+            <form method="post" action="{{ url_for('admin_nv_asignar') }}" style="display:flex; gap:8px; align-items:center;">
+              <input type="hidden" name="nv" value="{{ r.NumNota }}">
+              <select name="zona" required class="zona-select">
+                <option value="" disabled {% if not r.ZonaAsignada %}selected{% endif %}>— Selecciona zona —</option>
+                {% for z in zonas %}
+                  <option value="{{ z.NOMBRE }}"
+                    {% if r.ZonaAsignada and r.ZonaAsignada|upper == z.NOMBRE|upper %}selected{% endif %}>
+                    {{ z.NOMBRE }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-prim">Asignar</button>
+            </form>
+
+            {% if r.ZonaAsignada %}
+              <small class="pill zona-actual">Actual: {{ r.ZonaAsignada }}</small>
+            {% else %}
+              <small class="pill gray zona-actual">Sin asignar</small>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+
+      {% if rows|length == 0 %}
+      <tr><td colspan="12" style="color:#666;">No hay datos para mostrar.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+</body>
+</html><!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <!-- Necesario para móviles/RF -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gestionar Notas de Venta</title>
+  <style type="text/css">
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { font-family: Arial, Helvetica, sans-serif; background: #f7f9fc; margin: 0; color:#111827; -webkit-tap-highlight-color: transparent; }
+    .wrap { max-width: 1200px; margin: 16px auto; background:#fff; padding:16px; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.06); }
+    .topbar { display: -webkit-box; display: -ms-flexbox; display:flex; -webkit-box-pack: justify; -ms-flex-pack: justify; justify-content:space-between; -webkit-box-align:center; -ms-flex-align:center; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap; }
+    h2 { margin:0; font-size:22px; text-transform:uppercase; }
+    .btn { display:inline-block; min-height:44px; padding:8px 12px; border-radius:10px; border:1px solid #e0e6ef; background:#e9edf3; color:#111; text-decoration:none; font-weight:600; }
+    .btn:active { position: relative; top:1px; }
+    .btn-prim { background:#0d6efd; color:#fff; border-color:#0a58ca; cursor:pointer; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#eef2ff; color:#283; font-weight:600; }
+    .pill.gray { background:#eef0f4; color:#555; }
+    .zona-select { padding:8px 10px; border:1px solid #cfd6e4; border-radius:8px; min-width: 200px; font-size:16px; }
+    .zona-cell { display:-webkit-box; display:-ms-flexbox; display:flex; gap:8px; -webkit-box-align:center; -ms-flex-align:center; align-items:center; -ms-flex-wrap:wrap; flex-wrap:wrap; }
+
+    /* Tabla (desktop) */
+    .table-wrap { overflow:auto; }
+    table { width: 100%; border-collapse: collapse; background:#fff; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #e9edf3; font-size: 14px; vertical-align: top; }
+    th { text-align: left; background: #f0f4fa; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* Barra de progreso para % stock */
+    .bar { height:14px; background:#e5e7eb; border-radius:8px; overflow:hidden; }
+    .bar > span { display:block; height:14px; width:0; background:#10b981; }
+    .pct { font-variant-numeric: tabular-nums; color:#374151; }
+
+    /* Modo móvil: tabla -> tarjetas (HTML4-safe, sin data-*) */
+    @media screen and (max-width: 820px) {
+      thead { display:none; }
+      table, tbody, tr, td { display:block; width:100%; }
+      tbody { display:block; }
+      tr { border:1px solid #e0e6ef; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin-bottom:12px; overflow:hidden; background:#fff; }
+      td { padding:12px; border:none; border-bottom:1px solid #eef3fa; }
+      td:last-child { border-bottom:none; }
+
+      /* Etiquetas por celda */
+      .cell { display:-webkit-box; display:-ms-flexbox; display:flex; }
+      .cell .label { width:40%; color:#6b7280; font-weight:bold; padding-right:10px; }
+      .cell .value { width:60%; white-space:normal; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h2>Gestionar Notas de Venta</h2>
+    <a class="btn" href="{{ url_for('listado_nv') }}">← Volver</a>
+  </div>
+
+  <div class="table-wrap">
+    <table summary="Gestión de Notas de Venta">
+      <thead>
+        <tr>
+          <th>Num. Nota</th>
+          <th>RUT</th>
+          <th>Ciudad</th>
+          <th>Razón Social</th>
+          <th>Fecha Entrega</th>
+          <th>Cantidad</th>
+          <th>Cant. Desp.</th>
+          <th>Precio Unitario</th>
+          <th>Pendiente</th>
+          <th>Terminado</th>
+          <th>Stock</th>
+          <th>Zona</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        {% set pct = (r.StockPct or 0)|round(0)|int %}
+        <tr>
+          <td><div class="cell"><span class="label">Num. Nota</span><span class="value">{{ r.NumNota }}</span></div></td>
+          <td><div class="cell"><span class="label">RUT</span><span class="value">{{ r.RUT }}</span></div></td>
+          <td><div class="cell"><span class="label">Ciudad</span><span class="value">{{ r.Ciudad }}</span></div></td>
+          <td><div class="cell"><span class="label">Razón Social</span><span class="value">{{ r.RazonSocial }}</span></div></td>
+          <td><div class="cell"><span class="label">Fecha Entrega</span><span class="value">{{ r.FechaEntrega }}</span></div></td>
+          <td class="num"><div class="cell"><span class="label">Cantidad</span><span class="value">{{ r.Cantidad }}</span></div></td>
+          <td class="num"><div class="cell"><span class="label">Cant. Desp.</span><span class="value">{{ r.CantDesp }}</span></div></td>
+          <td class="num"><div class="cell"><span class="label">Precio Unitario</span><span class="value">{{ r.PrecioUnit }}</span></div></td>
+          <td class="num"><div class="cell"><span class="label">Pendiente</span><span class="value">{{ r.Pendiente }}</span></div></td>
+          <td><div class="cell"><span class="label">Terminado</span><span class="value">{% if r.Terminado %}Sí{% else %}No{% endif %}</span></div></td>
+          <td>
+            <div class="cell">
+              <span class="label">Stock</span>
+              <span class="value">
+                <div class="bar"><span style="width: {{ pct }}%"></span></div>
+                <small class="pct">{{ pct }}%</small>
+              </span>
+            </div>
+          </td>
+          <td>
+            <div class="zona-cell">
+              <form method="post" action="{{ url_for('admin_nv_asignar') }}" style="display:-webkit-box;display:-ms-flexbox;display:flex;gap:8px;-webkit-box-align:center;-ms-flex-align:center;align-items:center;">
+                <input type="hidden" name="nv" value="{{ r.NumNota }}">
+                <select name="zona" class="zona-select">
+                  <option value="" {% if not r.ZonaAsignada %}selected{% endif %}>— Selecciona zona —</option>
+                  {% for z in zonas %}
+                    <option value="{{ z.NOMBRE }}" {% if r.ZonaAsignada and r.ZonaAsignada|upper == z.NOMBRE|upper %}selected{% endif %}>{{ z.NOMBRE }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-prim">Asignar</button>
+              </form>
+
+              {% if r.ZonaAsignada %}
+                <small class="pill zona-actual">Actual: {{ r.ZonaAsignada }}</small>
+              {% else %}
+                <small class="pill gray zona-actual">Sin asignar</small>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+
+        {% if rows|length == 0 %}
+        <tr><td colspan="12" style="color:#666; text-align:center;">No hay datos para mostrar.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>
+

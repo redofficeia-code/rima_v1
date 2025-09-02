@@ -21,6 +21,104 @@ try:
 except ImportError:
     login_nivel2_operario = None
 
+
+
+def _ensure_zonas_table():
+    # IMPORTANTE: usar db.execute_rima (no db.execute)
+    sql = """
+    IF OBJECT_ID('dbo.ZONAS_DB','U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.ZONAS_DB (
+            ID INT IDENTITY(1,1) PRIMARY KEY,
+            NOMBRE NVARCHAR(100) NOT NULL
+        );
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.indexes
+            WHERE name = 'UX_ZONAS_DB_NOMBRE'
+              AND object_id = OBJECT_ID('dbo.ZONAS_DB')
+        )
+            CREATE UNIQUE INDEX UX_ZONAS_DB_NOMBRE ON dbo.ZONAS_DB (NOMBRE);
+    END
+    ELSE
+    BEGIN
+        IF COL_LENGTH('dbo.ZONAS_DB','NOMBRE') IS NULL
+        BEGIN
+            ALTER TABLE dbo.ZONAS_DB ADD NOMBRE NVARCHAR(100) NULL;
+            UPDATE dbo.ZONAS_DB SET NOMBRE = ISNULL(LTRIM(RTRIM(NOMBRE)), '');
+            ALTER TABLE dbo.ZONAS_DB ALTER COLUMN NOMBRE NVARCHAR(100) NOT NULL;
+        END
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.indexes
+            WHERE name = 'UX_ZONAS_DB_NOMBRE'
+              AND object_id = OBJECT_ID('dbo.ZONAS_DB')
+        )
+            CREATE UNIQUE INDEX UX_ZONAS_DB_NOMBRE ON dbo.ZONAS_DB (NOMBRE);
+    END
+    """
+    import db
+    db.execute_rima(sql)
+
+# BD cualificadas (no afectan login)
+ZONAS_TBL    = "dbo.ZONAS_DB"                  # en RIMA (escritura via *_rima)
+NV_ZONAS_TBL = "[SANTIAGO].[dbo].[NV_ZONAS]"   # lectura (si existe) via ENGINE (Santiago)
+
+def _get_zonas() -> list[dict]:
+    """Lee zonas desde RIMA."""
+    try:
+        df = db.query_df_rima("SELECT ID, NOMBRE FROM dbo.ZONAS_DB ORDER BY NOMBRE;", {})
+        return df.to_dict(orient="records")
+    except Exception as e:
+        app.logger.error(f"Error leyendo ZONAS_DB: {e}")
+        return []
+
+
+def _seed_zonas_if_empty():
+    # ¿Ya hay datos en RIMA?
+    try:
+        df_cnt = db.query_df_rima("SELECT COUNT(*) AS n FROM dbo.ZONAS_DB", {})
+        if not df_cnt.empty and int(df_cnt.iloc[0]["n"]) > 0:
+            return
+    except Exception:
+        return
+
+    # 1) Intentar poblar desde NV_ZONAS en SANTIAGO (engine normal)
+    try:
+        df_src = db.query_df(
+            f"SELECT DISTINCT LTRIM(RTRIM(ZONA)) AS Z FROM {NV_ZONAS_TBL} "
+            "WHERE ZONA IS NOT NULL AND LTRIM(RTRIM(ZONA)) <> ''", {}
+        )
+        if not df_src.empty:
+            for _, r in df_src.iterrows():
+                z = str(r["Z"]).strip()
+                db.execute_rima(
+                    """
+                    IF NOT EXISTS (
+                        SELECT 1 FROM dbo.ZONAS_DB
+                        WHERE UPPER(LTRIM(RTRIM(NOMBRE))) = UPPER(:n)
+                    )
+                    INSERT INTO dbo.ZONAS_DB(NOMBRE) VALUES(:n)
+                    """,
+                    {"n": z}
+                )
+            return
+    except Exception:
+        pass
+
+    # 2) Semilla por defecto (en RIMA)
+    defaults = ["LA SERENA","LINARES","LOS LAGOS","PUERTO MONTT","RANCAGUA","SANTIAGO"]
+    for z in defaults:
+        db.execute_rima(
+            """
+            IF NOT EXISTS (
+                SELECT 1 FROM dbo.ZONAS_DB
+                WHERE UPPER(LTRIM(RTRIM(NOMBRE))) = UPPER(:n)
+            )
+            INSERT INTO dbo.ZONAS_DB(NOMBRE) VALUES(:n)
+            """,
+            {"n": z}
+        )
+
+
 # Usuarios disponibles para Login 1 (value=COD, label visible)
 LOGIN1_USUARIOS = [
     ("BB1", "JEFE BODEGA"),
@@ -39,7 +137,7 @@ def inject_roles():
     """Hace disponibles las constantes de roles en las plantillas."""
     return {"ROL_JEFE": ROL_JEFE, "ROL_OPERARIO": ROL_OPERARIO}
 
-# ---------- Decorador admin_required (NECESARIO) ----------
+# ---------- Decorador admin_required ----------
 from functools import wraps
 def admin_required(f):
     @wraps(f)
@@ -49,7 +147,7 @@ def admin_required(f):
             return redirect(url_for("login1"))
         return f(*args, **kwargs)
     return wrapper
-# ---------------------------------------------------------
+# ---------------------------------------------
 
 # --- Directorios y rutas de archivos ---
 BASE_DIR     = os.path.dirname(__file__)
@@ -189,6 +287,61 @@ def inv_get_session(sid):
                 return row
     return None
 
+# app.py (o admin_routes.py)
+from flask import request, jsonify, session
+from utils import (
+    get_nv_flow,
+    set_nv_estado_aprobada,
+    set_nv_estado_pendiente,
+    set_nv_zona,
+    set_nv_retira,
+)
+from auth_map import ROL_JEFE  # Asegúrate que exista este alias
+
+def _es_admin():
+    cu = session.get('current_user') or {}
+    # Si tu 'rol' ya viene normalizado al valor de ROL_JEFE, basta:
+    return (cu.get('rol') == ROL_JEFE)
+
+@app.post("/admin/nv/<int:num_nota>/aprobar")
+def admin_nv_aprobar(num_nota):
+    if not _es_admin():
+        return jsonify({"ok": False, "msg": "No autorizado"}), 403
+    set_nv_estado_aprobada(num_nota, aprobado_por=(session.get('current_user') or {}).get('nombre'))
+    return jsonify({"ok": True, "msg": "Nota aprobada", "flow": get_nv_flow(num_nota)})
+
+@app.post("/admin/nv/<int:num_nota>/pendiente")
+def admin_nv_pendiente(num_nota):
+    if not _es_admin():
+        return jsonify({"ok": False, "msg": "No autorizado"}), 403
+    set_nv_estado_pendiente(num_nota)
+    return jsonify({"ok": True, "msg": "Nota marcada pendiente", "flow": get_nv_flow(num_nota)})
+
+@app.post("/admin/nv/<int:num_nota>/asignar")
+def admin_nv_asignar(num_nota):
+    if not _es_admin():
+        return jsonify({"ok": False, "msg": "No autorizado"}), 403
+    flow = get_nv_flow(num_nota)
+    if flow.get("ESTADO") != "APROB":
+        return jsonify({"ok": False, "msg": "Primero debes aprobar la NV."}), 400
+    try:
+        zona_id = int(request.form.get("zona_id") or 0)
+    except ValueError:
+        zona_id = 0
+    if not zona_id:
+        return jsonify({"ok": False, "msg": "Falta zona."}), 400
+    set_nv_zona(num_nota, zona_id, asignado_por=(session.get('current_user') or {}).get('nombre'))
+    return jsonify({"ok": True, "msg": "Zona asignada", "flow": get_nv_flow(num_nota)})
+
+@app.post("/admin/nv/<int:num_nota>/retira")
+def admin_nv_retira(num_nota):
+    if not _es_admin():
+        return jsonify({"ok": False, "msg": "No autorizado"}), 403
+    retira = (request.form.get("retira") in ("1","true","on","True"))
+    set_nv_retira(num_nota, retira)
+    return jsonify({"ok": True, "msg": "Actualizado", "flow": get_nv_flow(num_nota)})
+
+
 # --- Rutas ---
 @app.route('/')
 def index():
@@ -198,9 +351,10 @@ def index():
         # No hay sesión, ir al primer nivel de login
         return redirect(url_for('login1'))
 
-    # Administradores siempre van a su propio índice
+    # Jefe: mostrar su panel directamente en "/"
     if cu.get('rol') == ROL_JEFE:
-        return redirect(url_for('admin_index'))
+        return render_template('admin/index.html')  # <-- esto fuerza admin
+
 
     # Si no se ha autenticado como operario aún, volver al login de nivel 2
     if not session.get('operario'):
@@ -216,7 +370,7 @@ def panel_jefe():
     cu = session.get('current_user')
     if not cu or cu.get('rol') != ROL_JEFE:
         return redirect(url_for('login1'))
-    return render_template('index.html')
+    return redirect(url_for('admin_index'))
 
 
 @app.route('/login1', methods=['GET', 'POST'])
@@ -226,7 +380,7 @@ def login1():
     if cu:
         if cu.get('rol') == ROL_JEFE:
             session['is_admin'] = True
-            return redirect(url_for('admin_index'))
+            return redirect(url_for('index'))
         session['is_admin'] = False
         return redirect(url_for('login2'))
 
@@ -251,7 +405,7 @@ def login1():
         # Admin si rol == ROL_JEFE
         if u['rol'] == ROL_JEFE:
             session['is_admin'] = True
-            return redirect(url_for('admin_index'))
+            return redirect(url_for('index'))
 
         # Caso contrario va a Login 2 (operario)
         session['is_admin'] = False
@@ -308,6 +462,103 @@ def admin_index():
     return render_template('admin/menu.html')
 
 
+# --- ZONAS: endpoints mínimos para que url_for no falle ---
+
+@app.get("/admin/zonas")
+def admin_zonas():
+    cu = session.get('current_user') or {}
+    if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
+        return abort(403)
+    _ensure_zonas_table()
+    _seed_zonas_if_empty()
+    zonas = _get_zonas()
+    return render_template("admin/zonas_admin.html", zonas=zonas)
+
+@app.post("/admin/zonas/add")
+def zonas_admin_add():
+    cu = session.get('current_user') or {}
+    if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
+        return abort(403)
+
+    nombre = (request.form.get("nombre") or "").strip()
+    if not nombre:
+        flash("Ingrese un nombre de zona.", "error")
+        return redirect(url_for("admin_zonas"))
+
+    _ensure_zonas_table()
+    try:
+        exists = db.query_df_rima(
+            "SELECT 1 FROM dbo.ZONAS_DB WHERE UPPER(LTRIM(RTRIM(NOMBRE))) = UPPER(:n)",
+            {"n": nombre}
+        )
+        if exists.empty:
+            db.execute_rima("INSERT INTO dbo.ZONAS_DB (NOMBRE) VALUES (:n)", {"n": nombre})
+            flash("Zona agregada.", "success")
+        else:
+            flash("La zona ya existe.", "info")
+    except Exception as e:
+        flash(f"No se pudo agregar la zona: {e}", "error")
+
+    return redirect(url_for("admin_zonas"))
+
+@app.post("/admin/zonas/<int:zona_id>/update")
+def zonas_admin_update(zona_id: int):
+    cu = session.get('current_user') or {}
+    if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
+        return abort(403)
+
+    nuevo_nombre = (request.form.get("nombre") or "").strip()
+    if not nuevo_nombre:
+        flash("Ingrese un nombre válido.", "error")
+        return redirect(url_for("admin_zonas"))
+
+    try:
+        db.execute_rima("""
+            UPDATE dbo.ZONAS_DB
+               SET NOMBRE = :n
+             WHERE ID = :i
+        """, {"n": nuevo_nombre, "i": zona_id})
+        flash("Zona actualizada.", "success")
+    except Exception as e:
+        flash(f"No se pudo actualizar: {e}", "error")
+
+    return redirect(url_for("admin_zonas"))
+
+@app.post("/admin/zonas/delete")
+def zonas_admin_delete():
+    cu = session.get('current_user') or {}
+    if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
+        return abort(403)
+
+    zid = request.form.get("id", type=int)
+    if not zid:
+        flash("Falta ID de zona a eliminar.", "warning")
+        return redirect(url_for("admin_zonas"))
+
+    try:
+        db.execute_rima("DELETE FROM dbo.ZONAS_DB WHERE ID = :i", {"i": zid})
+        flash("Zona eliminada.", "success")
+    except Exception as e:
+        flash(f"No se pudo eliminar la zona: {e}", "danger")
+
+    return redirect(url_for("admin_zonas"))
+
+
+@app.get("/admin/tipos-despacho")
+def admin_tipos_despacho():
+    cu = session.get('current_user') or {}
+    if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
+        return abort(403)
+    return "<h1>Gestionar tipo despacho</h1><p><a href='{}'>Volver al Menú Admin</a></p>".format(url_for('admin_index'))
+
+@app.get("/admin/notas-venta")
+def admin_notas_venta():
+    cu = session.get('current_user') or {}
+    if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
+        return abort(403)
+    return "<h1>Gestionar notas de venta</h1><p><a href='{}'>Volver al Menú Admin</a></p>".format(url_for('admin_index'))
+
+
 @app.route('/admin/listados')
 @admin_required
 def admin_listados():
@@ -317,6 +568,62 @@ def admin_listados():
 @app.route('/devoluciones')
 def devoluciones():
     return render_template('devoluciones.html')
+
+# --- FACTURA (desde NV) -------------------------------------------------------
+from flask import request
+
+@app.route("/factura", methods=["GET"], endpoint="factura_nv")
+def factura_nv():
+    cu = session.get('current_user'); op = session.get('operario')
+    if not cu: return redirect(url_for('login1'))
+    if cu.get('rol') == ROL_OPERARIO and not op: return redirect(url_for('login2'))
+
+    num_nota = (request.args.get("num_nota") or "").strip()
+    if not num_nota:
+        flash("Falta el número de Nota de Venta (num_nota).", "warning")
+        return redirect(url_for("listado_nv"))
+
+    # 1) Solo cabecera desde la NV
+    try:
+        header, detalles_full = db_utils.get_guia_desde_nv(num_nota)
+        if not header:
+            flash(f"No se encontró la NV {num_nota}.", "warning")
+            return redirect(url_for("listado_nv"))
+    except Exception as e:
+        flash(f"Error al consultar la BBDD: {e}", "danger")
+        return redirect(url_for("listado_nv"))
+
+    # 2) Armar detalle SOLO con lo escaneado (igual que guía)
+    items_scan = session.get('items_para_guia', []) or []
+    if not items_scan:
+        flash("No hay productos preparados (no se han escaneado ítems).", "warning")
+        return redirect(url_for("listado_nv"))
+
+    def _norm(x): return str(x).strip().strip('*').upper()
+    base_map = {}
+    for d in (detalles_full or []):
+        cod = d.get('codigo') or d.get('Código') or d.get('NCODART') or d.get('cod') or ''
+        base_map[_norm(cod)] = d
+
+    detalles = []
+    for it in items_scan:
+        cod = _norm(it.get('codigo', ''))
+        qty = int(it.get('cantidad', 0))
+        if qty <= 0: continue
+        base = base_map.get(cod, {})
+        detalles.append({
+            'codigo': cod,
+            'nombre': base.get('nombre') or base.get('Nombre') or base.get('DESCRIP') or '',
+            'cantidad': qty,
+            'prec_unit': base.get('prec_unit') or base.get('Prec.Unit') or base.get('PRECUNIT') or 0
+        })
+
+    header = dict(header or {})
+    header.setdefault("FAV_A", header.get("cliente") or header.get("razon_social") or "")
+    header.setdefault("VEND_CODIGO", header.get("vendedor_codigo") or "")
+
+    return render_template("factura_nv.html", header=header, detalles=detalles, num_nota=num_nota)
+
 
 
 @app.route('/devoluciones/ingreso', methods=['GET', 'POST'])
@@ -1066,35 +1373,6 @@ def salida():
         else:
             return redirect(url_for('login2'))
 
-    # Filtros de hubs / zonas
-    hub_id = request.args.get('hub_id', type=int)
-    zona = request.args.get('zona')
-    lista_nv = []
-    zona_sel = None
-
-    if zona:
-        zona_sel = zona
-        sql = (
-            "SELECT NUMNOTA, FECHA, SUCUR, RAZSOC "
-            "FROM NOTV_DB N JOIN NV_ZONAS Z ON N.NUMNOTA = Z.NUMNOTA "
-            "WHERE Z.ZONA = :zona"
-        )
-        df_z = db.query_df(sql, {'zona': zona})
-        lista_nv = [
-            {
-                'numnota': r.get('NUMNOTA'),
-                'fecha': r.get('FECHA'),
-                'sucursal': r.get('SUCUR'),
-                'cliente': r.get('RAZSOC'),
-            }
-            for _, r in df_z.iterrows()
-        ]
-        if df_z.empty:
-            flash('No hay Notas de Venta asignadas', 'warning')
-    
-
-
-
     # Estado
     nota         = session.get('current_nv', '')
     guia_actual  = session.get('current_guia', '')
@@ -1197,10 +1475,11 @@ def salida():
 
             base = pd.DataFrame(nv_items)
             sal  = pd.DataFrame(salida_items)
-            base['Cant.']        = pd.to_numeric(base['Cant.'], errors='coerce').fillna(0).astype(int)
-            sal['Cant.Salida']   = pd.to_numeric(sal['Cant.Salida'], errors='coerce').fillna(0).astype(int)
 
-            # Validación: no permitir sobrepasar pendiente
+            base['Cant.']      = pd.to_numeric(base['Cant.'], errors='coerce').fillna(0).astype(int)
+            sal['Cant.Salida'] = pd.to_numeric(sal['Cant.Salida'], errors='coerce').fillna(0).astype(int)
+
+            # Validación: no permitir sobrepasar pendiente por código
             merged = sal.merge(base[['Código','Cant.']], on='Código', how='left')
             merged['Exceso'] = (merged['Cant.Salida'] - merged['Cant.']).clip(lower=0)
             if (merged['Exceso'] > 0).any():
@@ -1208,23 +1487,77 @@ def salida():
                 flash(f'Cantidad de salida supera lo pendiente para: {", ".join(map(str, cods))}.', 'danger')
                 return redirect(url_for('salida'))
 
-            # Si todo OK: (aquí podrías insertar movimiento, generar GD, etc.)
+            # Calcular si quedó PARCIAL o COMPLETA
+            faltas = base.merge(sal[['Código','Cant.Salida']], on='Código', how='left')
+            faltas['Cant.Salida'] = faltas['Cant.Salida'].fillna(0).astype(int)
+            faltas['Pendiente']   = (faltas['Cant.'] - faltas['Cant.Salida']).clip(lower=0)
+            estado_nv = 'PARCIAL' if (faltas['Pendiente'] > 0).any() else 'COMPLETA'
+
+            # Guardar estado en NV_ZONAS. Si no existe la columna ESTADO, se crea.
+            try:
+                db.execute("""
+                    IF OBJECT_ID('dbo.NV_ZONAS','U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.NV_ZONAS(
+                            NV   NVARCHAR(50)  NOT NULL PRIMARY KEY,
+                            ZONA NVARCHAR(100) NOT NULL
+                        );
+                    END;
+
+                    IF COL_LENGTH('dbo.NV_ZONAS','ESTADO') IS NULL
+                        ALTER TABLE dbo.NV_ZONAS ADD ESTADO NVARCHAR(20) NULL;
+
+                    IF EXISTS(SELECT 1 FROM dbo.NV_ZONAS WHERE NV = :nv)
+                        UPDATE dbo.NV_ZONAS SET ESTADO = :estado WHERE NV = :nv;
+                    ELSE
+                        INSERT INTO dbo.NV_ZONAS(NV, ZONA, ESTADO) VALUES(:nv, N'(SIN ZONA)', :estado);
+                """, {"nv": nota, "estado": estado_nv})
+            except Exception as e:
+                app.logger.error(f"No se pudo actualizar estado NV {nota}: {e}")
+
+            # Preparar SOLO lo escaneado para la Guía (y/o Factura)
+            # Esto es lo que leerá guia_despacho_view desde session['items_para_guia'].
+            scaneado = [
+                {
+                    "codigo":   str(r.get('Código')).strip(),
+                    "cantidad": int(r.get('Cant.Salida', 0))
+                }
+                for r in salida_items
+                if int(pd.to_numeric(r.get('Cant.Salida', 0), errors='coerce') or 0) > 0
+            ]
+            session['items_para_guia'] = scaneado
+            session['nv_para_guia']    = nota
+            # (opcional) Si ya manejas un número de guía en /salida, lo guardas aquí:
+            session['guia_para_guia']  = session.get('current_guia', '')
+
+            # Limpieza de ítems de salida (ya quedaron guardados para la guía)
             session.pop('salida_items', None)
-            flash('Salida finalizada correctamente.', 'success')
+
+            flash(f"Salida finalizada correctamente. Estado NV: {estado_nv}.", 'success')
             return redirect(url_for('salida'))
+
 
     # GET
     # Consultas auxiliares para hubs o zonas
     zona = request.args.get('zona')
-    hub_id = request.args.get('hub_id', type=int)
+    hub_id = request.args.get('hub_id', type=int)  # reservado por si se usa luego
     lista_nv = None
     zona_seleccionada = None
     if zona:
         zona_seleccionada = zona
-        sql = (
-            "SELECT NUMNOTA, FECHA, SUCUR, RAZSOC FROM NOTV_DB N "
-            "JOIN NV_ZONAS Z ON N.NUMNOTA = Z.NV WHERE Z.ZONA = :zona"
-        )
+        sql = """
+        SELECT
+            N.NUMNOTA,
+            N.FECHA,
+            N.SUCUR,
+            ISNULL(C.RAZSOC, '') AS RAZSOC
+        FROM dbo.NOTV_DB AS N
+        JOIN dbo.NV_ZONAS AS Z      ON Z.NV = N.NUMNOTA      -- si tu tabla está en esta misma BD
+        LEFT JOIN dbo.CLIEN_DB AS C ON C.NREGUIST = N.NRUTCLIE
+        WHERE Z.ZONA = :zona
+        ORDER BY N.NUMNOTA DESC
+        """
+
         df_z = db.query_df(sql, {"zona": zona})
         if not df_z.empty:
             lista_nv = df_z.rename(columns={
@@ -1235,10 +1568,6 @@ def salida():
             }).to_dict(orient="records")
         else:
             flash('No hay Notas de Venta asignadas', 'info')
-    else:
-        # Antes consultábamos HUBS; lo omitimos porque la tabla no existe en tu BD.
-        pass
-
 
     # Calcular cantidades escaneadas y faltantes para cada ítem de la NV
     scanned_map = {}
@@ -1247,13 +1576,11 @@ def salida():
             code = str(si.get('Código'))
             qty = int(si.get('Cant.Salida', 0))
         except Exception:
-            # Valores inesperados se tratan como 0
             code, qty = str(si.get('Código')), 0
         scanned_map[code] = scanned_map.get(code, 0) + qty
 
     display_nv_items = []
     for it in nv_items:
-        orig = 0
         try:
             orig = int(it.get('Cant.', 0))
         except Exception:
@@ -1296,6 +1623,9 @@ def salida():
                 'Cantidad': remain
             })
 
+    # NUEVO: pasar la lista de zonas al template para que /salida las muestre dinámicamente
+    zonas = _get_zonas()
+
     return render_template(
         'salida.html',
         nota=nota,
@@ -1304,8 +1634,133 @@ def salida():
         salida_items=salida_items,
         stock_items=stock_items,
         zona_seleccionada=zona_seleccionada,
-        lista_nv=lista_nv
+        lista_nv=lista_nv,
+        zonas=zonas                 # ← NUEVO
     )
+
+
+
+@app.route("/admin/nv/gestionar", endpoint="admin_nv_gestionar")
+def admin_nv_gestionar():
+    cu = session.get('current_user') or {}
+    if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
+        return abort(403)
+
+    sql = """
+        SELECT TOP 300
+            nv.NUMNOTA                                AS NumNota,
+            nv.NRUTCLIE                               AS RUT,
+            nv.SUCUR                                  AS Ciudad,
+            ISNULL(c.RAZSOC, '')                      AS RazonSocial,
+            nv.FECHA                                  AS FechaEntrega,
+            SUM(CAST(ISNULL(nd.CANTIDAD,  0) AS INT)) AS Cantidad,
+            SUM(CAST(ISNULL(nd.CANTDESP, 0) AS INT))  AS CantDesp,
+            CAST(AVG(CAST(ISNULL(nd.PRECUNIT,0) AS FLOAT)) AS DECIMAL(18,0)) AS PrecioUnit,
+            SUM(CAST(ISNULL(nd.CANTIDAD,0) AS INT)) -
+            SUM(CAST(ISNULL(nd.CANTDESP,0) AS INT))   AS Pendiente,
+            CASE WHEN
+                SUM(CAST(ISNULL(nd.CANTIDAD,0) AS INT)) -
+                SUM(CAST(ISNULL(nd.CANTDESP,0) AS INT)) = 0
+            THEN 1 ELSE 0 END                         AS Terminado,
+            MAX(ISNULL(v.STOCK_PCT, 0))               AS StockPct   -- <- cambio aquí
+        FROM dbo.NOTV_DB  nv
+        JOIN dbo.NOTDE_DB nd ON nd.NUMRECOR = nv.NUMREG
+        LEFT JOIN dbo.CLIEN_DB c ON c.NREGUIST = nv.NRUTCLIE
+        LEFT JOIN [RIMA].dbo.VW_NV_STOCK_PCT v ON v.NUMNOTA = nv.NUMNOTA
+        GROUP BY nv.NUMNOTA, nv.NRUTCLIE, nv.SUCUR, c.RAZSOC, nv.FECHA
+        ORDER BY nv.NUMNOTA DESC;
+
+
+    """
+    rows = db.query_df(sql).to_dict(orient="records")
+    zonas = _get_zonas() if callable(globals().get("_get_zonas")) else []
+    return render_template("admin/nv_gestionar.html", rows=rows, zonas=zonas)
+
+# --- Admin NV: acciones (aprobar/asignar zona, marcar pendiente) --------
+
+def _ensure_nv_zonas_table():
+    """Crea dbo.NV_ZONAS en SANTIAGO si no existe (vía ENGINE principal)."""
+    sql = """
+    IF OBJECT_ID('dbo.NV_ZONAS','U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.NV_ZONAS(
+            NV   NVARCHAR(50)  NOT NULL PRIMARY KEY,
+            ZONA NVARCHAR(100) NOT NULL
+        );
+    END
+    """
+    db.execute(sql)
+
+@app.post("/admin/nv/accion", endpoint="nv_gestionar_accion")
+def nv_gestionar_accion():
+    # Requiere rol Jefe
+    cu = session.get('current_user') or {}
+    if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
+        return abort(403)
+
+    accion = (request.form.get("accion") or "").strip()
+    # Acepta tanto "nv" como "numnota" para no tocar el template
+    nv = (request.form.get("nv") or request.form.get("numnota") or "").strip()
+
+    if not nv:
+        flash("Falta el número de Nota de Venta.", "warning")
+        return redirect(url_for("admin_nv_gestionar"))
+
+    # Asegura tabla NV_ZONAS
+    _ensure_nv_zonas_table()
+
+    # 1) Marcar como PENDIENTE: eliminar asignación de zona
+    if accion == "pendiente":
+        try:
+            db.execute("DELETE FROM dbo.NV_ZONAS WHERE NV = :nv", {"nv": nv})
+            flash(f"NV {nv} marcada como Pendiente (sin zona).", "success")
+        except Exception as e:
+            flash(f"No se pudo marcar como pendiente: {e}", "danger")
+        return redirect(url_for("admin_nv_gestionar"))
+
+    # 2) Aprobar + Asignar zona (o simple asignación)
+    zona = (request.form.get("zona") or "").strip()
+    if not zona:
+        flash("Selecciona una zona para asignar.", "warning")
+        return redirect(url_for("admin_nv_gestionar"))
+
+    try:
+        # UPSERT
+        db.execute("""
+            IF EXISTS(SELECT 1 FROM dbo.NV_ZONAS WHERE NV = :nv)
+                UPDATE dbo.NV_ZONAS SET ZONA = :zona WHERE NV = :nv;
+            ELSE
+                INSERT INTO dbo.NV_ZONAS(NV, ZONA) VALUES(:nv, :zona);
+        """, {"nv": nv, "zona": zona})
+        flash(f"NV {nv} asignada a la zona '{zona}'.", "success")
+    except Exception as e:
+        flash(f"No se pudo asignar la zona: {e}", "danger")
+
+    return redirect(url_for("admin_nv_gestionar"))
+
+
+@app.post("/admin/nv/asignar")
+def admin_nv_asignar():
+    cu = session.get('current_user') or {}
+    if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
+        return abort(403)
+    nv = (request.form.get("nv") or "").strip()
+    zona = (request.form.get("zona") or "").strip()
+    if not nv or not zona:
+        flash("Faltan datos para asignar zona.", "warning")
+        return redirect(url_for("admin_nv_gestionar"))
+    try:
+        _ensure_nv_zonas_table()
+        db.execute("""
+            IF EXISTS(SELECT 1 FROM dbo.NV_ZONAS WHERE NV = :nv)
+                UPDATE dbo.NV_ZONAS SET ZONA = :zona WHERE NV = :nv;
+            ELSE
+                INSERT INTO dbo.NV_ZONAS(NV, ZONA) VALUES(:nv, :zona);
+        """, {"nv": nv, "zona": zona})
+        flash(f"NV {nv} asignada a zona '{zona}'.", "success")
+    except Exception as e:
+        flash(f"No se pudo asignar la NV {nv}: {e}", "danger")
+    return redirect(url_for("admin_nv_gestionar"))
 
 @app.route('/inventario', methods=['GET', 'POST'])
 @app.route('/inventario/sesion/<sesion_id>', methods=['GET', 'POST'])
@@ -1532,9 +1987,8 @@ def importar():
             )
 
         # ── 5. Normalización de columnas ─────────────────────────────────
-        df.columns = [
-            str(c).strip().replace("\ufeff", "")
-        ]
+        df.columns = [str(c).strip().replace("\ufeff", "") for c in df.columns]
+
         # Eliminar Unnamed y columnas vacías
         df = df.loc[:, ~df.columns.str.match(r"^Unnamed", case=False)]
         df = df.dropna(axis=1, how="all")
@@ -1686,16 +2140,7 @@ def guia_despacho_view(template_name: str = 'guia_despacho.html',
                         'descuento': '0%'  # puedes ajustar si hay descuento
                     }
                     lineas.append(linea)
-            else:
-                # Si no se escaneó nada, incluir todas las líneas de la NV
-                for _, row in df.iterrows():
-                    lineas.append({
-                        'codigo': row.get('Código', ''),
-                        'descripcion': row.get('Descriptor', ''),
-                        'cantidad': row.get('Cantidad', 0),
-                        'precio': row.get('Precio Unitario', ''),
-                        'descuento': '0%'
-                    })
+           
 
         except Exception as e:
             flash(f'Error leyendo NV para la guía: {e}', 'error')
@@ -1736,8 +2181,9 @@ def guia_despacho_view(template_name: str = 'guia_despacho.html',
 @app.route('/guia-despacho')
 def guia_despacho():
     """
-    Prellena la Guía de Despacho con datos de la Nota de Venta (num_nota).
-    Parámetro: ?num_nota=xxxxx
+    Renderiza la Guía de Despacho usando SOLO los ítems escaneados
+    y preparados durante la salida (session['items_para_guia']).
+    Requiere ?num_nota=XXXXX para verificar consistencia.
     """
     cu = session.get('current_user')
     op = session.get('operario')
@@ -1751,8 +2197,22 @@ def guia_despacho():
         flash('Falta el parámetro num_nota.', 'warning')
         return redirect(url_for('salida'))
 
+    # Debe existir un "paquete" listo desde la salida
+    items_scan = session.get('items_para_guia', []) or []
+    nv_scan    = (session.get('nv_para_guia') or '').strip()
+
+    # Validaciones de consistencia
+    if not items_scan:
+        flash('No hay productos preparados para la guía (no se han escaneado ítems).', 'warning')
+        return redirect(url_for('salida'))
+    if nv_scan and nv_scan != num_nota:
+        flash(f'La NV preparada ({nv_scan}) no coincide con la solicitada ({num_nota}).', 'warning')
+        return redirect(url_for('salida'))
+
+    # Trae solo la CABECERA/metadata desde la NV (para datos del cliente, vendedor, etc.)
+    # El detalle lo armamos desde items_scan para garantizar "solo escaneado".
     try:
-        header, detalles = db_utils.get_guia_desde_nv(num_nota)
+        header, detalles_full = db_utils.get_guia_desde_nv(num_nota)
         if not header:
             flash(f'No se encontró información para la Nota de Venta {num_nota}.', 'warning')
             return redirect(url_for('salida'))
@@ -1760,7 +2220,48 @@ def guia_despacho():
         flash(f'Error al consultar la BBDD: {e}', 'danger')
         return redirect(url_for('salida'))
 
-    return render_template('guia_despacho.html', header=header, detalles=detalles, num_nota=num_nota, datos={}, datetime=datetime)
+    # Indexa detalle original por código para recuperar nombre/precio si está disponible
+    def _norm_code(x):  # mismo criterio que usas en salida
+        return str(x).strip().strip('*').upper()
+
+    detalles_map = {}
+    for d in (detalles_full or []):
+        # aceptar variantes de nombres de columnas
+        cod = d.get('codigo') or d.get('Código') or d.get('NCODART') or d.get('cod') or ''
+        detalles_map[_norm_code(cod)] = d
+
+    # Construye el detalle FINAL solo con lo escaneado
+    detalles = []
+    for it in items_scan:
+        cod = _norm_code(it.get('codigo', ''))
+        qty = int(it.get('cantidad', 0))
+        if qty <= 0:
+            continue
+
+        base = detalles_map.get(cod, {})
+        nombre = base.get('nombre') or base.get('Nombre') or base.get('DESCRIP') or ''
+        prec   = base.get('prec_unit') or base.get('Prec.Unit') or base.get('PRECUNIT') or 0
+
+        detalles.append({
+            'codigo': cod,
+            'nombre': nombre,
+            'cantidad': qty,         # ya validado contra pendiente en /salida
+            'prec_unit': prec
+        })
+
+    if not detalles:
+        flash('No hay líneas válidas para la Guía (cantidades <= 0).', 'warning')
+        return redirect(url_for('salida'))
+
+    # Render: solo escaneado
+    return render_template('guia_despacho.html',
+                           header=header,
+                           detalles=detalles,
+                           num_nota=num_nota,
+                           datos={},
+                           datetime=datetime)
+
+
 
 @app.route('/guia_traslado', methods=['GET', 'POST'])
 def guia_traslado():
@@ -1791,7 +2292,7 @@ def descargar_xls():
         as_attachment=True,
         download_name=os.path.basename(path),
         mimetype='application/vnd.ms-excel'
-    )
+    )                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

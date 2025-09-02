@@ -1,14 +1,80 @@
-<!doctype html>
-<meta charset="utf-8">
-<h1>Home</h1>
-{% if current_user %}
-  <p>Hola, {{ current_user.nombre }} ({{ current_user.rol }})</p>
-  {% if current_user.rol == ROL_JEFE %}
-    <a href="{{ url_for('panel_jefe') }}">Ir al panel de Jefe</a>
-  {% else %}
-    <a href="{{ url_for('login2') }}">Identificar Operario</a>
-  {% endif %}
-  <a href="{{ url_for('logout') }}">Salir</a>
-{% else %}
-  <a href="{{ url_for('login1') }}">Ingresar</a>
-{% endif %}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home – WMS</title>
+  <style type="text/css">
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:Arial,Helvetica,sans-serif;
+      background:#00c0cb;
+      background:-webkit-linear-gradient(left,#00c0cb,#0057d1);
+      background:   -moz-linear-gradient(left,#00c0cb,#0057d1);
+      background:        linear-gradient(to right,#00c0cb,#0057d1);
+      color:#333;
+      -webkit-text-size-adjust:100%;
+      text-align:center;
+    }
+
+    .wrap{
+      width:94%;max-width:760px;margin:16px auto;
+      background:#fff;border-radius:12px;
+      padding:18px 16px 20px;
+      -webkit-box-shadow:2px 2px 8px rgba(0,0,0,.2);
+              box-shadow:2px 2px 8px rgba(0,0,0,.2);
+    }
+
+    h1{margin:8px 0 6px;color:#0d47a1;font-size:24px}
+    p{margin:6px 0 16px;font-size:16px}
+
+    /* Botones grandes tipo enlace */
+    .btn{
+      display:block; width:100%; text-decoration:none;
+      background:#0d47a1; color:#fff;
+      padding:14px 12px; border-radius:10px;
+      font-size:18px; font-weight:bold; margin:8px 0;
+      cursor:pointer;
+    }
+    .btn:focus,.btn:hover{background:#00c0cb;color:#0d47a1}
+    .btn-secondary{background:#6c757d}
+    .btn-danger{background:#b22222}
+
+    /* Layout simple en pantallas anchas */
+    .btn-row{width:100%}
+    @media (min-width:560px){
+      .btn-row{
+        display:-ms-flexbox; display:flex;
+        -ms-flex-wrap:wrap; flex-wrap:wrap;
+        gap:12px;
+      }
+      .btn-row .btn{width:48%; margin:6px 0}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <h1>Home</h1>
+
+    {% if current_user %}
+      <p>Hola, <strong>{{ current_user.nombre }}</strong> ({{ current_user.rol }})</p>
+
+      <div class="btn-row">
+        {% if current_user.rol == ROL_JEFE %}
+          <a class="btn" href="{{ url_for('panel_jefe') }}">Ir al panel de Jefe</a>
+        {% else %}
+          <a class="btn" href="{{ url_for('login2') }}">Identificar Operario</a>
+        {% endif %}
+
+        <a class="btn btn-danger" href="{{ url_for('logout') }}">Salir</a>
+      </div>
+
+    {% else %}
+      <a class="btn" href="{{ url_for('login1') }}">Ingresar</a>
+    {% endif %}
+  </div>
+
+</body>
+</html>

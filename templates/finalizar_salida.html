@@ -1,87 +1,109 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <!-- Aunque HTML4 no lo define, los navegadores móviles sí usan viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Finalización de Recepción</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
+  <style type="text/css">
+    /* Reset básico y caja consistente */
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; }
     body {
-      margin: 0;
-      padding: 0;
-      font-family: sans-serif;
-      background: linear-gradient(to right, #00c0cb, #0057d1);
-      color: #333;
-      text-align: center;
-    }
-    .container {
-      width: 95%;
-      max-width: 600px;
-      margin: 2em auto;
-      background: white;
-      border-radius: 8px;
-      padding: 2em;
-      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-    }
-    h2 {
-      margin-top: 0;
-      color: #0057d1;
-    }
-    p {
-      font-size: 1.1em;
-      margin-bottom: 2em;
-    }
-    button {
-      display: inline-block;
-      background: #0057d1;
-      color: white;
-      padding: 0.7em 1.5em;
-      margin: 0.5em;
-      border: none;
-      border-radius: 4px;
-      font-size: 1em;
-      cursor: pointer;
-    }
-    button:hover {
+      font-family: Arial, Helvetica, sans-serif;
       background: #00c0cb;
-      color: #0057d1;
+      background: -webkit-linear-gradient(left, #00c0cb, #0057d1);
+      background: -moz-linear-gradient(left, #00c0cb, #0057d1);
+      background: linear-gradient(to right, #00c0cb, #0057d1);
+      color:#333;
+      text-align:center;
     }
-    .btn-volver {
-      background: #6c757d;
-      color: white;
+
+    /* Contenedor principal */
+    .wrap {
+      width: 94%;
+      max-width: 640px;            /* cómodo para escáneres RF y móviles */
+      margin: 16px auto;
+      background:#fff;
+      border-radius:8px;
+      padding:16px 16px 20px;
+      -webkit-box-shadow: 2px 2px 8px rgba(0,0,0,.2);
+      box-shadow: 2px 2px 8px rgba(0,0,0,.2);
     }
-    .btn-volver:hover {
-      background: #999;
-      color: white;
+
+    .top-link {
+      display:inline-block;
+      margin: 10px auto 8px;
+      background:#0d47a1;
+      color:#fff; text-decoration:none;
+      padding:8px 14px; border-radius:10px;
+      font-weight:bold;
+    }
+
+    h2 {
+      margin: 8px 0 6px;
+      color:#0d47a1;
+      font-size: 22px;
+    }
+    p { margin: 6px 0 16px; font-size: 16px; }
+
+    /* Botones táctiles grandes */
+    .btn {
+      display:block;                 /* 100% ancho en mobile */
+      width:100%;
+      text-align:center;
+      text-decoration:none;
+      background:#0d47a1;
+      color:#fff;
+      border:0;
+      border-radius:10px;
+      padding:14px 12px;             /* alto táctil >=44px */
+      margin:10px 0;
+      font-size:18px;
+      font-weight:bold;
+      cursor:pointer;
+    }
+    .btn:focus, .btn:hover { background:#00c0cb; color:#0d47a1; }
+
+    .btn-secondary { background:#6c757d; }
+    .btn-secondary:hover, .btn-secondary:focus { background:#8a8f94; color:#fff; }
+
+    /* Grid simple para pantallas anchas */
+    .btn-grid { width:100%; }
+    @media (min-width: 560px) {
+      .btn-grid {
+        display:-ms-flexbox; display:flex;
+        -ms-flex-wrap:wrap; flex-wrap:wrap;
+        -ms-flex-pack:justify; justify-content:space-between;
+        gap:12px;
+      }
+      .btn-grid .btn { width:48%; margin:6px 0; } /* dos columnas */
+      .btn-grid .btn.full { width:100%; }
     }
   </style>
 </head>
 <body>
-  <a href="{{ url_for('index') }}" style="display:inline-block;margin-bottom:1em;background:#0057d1;color:white;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Inicio</a>
-  <div class="container">
+
+  <a class="top-link" href="{{ url_for('index') }}">Inicio</a>
+
+  <div class="wrap">
     <h2>Recepción Finalizada</h2>
     <p>Puedes descargar los siguientes documentos:</p>
 
-    <a href="/ingreso/diferencias.xls">
-      <button type="button">📊 Descargar Informe de Diferencias</button>
-    </a>
+    <div class="btn-grid">
+      <!-- Informe de diferencias -->
+      <a class="btn full" href="/ingreso/diferencias.xls">📊 Descargar Informe de Diferencias</a>
 
+      <!-- Guía de despacho -->
+      <a class="btn" href="{{ url_for('guia_despacho', num_nota=num_nota) }}">🚚 Guía de Despacho</a>
 
-    <form method="GET" action="{{ url_for('guia_despacho') }}">
-        <input type="hidden" name="num_nota" value="{{ num_nota }}">
-        <button type="submit">🚚 Guía de Despacho</button>
-    </form>
+      <!-- Factura: apuntar al endpoint correcto -->
+      <a class="btn" href="{{ url_for('factura_nv', num_nota=num_nota) }}">🧾 Factura</a>
 
-    <form method="GET" action="{{ url_for('factura_nv') }}">
-        <input type="hidden" name="num_nota" value="{{ num_nota }}">
-        <button type="submit">🧾 Factura</button>
-    </form>
+    </div>
 
-
-    <br><br>
-
-    <a href="{{ url_for('ingreso') }}">
-      <button type="button" class="btn-volver">🔙 Volver al Inicio</button>
-    </a>
+    <a class="btn btn-secondary full" href="{{ url_for('ingreso') }}">🔙 Volver al Inicio</a>
   </div>
+
 </body>
 </html>

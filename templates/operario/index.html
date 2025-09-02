@@ -1,9 +1,50 @@
-<!doctype html>
-<meta charset="utf-8">
-<h1>Panel Operario</h1>
-{% if current_operario %}
-  <p>Operario: {{ current_operario.nombre }} ({{ current_operario.codigo }})</p>
-  {% if current_operario.cargo %}<p>Cargo: {{ current_operario.cargo }}</p>{% endif %}
-  {% if current_operario.sucursal %}<p>Sucursal: {{ current_operario.sucursal }}</p>{% endif %}
-{% endif %}
-<nav><a href="{{ url_for('logout') }}">Salir</a></nav>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Operario</title>
+  <style type="text/css">
+    body { font-family: Arial, Helvetica, sans-serif; background:#f7f9fc; margin:0; padding:0; }
+    .wrap { max-width:600px; margin:20px auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+    h1 { margin-top:0; font-size:24px; }
+    p { margin:8px 0; font-size:16px; }
+
+    nav { margin-top:20px; }
+    nav a {
+      display:inline-block;
+      padding:12px 18px;
+      background:#ff4d4f;
+      color:#fff;
+      text-decoration:none;
+      border-radius:10px;
+      font-size:18px;
+      text-align:center;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .wrap { margin:0; border-radius:0; min-height:100vh; }
+      h1 { font-size:20px; }
+      p { font-size:14px; }
+      nav a { display:block; width:100%; font-size:20px; padding:14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Panel Operario</h1>
+
+    {% if current_operario %}
+      <p><strong>Operario:</strong> {{ current_operario.nombre }} ({{ current_operario.codigo }})</p>
+      {% if current_operario.cargo %}<p><strong>Cargo:</strong> {{ current_operario.cargo }}</p>{% endif %}
+      {% if current_operario.sucursal %}<p><strong>Sucursal:</strong> {{ current_operario.sucursal }}</p>{% endif %}
+    {% endif %}
+
+    <nav>
+      <a href="{{ url_for('logout') }}">Salir</a>
+    </nav>
+  </div>
+</body>
+</html>

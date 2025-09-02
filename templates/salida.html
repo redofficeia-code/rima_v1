@@ -3,168 +3,162 @@
 <html lang="es">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Salida de Mercancía</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" type="text/css">
   <style type="text/css">
     *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0; padding: 0;
-      font-family: 'Roboto', sans-serif;
+      font-family: 'Roboto', Arial, Helvetica, sans-serif;
+      background: #0057d1;
+      background: -webkit-linear-gradient(left, #00c0cb, #0057d1);
       background: linear-gradient(to right, #00c0cb, #0057d1);
       color: #333;
       text-align: center;
       text-transform: uppercase;
+      -webkit-tap-highlight-color: transparent;
     }
-    input, button, select, textarea { font-family: inherit; }
+    input, button, select, textarea { font-family: inherit; font-size: 16px; }
+
+    a.btn-home { display:inline-block;margin:1.5em 0;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none; }
+
     .container {
-      width: 80%; max-width: 1200px;
-      margin: 2em auto;
+      width: 92%; max-width: 1200px;
+      margin: 1em auto 2em;
       background: #cce5ff;
-      border-radius: 8px;
+      border-radius: 10px;
       padding: 1em;
       box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+      text-align: left;
     }
-    h1 { margin-top: 0; }
+    h1 { margin: 0 0 .6em; text-align:center; }
+
     .flash-message {
       padding: 10px; margin: 10px 0;
       border-left: 5px solid; background: #f9f9f9;
-      text-align: left;
     }
     .flash-success { border-color: green; }
     .flash-warning { border-color: orange; }
     .flash-error, .flash-danger { border-color: red; }
 
-    form { margin-bottom: 1.5em; text-align:left; }
+    form { margin-bottom: 1.2em; }
     label { display:block; margin-top:.5em; font-weight:bold; }
-    input[type="text"], input[type="number"], button {
-      width: 100%; padding:.5em; margin-top:.25em;
-      border:1px solid #ccc; border-radius:4px; font-size:1em;
+
+    input[type="text"], input[type="number"], button, select, textarea {
+      width: 100%; padding:.6em .7em; margin-top:.25em;
+      border:1px solid #ccc; border-radius:8px; font-size:16px;
     }
-    button { background:#0057d1; color:white; cursor:pointer; }
+    button { background:#0057d1; color:#fff; cursor:pointer; font-weight:bold; }
     button:hover { background:#00c0cb; color:#0057d1; }
 
     .search-form {
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:0.5em;
+      display:flex; flex-wrap:wrap; align-items:center; gap:.5em; justify-content:flex-start;
+      background:#fff; border:1px solid #e8eef6; border-radius:10px; padding:.6em;
+      position: -webkit-sticky; position: sticky; top:0; z-index:10;
     }
     .search-form label { margin:0; }
-    .search-form input[type="text"] {
-      width:auto;
-      flex:0 0 300px;
-    }
-    .search-form button {
-      width:auto;
-      background:#ffc107;
-      color:#333;
-    }
-    .search-form button:hover {
-      background:#ffdd57;
-      color:#333;
-    }
+    .search-form .field { flex: 1 1 240px; min-width: 220px; }
+    .search-form .actions { display:flex; gap:.5em; flex:0 0 auto; }
 
-    .row { display:flex; flex-wrap:wrap; gap:2em; justify-content:space-between; }
-    .col { flex:1 1 45%; overflow-x:auto; margin-top:1em; }
+    .row { display:flex; flex-wrap:wrap; gap:1.5em; justify-content:space-between; }
+    .col { flex:1 1 380px; overflow-x:auto; margin-top:.3em; background:#fff; border-radius:10px; padding:12px; border:1px solid #e8eef6; }
 
     table {
       width:100%; border-collapse:collapse; margin-top:.5em;
-      font-size:0.85em; table-layout:fixed;
+      font-size:14px; table-layout:fixed; background:#fff; border-radius:10px; overflow:hidden;
     }
-    th, td {
-      border:1px solid #ccc;
-      padding:.3em .5em;
-      white-space:nowrap;
-      text-align:left;
-    }
-    th { background:#eee; }
-    td:nth-child(2), th:nth-child(2) {
-      max-width:200px;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-    input:disabled, button:disabled {
-      background:#eee;
-      color:#999;
-      cursor:not-allowed;
-    }
+    th, td { border:1px solid #e0e6ef; padding:10px 12px; white-space:nowrap; text-align:left; }
+    th { background:#f0f4fa; }
+    input:disabled, button:disabled { background:#eee; color:#999; cursor:not-allowed; }
 
-    /* estados de escaneo */
     .red-row td    { background-color:#f6b8b8; }
-    .yellow-row td { background-color:#f8bc63; }
-    .green-row td  { background-color:#8ce0a1; }
+    .yellow-row td { background-color:#f8dc96; }
+    .green-row td  { background-color:#bdf1c9; }
 
     .form-row { display:flex; gap:1em; flex-wrap:wrap; }
     .form-col { flex:1 1 180px; }
+
     .options-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 1em;
-      max-width: 400px;
-      margin: 2em auto;
+      max-width: 420px;
+      margin: 1.2em auto 2em;
     }
     .options-grid a {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #fff;
-      border: 2px solid #0057d1;
-      border-radius: 8px;
-      padding: 2em 0;
-      font-size: 1.5em;
-      font-weight: bold;
-      color: #0057d1;
-      text-decoration: none;
+      display: flex; align-items: center; justify-content: center;
+      background: #fff; border: 2px solid #0057d1; border-radius: 10px; padding: 1.4em 0;
+      font-size: 1.2em; font-weight: bold; color: #0057d1; text-decoration: none;
     }
-    .options-grid a:hover {
-      background: #0057d1;
-      color: #fff;
-    }
-    /* Contenedor en 2 columnas SIEMPRE */
+    .options-grid a:hover { background: #0057d1; color: #fff; }
+
     .zones-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(220px, 1fr)); /* 2 columnas */
-      gap: 24px;                   /* separación entre botones */
-      max-width: 1100px;           /* opcional, para no estirar demasiado */
-      margin: 24px auto 64px;      /* centrado */
-      align-items: stretch;        /* que todos tengan misma altura */
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 16px; max-width: 1100px; margin: 16px auto 48px; align-items: stretch; padding: 0 16px;
     }
+    @media screen and (max-width: 520px) { .zones-grid { grid-template-columns: 1fr; } }
 
-    /* Estilo del botón */
     .zone-btn {
-      display: block;
-      text-align: center;
-      padding: 18px 24px;
-      border-radius: 18px;
-      background: #ffffff;
-      color: #0b57d1;              /* combina con tu gradiente */
-      font-weight: 700;
-      text-transform: uppercase;
-      text-decoration: none;
-      box-shadow: 0 6px 16px rgba(0,0,0,.12);
-      border: none;
-      transition: transform .08s ease, box-shadow .08s ease;
-      line-height: 1.2;
-      min-height: 64px;            /* altura cómoda */
+      display: block; text-align: center; padding: 18px 24px; border-radius: 14px;
+      background: #ffffff; color: #0b57d1; font-weight: 700; text-transform: uppercase; text-decoration: none;
+      box-shadow: 0 6px 16px rgba(0,0,0,.12); border: none; transition: transform .08s ease, box-shadow .08s ease;
+      line-height: 1.2; min-height: 60px;
+    }
+    .zone-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,.16); }
+
+    .btn { background:#ffc400; border:0; padding:8px 14px; border-radius:10px; text-decoration:none; color:#333; font-weight:600; cursor:pointer }
+
+    /* Ocultamos .label en desktop y la mostramos en móvil */
+    .cell .label { display: none; }
+    .cell .value { display: inline; }
+
+    @media screen and (max-width: 780px) {
+      thead { display:none; }
+      table, tbody, tr, td { display:block; width:100%; }
+      tbody { display:block; }
+      tr { border:1px solid #e0e6ef; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin-bottom:12px; overflow:hidden; }
+      td { padding:12px; border:none; border-bottom:1px solid #eef3fa; }
+      td:last-child { border-bottom:none; }
+      .cell { display:flex; }
+      .cell .label { display: block; width:40%; color:#6b7280; font-weight:bold; padding-right:10px; }
+      .cell .value { width:60%; white-space:normal; }
     }
 
-    .zone-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 22px rgba(0,0,0,.16);
-    }
+    /* ==== AJUSTES DE ANCHO ==== */
+    /* Nota de Venta (izquierda) */
+    .col:first-child table { table-layout: fixed; }
+    .col:first-child table th:nth-child(1),
+    .col:first-child table td:nth-child(1) { width: 160px; }
+    .col:first-child table th:nth-child(2),
+    .col:first-child table td:nth-child(2) { width: 320px; }
+    .col:first-child table th:nth-child(3),
+    .col:first-child table td:nth-child(3) { width: 80px; text-align:right; }
+    .col:first-child table th:nth-child(4),
+    .col:first-child table td:nth-child(4) { width: 100px; text-align:right; }
+    .col:first-child table th:nth-child(5),
+    .col:first-child table td:nth-child(5) { width: 100px; text-align:right; }
+    .col:first-child table th:nth-child(6),
+    .col:first-child table td:nth-child(6) { width: 90px; text-align:right; }
+    .col:first-child table td { overflow:hidden; text-overflow:ellipsis; }
 
-    /* (Opcional) En pantallas muy pequeñas, baja a 1 columna */
-    @media (max-width: 520px) {
-      .zones-grid { grid-template-columns: 1fr; }
+    /* Stock Actual (derecha) */
+    .col:last-child table { table-layout: fixed; }
+    .col:last-child table th:nth-child(1),
+    .col:last-child table td:nth-child(1) { width: 120px; }
+    .col:last-child table th:nth-child(2),
+    .col:last-child table td:nth-child(2) { width: auto; }
+    .col:last-child table th:nth-child(3),
+    .col:last-child table td:nth-child(3) { width: 70px; text-align:right; }
+    td:nth-child(2), th:nth-child(2) {
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     }
-    .tabla-nv{width:100%;border-collapse:collapse;margin-top:16px;background:#fff;border-radius:10px;overflow:hidden}
-    .tabla-nv th,.tabla-nv td{padding:10px 12px;border-bottom:1px solid #e8eef6}
-    .btn{background:#ffc400;border:0;padding:8px 14px;border-radius:10px;text-decoration:none;color:#333;font-weight:600;cursor:pointer}
   </style>
 </head>
 <body>
-  <a href="{{ url_for('index') }}" style="display:inline-block;margin:1.5em 0;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none;">Inicio</a>
+  <a class="btn-home" href="{{ url_for('index') }}">Inicio</a>
+
   <div class="container">
     <h1>Salida de Mercancía</h1>
 
@@ -176,24 +170,27 @@
       {% endif %}
     {% endwith %}
 
-      <!-- ── Buscar Nota de Venta ───────────────────────────────────────── -->
-      <form method="POST" class="search-form">
+    <!-- Buscar Nota de Venta -->
+    <form method="POST" class="search-form">
       <input type="hidden" name="action" value="buscar_nv">
-      <label for="nv">N° Nota de Venta:</label>
-      <input id="nv" type="text" name="nv" value="{{ nota|e }}" autofocus>
-      <button type="submit">Buscar</button>
+      <div class="field">
+        <label for="nv">N° Nota de Venta</label>
+        <input id="nv" type="text" name="nv" value="{{ nota|e }}" autocomplete="off" inputmode="numeric">
+      </div>
+      <div class="actions">
+        <button type="submit">Buscar</button>
+      </div>
     </form>
 
-    {% if not nv_items %}
-   
+    {% if nv_items %}
+      <input type="hidden" id="nv-loaded-flag" value="1">
     {% endif %}
 
     {% if nv_items %}
     <div class="row">
-      <!-- ── IZQUIERDA: Nota de Venta ───────────────────────────────── -->
       <div class="col">
-        <h2>Nota de Venta {{ nota }}</h2>
-        <table>
+        <h2 style="margin:0 0 .4em; text-transform:uppercase;">Nota de Venta {{ nota }}</h2>
+        <table summary="Detalle de la Nota de Venta">
           <thead>
             <tr>
               <th>Código</th>
@@ -206,44 +203,31 @@
           </thead>
           <tbody>
             {% for item in nv_items %}
-            <tr class="
-              {% if item.scanned == 0 %}
-                red-row
-              {% elif item.scanned < item['Cant.'] %}
-                yellow-row
-              {% else %}
-                green-row
-              {% endif %}
-            ">
-              <td>{{ item['Código'] }}</td>
-              <td>{{ item['Nombre'] }}</td>
-              <td>{{ item['Cant.'] }}</td>
-              <td>{{ item['Prec.Unit'] }}</td>
-              <td>{{ item.scanned }}</td>
-              <td>{{ item['Faltan'] }}</td>
+            <tr class="{% if item.scanned == 0 %}red-row{% elif item.scanned < item['Cant.'] %}yellow-row{% else %}green-row{% endif %}">
+              <td><div class="cell"><span class="label">Código</span><span class="value">{{ item['Código'] }}</span></div></td>
+              <td><div class="cell"><span class="label">Nombre</span><span class="value">{{ item['Nombre'] }}</span></div></td>
+              <td><div class="cell"><span class="label">Cant.</span><span class="value">{{ item['Cant.'] }}</span></div></td>
+              <td><div class="cell"><span class="label">Prec.Unit</span><span class="value">{{ item['Prec.Unit'] }}</span></div></td>
+              <td><div class="cell"><span class="label">Escaneado</span><span class="value">{{ item.scanned }}</span></div></td>
+              <td><div class="cell"><span class="label">Faltan</span><span class="value">{{ item['Faltan'] }}</span></div></td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
 
-      <!-- ── DERECHA: Stock Actual ──────────────────────────────────── -->
       <div class="col">
-        <h2>Stock Actual</h2>
-        <table>
+        <h2 style="margin:0 0 .4em; text-transform:uppercase;">Stock Actual</h2>
+        <table summary="Stock disponible">
           <thead>
-            <tr>
-              <th>Código</th>
-              <th>Nombre</th>
-              <th>Cantidad</th>
-            </tr>
+            <tr><th>Código</th><th>Nombre</th><th>Cantidad</th></tr>
           </thead>
           <tbody>
             {% for stk in stock_items %}
             <tr>
-              <td>{{ stk['Código'] }}</td>
-              <td>{{ stk['Nombre'] }}</td>
-              <td>{{ stk['Cantidad'] }}</td>
+              <td><div class="cell"><span class="label">Código</span><span class="value">{{ stk['Código'] }}</span></div></td>
+              <td><div class="cell"><span class="label">Nombre</span><span class="value">{{ stk['Nombre'] }}</span></div></td>
+              <td><div class="cell"><span class="label">Cantidad</span><span class="value">{{ stk['Cantidad'] }}</span></div></td>
             </tr>
             {% endfor %}
           </tbody>
@@ -251,25 +235,24 @@
       </div>
     </div>
 
-    <!-- ── Formulario de Escaneo ─────────────────────────────────────── -->
+    <!-- Form de escaneo -->
     <form method="POST">
       <input type="hidden" name="action" value="scan">
       <div class="form-row">
         <div class="form-col">
           <label><strong>Código:</strong>
-            <input type="text" name="codigo" autofocus>
+            <input type="text" name="codigo" class="scan-input" autocomplete="off" inputmode="text">
           </label>
         </div>
         <div class="form-col">
           <label><strong>Cantidad:</strong>
-            <input type="number" name="cantidad" value="1" min="1">
+            <input type="number" name="cantidad" value="1" min="1" inputmode="numeric">
           </label>
         </div>
       </div>
       <button type="submit">Registrar Escaneo</button>
     </form>
 
-    <!-- ── Botón para terminar el proceso ────────────────────────────── -->
     <form method="GET" action="{{ url_for('finalizar_salida') }}">
       <button type="submit">Terminar Proceso</button>
     </form>
@@ -277,56 +260,50 @@
   </div>
 
   {% if not nv_items %}
-  {% if not zona_seleccionada %}
-  <!-- Zona de botones -->
-  <div class="zones-grid">
-    <!-- Si son fijos -->
-    <a class="zone-btn" href="/salida?ciudad=la_serena">LA SERENA</a>
-    <a class="zone-btn" href="/salida?ciudad=linares">LINARES</a>
-    <a class="zone-btn" href="/salida?ciudad=los_lagos">LOS LAGOS</a>
-    <a class="zone-btn" href="/salida?ciudad=puerto_montt">PUERTO MONTT</a>
-    <a class="zone-btn" href="/salida?ciudad=rancagua">RANCAGUA</a>
-    <a class="zone-btn" href="/salida?ciudad=santiago">SANTIAGO</a>
-
-    <!-- Si más adelante son dinámicos, usa este bucle:
-    {% for z in zonas %}
-      <a class="zone-btn" href="{{ url_for('salida', ciudad=z.slug or z.nombre) }}">{{ z.nombre }}</a>
-    {% endfor %}
-    -->
-  </div>
-  {% else %}
-  <h2>Notas de Venta asignadas a {{ zona_seleccionada }}</h2>
-  <a href="{{ url_for('salida') }}">← Volver a zonas</a>
-
-  {% if lista_nv and lista_nv|length > 0 %}
-  <table>
-    <thead>
-      <tr>
-        <th>NV</th><th>Fecha</th><th>Sucursal</th><th>Cliente</th><th>Acción</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for nv in lista_nv %}
-      <tr>
-        <td>{{ nv.numnota }}</td>
-        <td>{{ nv.fecha }}</td>
-        <td>{{ nv.sucursal }}</td>
-        <td>{{ nv.cliente }}</td>
-        <td>
-          <form method="post" action="{{ url_for('salida') }}">
-            <input type="hidden" name="action" value="buscar_nv">
-            <input type="hidden" name="nv" value="{{ nv.numnota }}">
-            <button type="submit">Cargar NV</button>
-          </form>
-        </td>
-      </tr>
+    {% if not zona_seleccionada %}
+    <div class="zones-grid">
+      {% for z in zonas %}
+        <a class="zone-btn" href="{{ url_for('salida', zona=z.NOMBRE) }}">{{ z.NOMBRE }}</a>
       {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p>No hay Notas de Venta asignadas a esta zona.</p>
-  {% endif %}
-  {% endif %}
+      {% if zonas|length == 0 %}
+        <p style="color:#fff;text-align:center;">No hay zonas definidas.</p>
+      {% endif %}
+    </div>
+    {% else %}
+    <h2 style="color:#fff; text-align:center; margin: 0 0 .6em;">Notas de Venta asignadas a {{ zona_seleccionada }}</h2>
+    <div style="text-align:center; margin-bottom: 10px;">
+      <a href="{{ url_for('salida') }}" class="btn" style="display:inline-block;">← Volver a zonas</a>
+    </div>
+
+    {% if lista_nv and lista_nv|length > 0 %}
+    <div class="container" style="margin-top: 0;">
+      <table summary="Notas de venta por zona">
+        <thead>
+          <tr><th>NV</th><th>Fecha</th><th>Sucursal</th><th>Cliente</th><th>Acción</th></tr>
+        </thead>
+        <tbody>
+          {% for nv in lista_nv %}
+          <tr>
+            <td><div class="cell"><span class="label">NV</span><span class="value">{{ nv.numnota }}</span></div></td>
+            <td><div class="cell"><span class="label">Fecha</span><span class="value">{{ nv.fecha }}</span></div></td>
+            <td><div class="cell"><span class="label">Sucursal</span><span class="value">{{ nv.sucursal }}</span></div></td>
+            <td><div class="cell"><span class="label">Cliente</span><span class="value">{{ nv.cliente }}</span></div></td>
+            <td>
+              <form method="post" action="{{ url_for('salida') }}">
+                <input type="hidden" name="action" value="buscar_nv">
+                <input type="hidden" name="nv" value="{{ nv.numnota }}">
+                <button type="submit" class="btn">Cargar NV</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p style="color:#fff; text-align:center;">No hay Notas de Venta asignadas a esta zona.</p>
+    {% endif %}
+    {% endif %}
   {% endif %}
 </body>
 </html>

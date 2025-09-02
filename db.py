@@ -1,52 +1,132 @@
 # db.py
+# -*- coding: utf-8 -*-
 import os
 import urllib.parse
 import pandas as pd
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
+from dotenv import load_dotenv
+load_dotenv(override=True)  # fuerza que se usen las credenciales del .env
 
+# =========================================================
+# Cargar .env ANTES de usar os.getenv
+# =========================================================
 load_dotenv()
 
-DRIVER   = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
-SERVER   = os.getenv("DB_SERVER", "localhost")
-DATABASE = os.getenv("DB_DATABASE", "")
-AUTH     = os.getenv("DB_AUTH", "sql").lower()
-def _env_bool(value: str) -> bool:
-    value = value.strip().lower()
-    if value in {"yes", "true", "1"}:
+# -------------------- Utils --------------------
+def _env_bool(value: str | None) -> bool:
+    if value is None:
+        return False
+    v = value.strip().lower()
+    if v in {"yes", "true", "1"}:
         return True
-    if value in {"no", "false", "0"}:
+    if v in {"no", "false", "0"}:
         return False
     return True
 
-TRUST_CERT = _env_bool(os.getenv("DB_TRUST_CERT", "yes"))
+def _build_pyodbc_engine(database: str) -> "Engine":
+    """
+    Construye un engine mssql+pyodbc con los parámetros DB_* del .env
+    hacia la base indicada en `database`.
+    """
+    DRIVER    = os.getenv("DB_DRIVER", "ODBC Driver 17 for SQL Server")
+    SERVER    = os.getenv("DB_SERVER", "localhost")
+    AUTH      = (os.getenv("DB_AUTH", "sql") or "sql").strip().lower()
+    TRUSTCERT = _env_bool(os.getenv("DB_TRUST_CERT", "yes"))
 
-if AUTH == "windows":
-    odbc = (
-        f"DRIVER={{{DRIVER}}};SERVER={SERVER};DATABASE={DATABASE};"
-        f"Trusted_Connection=yes;Encrypt=yes;TrustServerCertificate={'yes' if TRUST_CERT else 'no'};"
+    if AUTH == "windows":
+        odbc = (
+            f"DRIVER={{{DRIVER}}};SERVER={SERVER};DATABASE={database};"
+            f"Trusted_Connection=yes;Encrypt=yes;"
+            f"TrustServerCertificate={'yes' if TRUSTCERT else 'no'};"
+        )
+    else:
+        USER = os.getenv("DB_USER", "")
+        PWD  = os.getenv("DB_PASSWORD", "")
+        odbc = (
+            f"DRIVER={{{DRIVER}}};SERVER={SERVER};DATABASE={database};"
+            f"UID={USER};PWD={PWD};Encrypt=yes;"
+            f"TrustServerCertificate={'yes' if TRUSTCERT else 'no'};"
+        )
+
+    params = urllib.parse.quote_plus(odbc)
+    return create_engine(
+        f"mssql+pyodbc:///?odbc_connect={params}",
+        pool_pre_ping=True,
+        future=True,
+        fast_executemany=True,
     )
+
+# =========================================================
+# ENGINE principal (Santiago / general)
+# =========================================================
+_USERS_DB_URL = (os.getenv("USERS_DB_URL") or "").strip()
+ENGINE = None
+
+if _USERS_DB_URL:
+    # Intentar con URL completa
+    try:
+        ENGINE = create_engine(
+            _USERS_DB_URL,
+            pool_pre_ping=True,
+            future=True,
+            fast_executemany=True,
+        )
+    except Exception:
+        # Fallback: ODBC con DB_* hacia la base indicada en DB_DATABASE
+        DB_DATABASE = os.getenv("DB_DATABASE", "")
+        ENGINE = _build_pyodbc_engine(DB_DATABASE)
 else:
-    USER = os.getenv("DB_USER", "")
-    PWD  = os.getenv("DB_PASSWORD", "")
-    odbc = (
-        f"DRIVER={{{DRIVER}}};SERVER={SERVER};DATABASE={DATABASE};UID={USER};PWD={PWD};"
-        f"Encrypt=yes;TrustServerCertificate={'yes' if TRUST_CERT else 'no'};"
-    )
+    # No hay USERS_DB_URL => construir ODBC con DB_*
+    DB_DATABASE = os.getenv("DB_DATABASE", "")
+    ENGINE = _build_pyodbc_engine(DB_DATABASE)
 
-params = urllib.parse.quote_plus(odbc)
-ENGINE = create_engine(f"mssql+pyodbc:///?odbc_connect={params}", pool_pre_ping=True, fast_executemany=True)
+# =========================================================
+# ENGINE RIMA (para ZONAS_DB y demás)
+# =========================================================
+RIMA_ENGINE = None
+_RIMA_URL = (os.getenv("RIMA_DB_URL") or "").strip()
+if _RIMA_URL:
+    try:
+        RIMA_ENGINE = create_engine(
+            _RIMA_URL,
+            pool_pre_ping=True,
+            future=True,
+            fast_executemany=True,
+        )
+    except Exception:
+        # Fallback robusto si la URL tiene '@tcp:' y comas en el host.
+        RIMA_ENGINE = _build_pyodbc_engine(os.getenv("RIMA_DB_DATABASE", "RIMA"))
+else:
+    # Si no hay RIMA_DB_URL, construir con DB_* apuntando a la base RIMA
+    RIMA_ENGINE = _build_pyodbc_engine(os.getenv("RIMA_DB_DATABASE", "RIMA"))
+
+# -------------------- Helpers de ejecución --------------------
+def execute(sql: str, params: dict | None = None) -> None:
+    """Ejecuta SQL (DML/DDL) en la BD principal."""
+    with ENGINE.begin() as conn:
+        conn.execute(text(sql), params or {})
 
 def query_df(sql: str, params: dict | None = None) -> pd.DataFrame:
+    """Lee datos de la BD principal como DataFrame."""
     with ENGINE.begin() as conn:
         return pd.read_sql(text(sql), conn, params=params or {})
 
-# === Repositorio para /ingreso ===
+def execute_rima(sql: str, params: dict | None = None) -> None:
+    """Ejecuta SQL (DML/DDL) en la BD RIMA."""
+    with RIMA_ENGINE.begin() as conn:
+        conn.execute(text(sql), params or {})
 
+def query_df_rima(sql: str, params: dict | None = None) -> pd.DataFrame:
+    """Lee datos de la BD RIMA como DataFrame."""
+    with RIMA_ENGINE.begin() as conn:
+        return pd.read_sql(text(sql), conn, params=params or {})
+
+# ==================== Repositorio para /ingreso ====================
 def get_oc_detalle_por_oc(num_oc: str) -> pd.DataFrame:
     """
     Devuelve líneas de la OC desde OCDET_DB.
-    Campos clave confirmados en diccionario: CANTIDAD, CANTRECI, CANTFAC, BODEGA, CENTCC, ITEM.
+    Campos clave confirmados: CANTIDAD, CANTRECI, CANTFAC, BODEGA, CENTCC, ITEM.
     """
     sql = """
     SELECT
@@ -63,9 +143,7 @@ def get_oc_detalle_por_oc(num_oc: str) -> pd.DataFrame:
     return query_df(sql, {"num_oc": num_oc})
 
 def get_art_por_codigos2(codigos2: list[str]) -> pd.DataFrame:
-    """
-    Trae datos de ART_DB por CODIGO2 (código visible en la UI).
-    """
+    """Trae datos de ART_DB por CODIGO2 (código visible en la UI)."""
     if not codigos2:
         return pd.DataFrame(columns=["CODIGO2","NREGUIST","CODIGO","NOMBRE","NOMBRE2","PRECVTA"])
     binds = ",".join([f":c{i}" for i in range(len(codigos2))])
@@ -86,13 +164,10 @@ def get_numguia_por_numorden(num_oc: str) -> str | None:
     df = query_df("SELECT TOP 1 NUMGUIAF FROM DOCU_DB WHERE NUMORDEN = :num_oc", {"num_oc": num_oc})
     return (df["NUMGUIAF"].iloc[0] if not df.empty and "NUMGUIAF" in df.columns else None)
 
-
 def get_oc_items(num_oc: str) -> tuple[pd.DataFrame, str | None]:
-    """Obtiene líneas de una OC directamente desde la base de datos.
-
-    Devuelve un ``DataFrame`` con las columnas ``Código``, ``Nombre``,
-    ``Cantidad`` y ``Prec.Unit.``.  Además retorna el número de guía
-    asociado a la OC (si existe).
+    """
+    Obtiene líneas de una OC directamente desde la base de datos.
+    Devuelve DataFrame: Código, Nombre, Cantidad, Prec.Unit.; y la guía asociada (si existe).
     """
     sql = """
         SELECT
@@ -116,9 +191,7 @@ def get_oc_items(num_oc: str) -> tuple[pd.DataFrame, str | None]:
     num_guia = get_numguia_por_numorden(num_oc)
     return df, num_guia
 
-
-# === Migrado desde db_utils.py ===
-
+# ==================== Migrado desde db_utils.py ====================
 def get_oc_detalle(num_oc: str) -> list[dict]:
     """Obtiene el detalle de una OC como lista de diccionarios."""
     sql = """
@@ -140,7 +213,6 @@ def get_oc_detalle(num_oc: str) -> list[dict]:
         df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
         df["prec_unit"] = pd.to_numeric(df["prec_unit"], errors="coerce").fillna(0.0)
     return df.to_dict(orient="records")
-
 
 def get_nota_detalle(num_nota: str) -> pd.DataFrame:
     """Trae detalle de NV desde la BBDD."""
@@ -165,13 +237,12 @@ def get_nota_detalle(num_nota: str) -> pd.DataFrame:
         df["prec_unit"] = pd.to_numeric(df["prec_unit"], errors="coerce").fillna(0.0)
     return df
 
-
 def get_stock_actual() -> pd.DataFrame:
     """Obtiene el stock físico de los productos desde la BBDD."""
     sql = """
         SELECT
-            art.CODIGO2   AS codigo,
-            art.NOMBRE    AS nombre,
+            art.CODIGO2    AS codigo,
+            art.NOMBRE     AS nombre,
             stk.STK_FISICO AS cantidad
         FROM dbo.STOCK_DB AS stk
         JOIN dbo.ART_DB   AS art
@@ -182,9 +253,8 @@ def get_stock_actual() -> pd.DataFrame:
         df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce").fillna(0).astype(int)
     return df
 
-
 def get_guia_desde_nv(num_nota: str) -> tuple[dict, list[dict]]:
-    """Retorna ``(header, detalles)`` para prellenar la Guía de Despacho."""
+    """Retorna (header, detalles) para prellenar la Guía de Despacho."""
     header_sql = """
         SELECT
             CAST(NULL AS VARCHAR(50))       AS GD_NUM,
@@ -230,7 +300,6 @@ def get_guia_desde_nv(num_nota: str) -> tuple[dict, list[dict]]:
     detalles = df_d.to_dict(orient="records")
     return header, detalles
 
-
 def get_factura_desde_nv(num_nota: str) -> dict:
     """Obtiene datos para prellenar la Factura de Venta desde una Nota de Venta."""
     sql = """
@@ -245,9 +314,9 @@ def get_factura_desde_nv(num_nota: str) -> dict:
     df = query_df(sql, {"num_nota": num_nota})
     return df.iloc[0].to_dict() if not df.empty else {}
 
+# Alias retrocompatible por si tenías este nombre en otros módulos
+def execute_main(sql: str, params: dict | None = None) -> None:
+    execute(sql, params)
 
-def execute(sql: str, params: dict | None = None) -> None:
-    with ENGINE.begin() as conn:
-        conn.execute(text(sql), params or {})
-
-
+print("USERS_DB_URL en uso:", os.getenv("USERS_DB_URL"))
+print("RIMA_DB_URL en uso:", os.getenv("RIMA_DB_URL"))
