@@ -16,7 +16,7 @@ class AsignacionNV(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     num_nota = db.Column(db.String(32), unique=True, index=True, nullable=False)
     zona_id = db.Column(db.Integer, db.ForeignKey("zonas.id"), nullable=False)
-    estado = db.Column(db.String(20), default="pendiente", nullable=False)
+    estado = db.Column(db.String(20), nullable=True)
     assigned_by = db.Column(db.String(120), nullable=False)
     assigned_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
