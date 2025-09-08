@@ -289,57 +289,238 @@ def inv_get_session(sid):
 
 # app.py (o admin_routes.py)
 from flask import request, jsonify, session
-from utils import (
+from db_utils import (
     get_nv_flow,
     set_nv_estado_aprobada,
     set_nv_estado_pendiente,
     set_nv_zona,
     set_nv_retira,
 )
+
 from auth_map import ROL_JEFE  # Asegúrate que exista este alias
 
 def _es_admin():
     cu = session.get('current_user') or {}
-    # Si tu 'rol' ya viene normalizado al valor de ROL_JEFE, basta:
-    return (cu.get('rol') == ROL_JEFE)
+    # Requiere flag de admin y rol de jefe
+    return bool(session.get('is_admin') and cu.get('rol') == ROL_JEFE)
+
+def _back_to_gestionar():
+    """Vuelve a /admin/nv/gestionar (o a 'next' si viene en el form)."""
+    return redirect(request.form.get("next") or request.referrer or url_for("admin_nv_gestionar"))
 
 @app.post("/admin/nv/<int:num_nota>/aprobar")
 def admin_nv_aprobar(num_nota):
     if not _es_admin():
-        return jsonify({"ok": False, "msg": "No autorizado"}), 403
-    set_nv_estado_aprobada(num_nota, aprobado_por=(session.get('current_user') or {}).get('nombre'))
-    return jsonify({"ok": True, "msg": "Nota aprobada", "flow": get_nv_flow(num_nota)})
+        flash("No autorizado.", "error")
+        return _back_to_gestionar()
+
+    set_nv_estado_aprobada(
+        num_nota,
+        aprobado_por=(session.get('current_user') or {}).get('nombre')
+    )
+    flash(f"NV {num_nota} aprobada.", "success")
+    return _back_to_gestionar()
 
 @app.post("/admin/nv/<int:num_nota>/pendiente")
 def admin_nv_pendiente(num_nota):
     if not _es_admin():
-        return jsonify({"ok": False, "msg": "No autorizado"}), 403
+        flash("No autorizado.", "error")
+        return _back_to_gestionar()
+
     set_nv_estado_pendiente(num_nota)
-    return jsonify({"ok": True, "msg": "Nota marcada pendiente", "flow": get_nv_flow(num_nota)})
+    flash(f"NV {num_nota} marcada como pendiente.", "info")
+    return _back_to_gestionar()
 
 @app.post("/admin/nv/<int:num_nota>/asignar")
 def admin_nv_asignar(num_nota):
     if not _es_admin():
-        return jsonify({"ok": False, "msg": "No autorizado"}), 403
-    flow = get_nv_flow(num_nota)
-    if flow.get("ESTADO") != "APROB":
-        return jsonify({"ok": False, "msg": "Primero debes aprobar la NV."}), 400
+        flash("No autorizado.", "error")
+        return _back_to_gestionar()
+
     try:
         zona_id = int(request.form.get("zona_id") or 0)
     except ValueError:
         zona_id = 0
     if not zona_id:
-        return jsonify({"ok": False, "msg": "Falta zona."}), 400
-    set_nv_zona(num_nota, zona_id, asignado_por=(session.get('current_user') or {}).get('nombre'))
-    return jsonify({"ok": True, "msg": "Zona asignada", "flow": get_nv_flow(num_nota)})
+        flash("Debes seleccionar una zona.", "warning")
+        return _back_to_gestionar()
+
+    # 1) Guarda en el flow (ID de zona, asignado_por, fechas, etc.)
+    set_nv_zona(
+        num_nota,
+        zona_id,
+        asignado_por=(session.get('current_user') or {}).get('nombre')
+    )
+
+    # 2) --- SYNC con dbo.NV_ZONAS (lo que usa /salida) --------------------
+    #    a) obtén el nombre de la zona desde RIMA.dbo.ZONAS_DB
+    try:
+        df = db.query_df_rima(
+            "SELECT NOMBRE FROM dbo.ZONAS_DB WHERE ID = :i",
+            {"i": zona_id}
+        )
+        zona_nombre = (df.iloc[0]["NOMBRE"] if not df.empty else None)
+    except Exception:
+        zona_nombre = None
+
+    if zona_nombre:
+        #    b) crea la tabla NV_ZONAS si no existe
+        _ensure_nv_zonas_table()  # ya la tienes definida
+
+        #    c) upsert en dbo.NV_ZONAS (en la BD principal que lee /salida)
+        db.execute("""
+            IF EXISTS (SELECT 1 FROM dbo.NV_ZONAS WHERE NV = :nv)
+                UPDATE dbo.NV_ZONAS SET ZONA = :zona WHERE NV = :nv;
+            ELSE
+                INSERT INTO dbo.NV_ZONAS (NV, ZONA) VALUES (:nv, :zona);
+        """, {"nv": str(num_nota), "zona": zona_nombre})
+
+    flash("Zona asignada.", "success")
+    return _back_to_gestionar()
+
+# app.py (imports)
+from flask import request, session, g, redirect, url_for
+
+# --- Detector RF: se ejecuta en TODAS las requests ---
+@app.before_request
+def detect_rf_device():
+    ua = (request.headers.get('User-Agent') or '').lower()
+
+    # Heurística para Symbol/Motorola/Zebra + IE/Windows CE
+    rf_tokens = [
+        'windows ce', 'iemobile', 'msie', 'ppc',       # IE móvil / CE
+        'symbol', 'motorola', 'zebra', 'mc32', 'mc32n0'
+    ]
+
+    # 1) Permite forzar por query param una vez y lo recuerda en sesión
+    if 'rf' in request.args:
+        session['is_rf'] = request.args.get('rf') in ('1', 'true', 'yes', 'on')
+    # 2) Autodetección si aún no está definido
+    if 'is_rf' not in session and any(t in ua for t in rf_tokens):
+        session['is_rf'] = True
+
+    # Disponible en templates como g.is_rf si quieres
+    g.is_rf = bool(session.get('is_rf', False))
+
+# --- Rutas opcionales para forzar ON/OFF desde cualquier dispositivo ---
+@app.route('/rf/<state>')
+def rf_switch(state):
+    session['is_rf'] = (state.lower() in ('on', '1', 'true', 'yes'))
+    # vuelve a la página anterior o al index
+    return redirect(request.referrer or url_for('index'))
+
+
+@app.post("/salida/preparar_guia")
+def salida_preparar_guia():
+    from flask import request, session, redirect, url_for, flash
+    # ---- helpers -----------------------------------------------------------
+    def _first_key(d: dict, keys):
+        for k in keys:
+            if k in d and d[k] is not None:
+                return k
+        return None
+
+    def _to_int(x, default=0):
+        try:
+            return int(float(str(x).replace(',', '.')))
+        except Exception:
+            return default
+
+    # Nº de NV desde el form (si lo envías) o desde sesión
+    nv = (request.form.get("num_nota") or session.get("current_nv") or "").strip()
+
+    # 1) Intentar obtener la lista principal desde sesión
+    candidatos_lista = [
+        "salida_items", "items_salida", "items_scan", "scan_items",
+        "detalle_salida", "salida_detalle", "escaneados", "escaneos_list"
+    ]
+    salida_items = None
+    for k in candidatos_lista:
+        if isinstance(session.get(k), list) and session.get(k):
+            salida_items = session.get(k)
+            break
+    if salida_items is None:
+        # aunque no exista o esté vacía, definimos lista
+        salida_items = session.get("salida_items", []) or []
+
+    # 2) Normalizar a [{codigo, cantidad}, ...]
+    code_keys = [
+        "codigo", "Código", "Codigo", "cod", "sku", "SKU",
+        "item", "Articulo", "articulo", "CodigoBarra", "CodBarra", "cod_barra", "barra"
+    ]
+    qty_keys = [
+        "cantidad", "Cant.Salida", "CantSalida", "cant_salida",
+        "salida", "Scan", "Escaneado", "escaneado",
+        "Despachado", "CantDesp", "cant_desp", "CantidadEscaneada"
+    ]
+
+    items = []
+    if isinstance(salida_items, list):
+        for row in salida_items:
+            if not isinstance(row, dict):
+                continue
+            kc = _first_key(row, code_keys)
+            kq = _first_key(row, qty_keys)
+            if not kc or not kq:
+                continue
+            codigo = str(row.get(kc) or "").strip()
+            qty = _to_int(row.get(kq), 0)
+            if codigo and qty > 0:
+                items.append({"codigo": codigo, "cantidad": qty})
+
+    # 3) Fallback: a veces guardan solo una lista de códigos escaneados
+    if not items:
+        candidatos_codigos = ["escaneos", "scans", "scan_list", "codigos_scaneados", "barcodes"]
+        codigos = None
+        for k in candidatos_codigos:
+            if isinstance(session.get(k), list) and session.get(k):
+                codigos = session.get(k)
+                break
+        if codigos:
+            # agrupa por código (cada aparición = 1)
+            cont = {}
+            for c in codigos:
+                c = str(c).strip()
+                if c:
+                    cont[c] = cont.get(c, 0) + 1
+            items = [{"codigo": c, "cantidad": q} for c, q in cont.items() if q > 0]
+
+    # Logs útiles para depurar (los verás en consola del servidor)
+    try:
+        app.logger.info("PREP_GUIA: nv=%s, fuente=%s, registros_fuente=%s, items_normalizados=%s",
+                        nv,
+                        'lista' if salida_items else 'ninguna',
+                        len(salida_items) if isinstance(salida_items, list) else 0,
+                        len(items))
+    except Exception:
+        pass
+
+    # 4) Validación: si no hay nada escaneado, volvemos a /salida
+    if not items:
+        flash("No hay productos preparados para la guía (no se han escaneado ítems).", "warning")
+        return redirect(url_for("salida"))
+
+    # 5) Guardar en sesión lo que la guía espera
+    session["items_para_guia"] = items
+    session["nv_para_guia"] = nv
+
+    # 6) Ir a la guía (pasando la NV si la tenemos)
+    if nv:
+        return redirect(url_for("guia_despacho", num_nota=nv))
+    return redirect(url_for("guia_despacho"))
+
+
 
 @app.post("/admin/nv/<int:num_nota>/retira")
 def admin_nv_retira(num_nota):
     if not _es_admin():
-        return jsonify({"ok": False, "msg": "No autorizado"}), 403
-    retira = (request.form.get("retira") in ("1","true","on","True"))
+        flash("No autorizado.", "error")
+        return _back_to_gestionar()
+
+    retira = (request.form.get("retira") in ("1", "true", "on", "True"))
     set_nv_retira(num_nota, retira)
-    return jsonify({"ok": True, "msg": "Actualizado", "flow": get_nv_flow(num_nota)})
+    flash(("Marcado como 'retira cliente'." if retira else "Marcado como 'no retira'."), "success")
+    return _back_to_gestionar()
 
 
 # --- Rutas ---
@@ -963,11 +1144,11 @@ def listado_nv():
         total_pages=total_pages
     )
 
-@app.route('/nv/gestionar')
+@app.get('/nv/gestionar')
 def nv_gestionar():
-    if not session.get('is_admin'):
-        return redirect(url_for('login1'))  # <- antes apuntaba a admin_login (no existe)
-    return render_template('nv_gestionar.html', rows=[], hubs=[])
+    # Delega todo en la vista oficial de admin
+    return redirect(url_for('admin_nv_gestionar'))
+
 
 @app.route('/notas/preview')
 def notas_preview():
@@ -1534,7 +1715,8 @@ def salida():
             session.pop('salida_items', None)
 
             flash(f"Salida finalizada correctamente. Estado NV: {estado_nv}.", 'success')
-            return redirect(url_for('salida'))
+            return redirect(url_for('finalizar_salida'))
+
 
 
     # GET
@@ -1646,50 +1828,136 @@ def admin_nv_gestionar():
     if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
         return abort(403)
 
-    sql = """
-        SELECT TOP 300
-            nv.NUMNOTA                                AS NumNota,
-            nv.NRUTCLIE                               AS RUT,
-            nv.SUCUR                                  AS Ciudad,
-            ISNULL(c.RAZSOC, '')                      AS RazonSocial,
-            nv.FECHA                                  AS FechaEntrega,
-            SUM(CAST(ISNULL(nd.CANTIDAD,  0) AS INT)) AS Cantidad,
-            SUM(CAST(ISNULL(nd.CANTDESP, 0) AS INT))  AS CantDesp,
+    # ===== Filtros UI =====
+    # 'estado' filtra por el estado CALCULADO de despacho (PENDIENTE/PARCIAL/TERMINADO)
+    estado = (request.args.get('estado') or '').upper()
+    meses  = request.args.getlist('mes')                  # ['2025-07','2025-08'] (YYYY-MM)
+    page   = max(int(request.args.get('page', 1)), 1)
+    per_page = min(max(int(request.args.get('per_page', 30)), 10), 300)
+
+    # Orden permitido (whitelist)
+    order = (request.args.get('order') or 'FechaEntrega DESC, NumNota DESC').strip()
+    order_whitelist = {
+        'NumNota ASC': 'NumNota ASC',
+        'NumNota DESC': 'NumNota DESC',
+        'FechaEntrega ASC': 'FechaEntrega ASC',
+        'FechaEntrega DESC': 'FechaEntrega DESC',
+        'StockPct ASC': 'StockPct ASC',
+        'StockPct DESC': 'StockPct DESC',
+        'FechaEntrega DESC, NumNota DESC': 'FechaEntrega DESC, NumNota DESC',
+    }
+    order_sql = order_whitelist.get(order, 'FechaEntrega DESC, NumNota DESC')
+
+    # ===== Filtro por mes(es) -> OR de rangos [ini, fin) =====
+    date_filters = []
+    for ym in meses:
+        try:
+            y, m = [int(x) for x in ym.split('-')]
+            ini = f"{y:04d}-{m:02d}-01"
+            fin = f"{(y + (m==12)) :04d}-{(1 if m==12 else m+1):02d}-01"
+            date_filters.append(f"(nv.FECHA >= '{ini}' AND nv.FECHA < '{fin}')")
+        except Exception:
+            pass
+    date_where = (" AND (" + " OR ".join(date_filters) + ") ") if date_filters else ""
+
+    # ===== Estado de DESPACHO (calculado por cantidades) =====
+    # OJO: esto NO es el flujo manual (APROB/PEND). Solo para filtros/indicadores.
+    estado_desp_case = """
+        CASE
+            WHEN SUM(CAST(ISNULL(nd.CANTDESP,0) AS INT)) = 0
+                THEN 'PENDIENTE'
+            WHEN SUM(CAST(ISNULL(nd.CANTDESP,0) AS INT)) < SUM(CAST(ISNULL(nd.CANTIDAD,0) AS INT))
+                THEN 'PARCIAL'
+            ELSE 'TERMINADO'
+        END
+    """
+    having_estado = ""
+    if estado in ('PENDIENTE','PARCIAL','TERMINADO'):
+        having_estado = f" HAVING {estado_desp_case} = '{estado}' "
+
+    offset = (page - 1) * per_page
+
+    # En tu esquema real la relación cliente suele ser c.NREGUIST = nv.NRUTCLIE
+    cliente_join = "c.NREGUIST = nv.NRUTCLIE"
+
+    # ===== SQL principal con CTE y paginación =====
+    main_sql = f"""
+    WITH RES AS (
+        SELECT
+            nv.NUMNOTA                                        AS NumNota,
+            nv.NRUTCLIE                                       AS RUT,
+            nv.SUCUR                                          AS Ciudad,
+            ISNULL(c.RAZSOC, '')                              AS RazonSocial,
+            CAST(nv.FECHA AS DATE)                            AS FechaEntrega,
+            SUM(CAST(ISNULL(nd.CANTIDAD,  0) AS INT))         AS Cantidad,
+            SUM(CAST(ISNULL(nd.CANTDESP, 0) AS INT))          AS CantDesp,
             CAST(AVG(CAST(ISNULL(nd.PRECUNIT,0) AS FLOAT)) AS DECIMAL(18,0)) AS PrecioUnit,
-            SUM(CAST(ISNULL(nd.CANTIDAD,0) AS INT)) -
-            SUM(CAST(ISNULL(nd.CANTDESP,0) AS INT))   AS Pendiente,
-            CASE WHEN
-                SUM(CAST(ISNULL(nd.CANTIDAD,0) AS INT)) -
-                SUM(CAST(ISNULL(nd.CANTDESP,0) AS INT)) = 0
-            THEN 1 ELSE 0 END                         AS Terminado,
-            MAX(ISNULL(v.STOCK_PCT, 0))               AS StockPct   -- <- cambio aquí
-        FROM dbo.NOTV_DB  nv
+            {estado_desp_case}                                AS EstadoDespacho
+        FROM dbo.NOTV_DB nv
         JOIN dbo.NOTDE_DB nd ON nd.NUMRECOR = nv.NUMREG
-        LEFT JOIN dbo.CLIEN_DB c ON c.NREGUIST = nv.NRUTCLIE
-        LEFT JOIN [RIMA].dbo.VW_NV_STOCK_PCT v ON v.NUMNOTA = nv.NUMNOTA
+        LEFT JOIN dbo.CLIEN_DB c ON {cliente_join}
+        WHERE 1=1 {date_where}
         GROUP BY nv.NUMNOTA, nv.NRUTCLIE, nv.SUCUR, c.RAZSOC, nv.FECHA
-        ORDER BY nv.NUMNOTA DESC;
-
-
+        {having_estado}
+    ),
+    STK AS (
+        SELECT v.NUMNOTA,
+               CAST(AVG(CAST(ISNULL(v.STOCK_PCT,0) AS FLOAT)) AS DECIMAL(5,2)) AS StockPct
+        FROM [RIMA].dbo.VW_NV_STOCK_PCT v
+        GROUP BY v.NUMNOTA
+    )
+    SELECT R.*,
+           ISNULL(S.StockPct, 0) AS StockPct
+    FROM RES R
+    LEFT JOIN STK S ON S.NUMNOTA = R.NumNota
+    ORDER BY {order_sql}
+    OFFSET {offset} ROWS FETCH NEXT {per_page} ROWS ONLY;
     """
-    rows = db.query_df(sql).to_dict(orient="records")
+
+    # Total para paginación (mismo filtro)
+    cnt_sql = f"""
+    SELECT COUNT(*) AS total
+    FROM (
+        SELECT nv.NUMNOTA
+        FROM dbo.NOTV_DB nv
+        JOIN dbo.NOTDE_DB nd ON nd.NUMRECOR = nv.NUMREG
+        WHERE 1=1 {date_where}
+        GROUP BY nv.NUMNOTA, nv.NRUTCLIE, nv.SUCUR, nv.FECHA
+        {"HAVING " + estado_desp_case + " = '" + estado + "'" if having_estado else ""}
+    ) X;
+    """
+
+    # Ejecuta y arma filas
+    rows = db.query_df(main_sql).to_dict(orient="records")
+    total_df = db.query_df(cnt_sql)
+    total = int(total_df.iloc[0, 0]) if not total_df.empty else 0
+
+    # Zonas y flow
     zonas = _get_zonas() if callable(globals().get("_get_zonas")) else []
-    return render_template("admin/nv_gestionar.html", rows=rows, zonas=zonas)
+    id2zona = {z.get("ID"): z.get("NOMBRE") for z in zonas if isinstance(z, dict)}
 
-# --- Admin NV: acciones (aprobar/asignar zona, marcar pendiente) --------
+    for r in rows:
+        num = int(r.get("NumNota") or 0)
+        try:
+            flow = get_nv_flow(num) or {}
+        except Exception:
+            flow = {}
 
-def _ensure_nv_zonas_table():
-    """Crea dbo.NV_ZONAS en SANTIAGO si no existe (vía ENGINE principal)."""
-    sql = """
-    IF OBJECT_ID('dbo.NV_ZONAS','U') IS NULL
-    BEGIN
-        CREATE TABLE dbo.NV_ZONAS(
-            NV   NVARCHAR(50)  NOT NULL PRIMARY KEY,
-            ZONA NVARCHAR(100) NOT NULL
-        );
-    END
-    """
-    db.execute(sql)
+        # === AQUÍ EL CAMBIO IMPORTANTE ===
+        # Solo aceptar estados explícitos del FLUJO (manual). Nada por defecto.
+        estado_raw = (flow.get("ESTADO") or "").strip().upper()
+        r["EstadoFlow"] = estado_raw if estado_raw in ("APROB", "PEND") else ""
+
+        r["RetiraCliente"] = 1 if flow.get("RETIRA_CLIENTE") else 0
+        r["ZonaID"]        = flow.get("ZONA_ID")
+        r["ZonaAsignada"]  = id2zona.get(r["ZonaID"])
+
+    return render_template("admin/nv_gestionar.html",
+                           rows=rows, zonas=zonas,
+                           page=page, per_page=per_page, total=total,
+                           estado=estado, meses=meses, order=order)
+
+
 
 @app.post("/admin/nv/accion", endpoint="nv_gestionar_accion")
 def nv_gestionar_accion():
@@ -1698,7 +1966,7 @@ def nv_gestionar_accion():
     if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
         return abort(403)
 
-    accion = (request.form.get("accion") or "").strip()
+    accion = (request.form.get("accion") or "").strip().lower()
     # Acepta tanto "nv" como "numnota" para no tocar el template
     nv = (request.form.get("nv") or request.form.get("numnota") or "").strip()
 
@@ -1706,41 +1974,107 @@ def nv_gestionar_accion():
         flash("Falta el número de Nota de Venta.", "warning")
         return redirect(url_for("admin_nv_gestionar"))
 
-    # Asegura tabla NV_ZONAS
+    # Asegura tablas necesarias
     _ensure_nv_zonas_table()
+    _ensure_nv_flow_table()
 
-    # 1) Marcar como PENDIENTE: eliminar asignación de zona
+    # 1) Marcar como PENDIENTE: elimina zona y guarda ESTADO='PEND'
     if accion == "pendiente":
         try:
             db.execute("DELETE FROM dbo.NV_ZONAS WHERE NV = :nv", {"nv": nv})
-            flash(f"NV {nv} marcada como Pendiente (sin zona).", "success")
+            _upsert_nv_flow_state(nv=nv, estado="PEND")  # <<< aquí queda explícito el estado
+            flash(f"NV {nv} marcada como PENDIENTE (zona eliminada).", "success")
         except Exception as e:
             flash(f"No se pudo marcar como pendiente: {e}", "danger")
         return redirect(url_for("admin_nv_gestionar"))
 
-    # 2) Aprobar + Asignar zona (o simple asignación)
+    # 2) Aprobar + Asignar zona (o simple asignación): requiere zona
     zona = (request.form.get("zona") or "").strip()
     if not zona:
         flash("Selecciona una zona para asignar.", "warning")
         return redirect(url_for("admin_nv_gestionar"))
 
     try:
-        # UPSERT
+        # UPSERT en NV_ZONAS
         db.execute("""
             IF EXISTS(SELECT 1 FROM dbo.NV_ZONAS WHERE NV = :nv)
                 UPDATE dbo.NV_ZONAS SET ZONA = :zona WHERE NV = :nv;
             ELSE
                 INSERT INTO dbo.NV_ZONAS(NV, ZONA) VALUES(:nv, :zona);
         """, {"nv": nv, "zona": zona})
-        flash(f"NV {nv} asignada a la zona '{zona}'.", "success")
+
+        # Guardar ESTADO='APROB' explícitamente en el flujo
+        _upsert_nv_flow_state(nv=nv, estado="APROB")
+
+        flash(f"NV {nv} aprobada y asignada a la zona '{zona}'.", "success")
     except Exception as e:
-        flash(f"No se pudo asignar la zona: {e}", "danger")
+        flash(f"No se pudo asignar la zona/aprobar: {e}", "danger")
 
     return redirect(url_for("admin_nv_gestionar"))
 
 
+# ===== Helpers de flujo =====
+
+def _ensure_nv_flow_table():
+    """
+    Crea dbo.NV_FLOW si no existe.
+    Guarda el estado manual del flujo:
+      - ESTADO: 'APROB' o 'PEND'
+      - RETIRA_CLIENTE: bit opcional (se puede usar en otra acción)
+      - ZONA_ID: opcional (si algún día lo quieres acoplar aquí)
+    """
+    sql = """
+    IF OBJECT_ID('dbo.NV_FLOW','U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.NV_FLOW(
+            NV              NVARCHAR(50)  NOT NULL PRIMARY KEY,
+            ESTADO          NVARCHAR(10)  NULL,   -- 'APROB' | 'PEND' | NULL
+            RETIRA_CLIENTE  BIT           NULL,
+            ZONA_ID         NVARCHAR(100) NULL,
+            UPDATED_AT      DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME()
+        );
+    END
+    """
+    db.execute(sql)
+
+def _upsert_nv_flow_state(nv: str, estado: str | None = None,
+                          retira: int | None = None, zona_id: str | None = None):
+    """
+    Actualiza/crea el registro de flujo para la NV.
+    - Si 'estado' es None, conserva el existente.
+    - Idem para 'retira' y 'zona_id'.
+    """
+    # Normaliza estado a los únicos admitidos
+    estado = (estado or "").strip().upper()
+    if estado not in ("APROB", "PEND", ""):
+        estado = ""
+
+    params = {
+        "nv": nv,
+        "estado": (None if estado == "" else estado),
+        "retira": retira,
+        "zona_id": zona_id,
+    }
+
+    sql = """
+    MERGE dbo.NV_FLOW AS T
+    USING (SELECT :nv AS NV) AS S
+    ON T.NV = S.NV
+    WHEN MATCHED THEN UPDATE SET
+        ESTADO         = COALESCE(:estado, T.ESTADO),
+        RETIRA_CLIENTE = COALESCE(:retira, T.RETIRA_CLIENTE),
+        ZONA_ID        = COALESCE(:zona_id, T.ZONA_ID),
+        UPDATED_AT     = SYSUTCDATETIME()
+    WHEN NOT MATCHED THEN
+        INSERT (NV, ESTADO, RETIRA_CLIENTE, ZONA_ID, UPDATED_AT)
+        VALUES (:nv, :estado, :retira, :zona_id, SYSUTCDATETIME());
+    """
+    db.execute(sql, params)
+
+
+
 @app.post("/admin/nv/asignar")
-def admin_nv_asignar():
+def admin_nv_asignar_form():
     cu = session.get('current_user') or {}
     if not (session.get('is_admin') and cu.get('rol') == ROL_JEFE):
         return abort(403)
@@ -2183,7 +2517,8 @@ def guia_despacho():
     """
     Renderiza la Guía de Despacho usando SOLO los ítems escaneados
     y preparados durante la salida (session['items_para_guia']).
-    Requiere ?num_nota=XXXXX para verificar consistencia.
+    - Toma num_nota desde ?num_nota=... o, si no viene, desde session['nv_para_guia'].
+    - Trae del flow el flag RETIRA_CLIENTE para preconfigurar la guía.
     """
     cu = session.get('current_user')
     op = session.get('operario')
@@ -2192,7 +2527,8 @@ def guia_despacho():
     if cu.get('rol') == ROL_OPERARIO and not op:
         return redirect(url_for('login2'))
 
-    num_nota = (request.args.get('num_nota') or '').strip()
+    # num_nota puede venir por querystring o haber quedado en sesión al preparar la guía
+    num_nota = (request.args.get('num_nota') or session.get('nv_para_guia') or '').strip()
     if not num_nota:
         flash('Falta el parámetro num_nota.', 'warning')
         return redirect(url_for('salida'))
@@ -2219,6 +2555,13 @@ def guia_despacho():
     except Exception as e:
         flash(f'Error al consultar la BBDD: {e}', 'danger')
         return redirect(url_for('salida'))
+
+    # 👉 NUEVO: trae el flow para saber si es "retira cliente"
+    try:
+        flow = get_nv_flow(int(num_nota)) or {}
+    except Exception:
+        flow = {}
+    retira_cliente = bool(flow.get("RETIRA_CLIENTE"))
 
     # Indexa detalle original por código para recuperar nombre/precio si está disponible
     def _norm_code(x):  # mismo criterio que usas en salida
@@ -2253,13 +2596,16 @@ def guia_despacho():
         flash('No hay líneas válidas para la Guía (cantidades <= 0).', 'warning')
         return redirect(url_for('salida'))
 
-    # Render: solo escaneado
-    return render_template('guia_despacho.html',
-                           header=header,
-                           detalles=detalles,
-                           num_nota=num_nota,
-                           datos={},
-                           datetime=datetime)
+    # Render: solo escaneado + flag de "retira cliente" para bloquear la opción en el template
+    return render_template(
+        'guia_despacho.html',
+        header=header,
+        detalles=detalles,
+        num_nota=num_nota,
+        datos={},
+        datetime=datetime,
+        retira_cliente=retira_cliente  # <-- úsalo en el template para marcar/inhabilitar
+    )
 
 
 

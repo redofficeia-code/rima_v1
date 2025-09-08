@@ -31,6 +31,10 @@
               box-shadow:2px 2px 8px rgba(0,0,0,.2);
     }
     h1{ margin:8px 0 10px; text-align:center; color:#0d47a1; font-size:22px; }
+    .badge{
+      display:inline-block; margin-left:8px; padding:4px 8px; border-radius:999px;
+      background:#e6fffa; color:#065f46; font-weight:700; font-size:13px; vertical-align:middle;
+    }
 
     /* ===== Inputs táctiles ===== */
     input, select, textarea{
@@ -117,9 +121,18 @@
   {% endwith %}
 
   <div class="container">
-    <h1>Guía de Despacho</h1>
+    <h1>
+      Guía de Despacho
+      {% if retira_cliente %}<span class="badge">RETIRA CLIENTE</span>{% endif %}
+    </h1>
 
     <form method="POST" action="#">
+      <!-- valores necesarios para el POST -->
+      <input type="hidden" name="num_nota" value="{{ num_nota }}">
+      {% if retira_cliente %}
+        <!-- cuando el radio está disabled, no se envía; este hidden asegura el valor -->
+        <input type="hidden" name="modo_despacho" value="retira_cliente">
+      {% endif %}
 
       <!-- ===== Cabecera ===== -->
       <div class="table-wrap">
@@ -226,11 +239,13 @@
           <tbody>
             {% for it in detalles %}
             <tr>
-              <td>{{ it.Codigo }}</td>
-              <td>{{ it.Descripcion }}</td>
-              <td style="text-align:right;">{{ it.Cantidad }}</td>
-              <td style="text-align:right;">{{ it.Precio }}</td>
-              <td style="text-align:right;">{{ it['D%'] }}</td>
+              <td>{{ it.codigo or it.Codigo }}</td>
+              <td>{{ it.nombre or it.Descripcion }}</td>
+              <td style="text-align:right;">{{ it.cantidad or it.Cantidad }}</td>
+              <td style="text-align:right;">{{ it.prec_unit or it.Precio }}</td>
+              <td style="text-align:right;">
+                {% if it['D%'] is defined %}{{ it['D%'] }}{% endif %}
+              </td>
             </tr>
             {% endfor %}
             {% if not detalles %}
@@ -338,9 +353,24 @@
 
       <!-- ===== Panel inferior ===== -->
       <div class="options">
-        <label><input type="radio" name="modo_despacho" value="retira_cliente" {% if datos.get('modo_despacho')=='retira_cliente' %}checked{% endif %}> Retira Cliente</label>
-        <label><input type="radio" name="modo_despacho" value="packing" {% if datos.get('modo_despacho')=='packing' %}checked{% endif %}> Despacho Packing</label>
-        <label><input type="radio" name="modo_despacho" value="tercero" {% if datos.get('modo_despacho')=='tercero' %}checked{% endif %}> Despacho Tercero</label>
+        <label>
+          <input type="radio" name="modo_despacho" value="retira_cliente"
+                 {% if retira_cliente or datos.get('modo_despacho')=='retira_cliente' %}checked{% endif %}
+                 {% if retira_cliente %}disabled{% endif %}>
+          Retira Cliente
+        </label>
+        <label>
+          <input type="radio" name="modo_despacho" value="packing"
+                 {% if datos.get('modo_despacho')=='packing' %}checked{% endif %}
+                 {% if retira_cliente %}disabled{% endif %}>
+          Despacho Packing
+        </label>
+        <label>
+          <input type="radio" name="modo_despacho" value="tercero"
+                 {% if datos.get('modo_despacho')=='tercero' %}checked{% endif %}
+                 {% if retira_cliente %}disabled{% endif %}>
+          Despacho Tercero
+        </label>
       </div>
 
       <div class="options">

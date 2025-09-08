@@ -5,13 +5,11 @@ import urllib.parse
 import pandas as pd
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
-from dotenv import load_dotenv
-load_dotenv(override=True)  # fuerza que se usen las credenciales del .env
 
 # =========================================================
 # Cargar .env ANTES de usar os.getenv
 # =========================================================
-load_dotenv()
+load_dotenv(override=True)  # fuerza que se usen las credenciales del .env
 
 # -------------------- Utils --------------------
 def _env_bool(value: str | None) -> bool:
@@ -52,7 +50,12 @@ def _build_pyodbc_engine(database: str) -> "Engine":
     params = urllib.parse.quote_plus(odbc)
     return create_engine(
         f"mssql+pyodbc:///?odbc_connect={params}",
+        # ==== Pool tuning (evita QueuePool timeout) ====
+        pool_size=20,
+        max_overflow=40,
+        pool_recycle=1800,
         pool_pre_ping=True,
+        # ===============================================
         future=True,
         fast_executemany=True,
     )
@@ -68,7 +71,12 @@ if _USERS_DB_URL:
     try:
         ENGINE = create_engine(
             _USERS_DB_URL,
+            # ==== Pool tuning ====
+            pool_size=20,
+            max_overflow=40,
+            pool_recycle=1800,
             pool_pre_ping=True,
+            # =====================
             future=True,
             fast_executemany=True,
         )
@@ -90,7 +98,12 @@ if _RIMA_URL:
     try:
         RIMA_ENGINE = create_engine(
             _RIMA_URL,
+            # ==== Pool tuning ====
+            pool_size=20,
+            max_overflow=40,
+            pool_recycle=1800,
             pool_pre_ping=True,
+            # =====================
             future=True,
             fast_executemany=True,
         )

@@ -1,163 +1,153 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
   "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="es">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Salida de Mercancía</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" type="text/css">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
   <style type="text/css">
     *, *::before, *::after { box-sizing: border-box; }
-    body {
-      margin: 0; padding: 0;
-      font-family: 'Roboto', Arial, Helvetica, sans-serif;
-      background: #0057d1;
-      background: -webkit-linear-gradient(left, #00c0cb, #0057d1);
-      background: linear-gradient(to right, #00c0cb, #0057d1);
-      color: #333;
-      text-align: center;
-      text-transform: uppercase;
-      -webkit-tap-highlight-color: transparent;
+    html, body { height: 100%; }
+    body{
+      margin:0; padding:0;
+      font-family:'Roboto', Arial, Helvetica, sans-serif;
+      background:#0057d1;          /* azul fijo */
+      color:#333; text-align:center;
+      text-transform:uppercase;     /* PC por defecto */
     }
-    input, button, select, textarea { font-family: inherit; font-size: 16px; }
+    input, button, select, textarea { font-family: inherit; }
 
-    a.btn-home { display:inline-block;margin:1.5em 0;background:#ffc107;color:#333;padding:0.5em 1em;border-radius:8px;text-decoration:none; }
-
-    .container {
-      width: 92%; max-width: 1200px;
-      margin: 1em auto 2em;
-      background: #cce5ff;
-      border-radius: 10px;
-      padding: 1em;
-      box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-      text-align: left;
+    /* Botón Inicio */
+    .top-link{
+      display:inline-block; margin:.8em auto .5em;
+      background:#ffc107; color:#333; padding:8px 12px;
+      border-radius:8px; text-decoration:none; font-weight:700; font-size:16px;
     }
-    h1 { margin: 0 0 .6em; text-align:center; }
 
-    .flash-message {
-      padding: 10px; margin: 10px 0;
-      border-left: 5px solid; background: #f9f9f9;
+    .container{
+      width:80%; max-width:1200px;
+      margin:.5em auto 2em; background:#cce5ff; border-radius:8px;
+      padding:1em; box-shadow:2px 2px 8px rgba(0,0,0,.2); text-align:left;
     }
-    .flash-success { border-color: green; }
-    .flash-warning { border-color: orange; }
-    .flash-error, .flash-danger { border-color: red; }
+    h1{ margin:0 0 .5em; text-align:center; font-size:20px; }
 
-    form { margin-bottom: 1.2em; }
-    label { display:block; margin-top:.5em; font-weight:bold; }
+    .flash-message{ padding:10px; margin:10px 0; border-left:5px solid; background:#f9f9f9; text-align:left; }
+    .flash-success{ border-color:green; } .flash-warning{ border-color:orange; }
+    .flash-error,.flash-danger{ border-color:red; }
 
-    input[type="text"], input[type="number"], button, select, textarea {
-      width: 100%; padding:.6em .7em; margin-top:.25em;
-      border:1px solid #ccc; border-radius:8px; font-size:16px;
+    form{ margin-bottom:1.5em; }
+    label{ display:block; margin-top:.5em; font-weight:bold; }
+    input[type="text"], input[type="number"], button{
+      width:100%; padding:.5em; margin-top:.25em; border:1px solid #ccc; border-radius:4px; font-size:1em;
     }
-    button { background:#0057d1; color:#fff; cursor:pointer; font-weight:bold; }
-    button:hover { background:#00c0cb; color:#0057d1; }
+    button{ background:#0057d1; color:#fff; cursor:pointer; }
 
-    .search-form {
-      display:flex; flex-wrap:wrap; align-items:center; gap:.5em; justify-content:flex-start;
-      background:#fff; border:1px solid #e8eef6; border-radius:10px; padding:.6em;
-      position: -webkit-sticky; position: sticky; top:0; z-index:10;
-    }
-    .search-form label { margin:0; }
-    .search-form .field { flex: 1 1 240px; min-width: 220px; }
-    .search-form .actions { display:flex; gap:.5em; flex:0 0 auto; }
+    .search-form{ display:flex; align-items:center; gap:.5em; justify-content:flex-start; }
+    .search-form input[type="text"]{ width:auto; flex:0 0 300px; }
+    .search-form button{ width:auto; background:#ffc107; color:#333; }
 
-    .row { display:flex; flex-wrap:wrap; gap:1.5em; justify-content:space-between; }
-    .col { flex:1 1 380px; overflow-x:auto; margin-top:.3em; background:#fff; border-radius:10px; padding:12px; border:1px solid #e8eef6; }
+    .row{ display:flex; flex-wrap:wrap; gap:2em; justify-content:space-between; }
+    .col{ flex:1 1 45%; overflow-x:auto; margin-top:1em; }
 
-    table {
+    table{
       width:100%; border-collapse:collapse; margin-top:.5em;
-      font-size:14px; table-layout:fixed; background:#fff; border-radius:10px; overflow:hidden;
+      font-size:.85em; table-layout:fixed; background:#fff; border-radius:8px; overflow:hidden;
     }
-    th, td { border:1px solid #e0e6ef; padding:10px 12px; white-space:nowrap; text-align:left; }
-    th { background:#f0f4fa; }
-    input:disabled, button:disabled { background:#eee; color:#999; cursor:not-allowed; }
+    th,td{ border:1px solid #ccc; padding:.3em .5em; white-space:nowrap; text-align:left; }
+    th{ background:#eee; }
 
-    .red-row td    { background-color:#f6b8b8; }
-    .yellow-row td { background-color:#f8dc96; }
-    .green-row td  { background-color:#bdf1c9; }
+    .nv-table{ min-width:1000px; }
+    .stock-table{ min-width:700px; }
 
-    .form-row { display:flex; gap:1em; flex-wrap:wrap; }
-    .form-col { flex:1 1 180px; }
+    .red-row td{ background:#f6b8b8; }
+    .yellow-row td{ background:#f8bc63; }
+    .green-row td{ background:#8ce0a1; }
 
-    .options-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1em;
-      max-width: 420px;
-      margin: 1.2em auto 2em;
+    .form-row{ display:flex; gap:1em; flex-wrap:wrap; }
+    .form-col{ flex:1 1 180px; }
+
+    /* ====================== ZONAS (tabla 2 columnas) ====================== */
+    .zones-wrap{
+      margin:12px auto 20px;
+      background:#0057d1;    /* azul visible entre botones */
+      padding:4px 0;
+      text-align:center;
     }
-    .options-grid a {
-      display: flex; align-items: center; justify-content: center;
-      background: #fff; border: 2px solid #0057d1; border-radius: 10px; padding: 1.4em 0;
-      font-size: 1.2em; font-weight: bold; color: #0057d1; text-decoration: none;
+    .zones-table{
+      margin:0 auto;
+      width:92%;
+      max-width:900px;
+      background:#0057d1;
+      border-collapse:separate;
+      border-spacing:12px 12px; /* separaciones azules */
     }
-    .options-grid a:hover { background: #0057d1; color: #fff; }
-
-    .zones-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(220px, 1fr));
-      gap: 16px; max-width: 1100px; margin: 16px auto 48px; align-items: stretch; padding: 0 16px;
+    .zones-table td{
+      width:50%;
+      vertical-align:top;
+      background:transparent;
+      border:none;
+      padding:0;
     }
-    @media screen and (max-width: 520px) { .zones-grid { grid-template-columns: 1fr; } }
-
-    .zone-btn {
-      display: block; text-align: center; padding: 18px 24px; border-radius: 14px;
-      background: #ffffff; color: #0b57d1; font-weight: 700; text-transform: uppercase; text-decoration: none;
-      box-shadow: 0 6px 16px rgba(0,0,0,.12); border: none; transition: transform .08s ease, box-shadow .08s ease;
-      line-height: 1.2; min-height: 60px;
-    }
-    .zone-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,.16); }
-
-    .btn { background:#ffc400; border:0; padding:8px 14px; border-radius:10px; text-decoration:none; color:#333; font-weight:600; cursor:pointer }
-
-    /* Ocultamos .label en desktop y la mostramos en móvil */
-    .cell .label { display: none; }
-    .cell .value { display: inline; }
-
-    @media screen and (max-width: 780px) {
-      thead { display:none; }
-      table, tbody, tr, td { display:block; width:100%; }
-      tbody { display:block; }
-      tr { border:1px solid #e0e6ef; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin-bottom:12px; overflow:hidden; }
-      td { padding:12px; border:none; border-bottom:1px solid #eef3fa; }
-      td:last-child { border-bottom:none; }
-      .cell { display:flex; }
-      .cell .label { display: block; width:40%; color:#6b7280; font-weight:bold; padding-right:10px; }
-      .cell .value { width:60%; white-space:normal; }
+    .zone-btn{
+      display:block;
+      width:100%;
+      min-height:60px;
+      padding:18px 12px;
+      background:#fff;
+      color:#0b57d1;
+      border:2px solid #0b57d1;
+      border-radius:12px;
+      text-decoration:none;
+      font-weight:700;
+      font-size:16px;
+      line-height:1.1;
+      box-shadow:0 2px 6px rgba(0,0,0,.12);
+      word-wrap:break-word;
+      white-space:normal;
+      text-align:center;        /* PC OK */
     }
 
-    /* ==== AJUSTES DE ANCHO ==== */
-    /* Nota de Venta (izquierda) */
-    .col:first-child table { table-layout: fixed; }
-    .col:first-child table th:nth-child(1),
-    .col:first-child table td:nth-child(1) { width: 160px; }
-    .col:first-child table th:nth-child(2),
-    .col:first-child table td:nth-child(2) { width: 320px; }
-    .col:first-child table th:nth-child(3),
-    .col:first-child table td:nth-child(3) { width: 80px; text-align:right; }
-    .col:first-child table th:nth-child(4),
-    .col:first-child table td:nth-child(4) { width: 100px; text-align:right; }
-    .col:first-child table th:nth-child(5),
-    .col:first-child table td:nth-child(5) { width: 100px; text-align:right; }
-    .col:first-child table th:nth-child(6),
-    .col:first-child table td:nth-child(6) { width: 90px; text-align:right; }
-    .col:first-child table td { overflow:hidden; text-overflow:ellipsis; }
+    /* ====================== Solo RF (clase en <body>) ====================== */
+    .rf-pager { display:none; }
+    body.is-rf { text-transform:none; }
+    body.is-rf .container{
+      width:100%; max-width:none; margin:0; padding:4px 2px;
+      background:transparent; border-radius:0; box-shadow:none; text-align:left;
+    }
+    body.is-rf .row{ flex-direction:column; gap:6px; }
+    body.is-rf .col{ flex-basis:100%; overflow-x:hidden; margin-top:0; }
+    body.is-rf table{ font-size:12px; table-layout:auto; }
+    body.is-rf th, body.is-rf td{ padding:4px 6px; }
+    body.is-rf h2{ font-size:13px; margin:4px 0; }
 
-    /* Stock Actual (derecha) */
-    .col:last-child table { table-layout: fixed; }
-    .col:last-child table th:nth-child(1),
-    .col:last-child table td:nth-child(1) { width: 120px; }
-    .col:last-child table th:nth-child(2),
-    .col:last-child table td:nth-child(2) { width: auto; }
-    .col:last-child table th:nth-child(3),
-    .col:last-child table td:nth-child(3) { width: 70px; text-align:right; }
-    td:nth-child(2), th:nth-child(2) {
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    /* En RF quitamos min-width y usamos 100% (las flechas manejarán columnas) */
+    body.is-rf .nv-table, 
+    body.is-rf .stock-table { min-width:0 !important; width:100% !important; table-layout:fixed; }
+
+    /* Paginador con flechas (solo RF) */
+    body.is-rf .rf-pager{
+      display:block;
+      text-align:center;
+      margin:2px 0;
+    }
+    body.is-rf .rf-pager button{
+      display:inline-block;
+      min-width:36px; height:28px;
+      margin:0 6px; padding:0 6px;
+      font-size:16px; font-weight:bold;
+      border:1px solid #888; border-radius:6px;
+      background:#ffc107; color:#333;
+    }
+    body.is-rf .rf-pager .label{
+      display:inline-block; min-width:70px; font-size:12px;
     }
   </style>
 </head>
-<body>
-  <a class="btn-home" href="{{ url_for('index') }}">Inicio</a>
+
+<body class="{{ 'is-rf' if (request.args.get('rf') == '1' or session.get('is_rf')) else '' }}">
+  <a class="top-link" href="{{ url_for('index') }}">Inicio</a>
 
   <div class="container">
     <h1>Salida de Mercancía</h1>
@@ -170,46 +160,45 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Buscar Nota de Venta -->
     <form method="POST" class="search-form">
       <input type="hidden" name="action" value="buscar_nv">
-      <div class="field">
-        <label for="nv">N° Nota de Venta</label>
-        <input id="nv" type="text" name="nv" value="{{ nota|e }}" autocomplete="off" inputmode="numeric">
-      </div>
-      <div class="actions">
-        <button type="submit">Buscar</button>
-      </div>
+      <label for="nv">N° Nota de Venta:</label>
+      <input id="nv" type="text" name="nv" value="{{ nota|e }}" autofocus>
+      <button type="submit">Buscar</button>
     </form>
-
-    {% if nv_items %}
-      <input type="hidden" id="nv-loaded-flag" value="1">
-    {% endif %}
 
     {% if nv_items %}
     <div class="row">
       <div class="col">
-        <h2 style="margin:0 0 .4em; text-transform:uppercase;">Nota de Venta {{ nota }}</h2>
-        <table summary="Detalle de la Nota de Venta">
+        <h2>Nota de Venta {{ nota }}</h2>
+
+        <!-- Flechas para RF (NV) -->
+        <div class="rf-pager">
+          <button type="button" onclick="nvPrev()">&laquo;</button>
+          <span class="label">NV <span id="nv-page">1/3</span></span>
+          <button type="button" onclick="nvNext()">&raquo;</button>
+        </div>
+
+        <table class="nv-table">
           <thead>
             <tr>
-              <th>Código</th>
-              <th>Nombre</th>
-              <th>Cant.</th>
-              <th>Prec.Unit</th>
-              <th>Escaneado</th>
-              <th>Faltan</th>
+              <th class="nv-codigo">CÓDIGO</th>
+              <th class="nv-nombre">NOMBRE</th>
+              <th class="nv-cant">CANT.</th>
+              <th class="nv-precio">PREC.UNIT</th>
+              <th class="nv-escaneado">ESCANEADO</th>
+              <th class="nv-faltan">FALTAN</th>
             </tr>
           </thead>
           <tbody>
             {% for item in nv_items %}
             <tr class="{% if item.scanned == 0 %}red-row{% elif item.scanned < item['Cant.'] %}yellow-row{% else %}green-row{% endif %}">
-              <td><div class="cell"><span class="label">Código</span><span class="value">{{ item['Código'] }}</span></div></td>
-              <td><div class="cell"><span class="label">Nombre</span><span class="value">{{ item['Nombre'] }}</span></div></td>
-              <td><div class="cell"><span class="label">Cant.</span><span class="value">{{ item['Cant.'] }}</span></div></td>
-              <td><div class="cell"><span class="label">Prec.Unit</span><span class="value">{{ item['Prec.Unit'] }}</span></div></td>
-              <td><div class="cell"><span class="label">Escaneado</span><span class="value">{{ item.scanned }}</span></div></td>
-              <td><div class="cell"><span class="label">Faltan</span><span class="value">{{ item['Faltan'] }}</span></div></td>
+              <td class="nv-codigo">{{ item['Código'] }}</td>
+              <td class="nv-nombre">{{ item['Nombre'] }}</td>
+              <td class="nv-cant">{{ item['Cant.'] }}</td>
+              <td class="nv-precio">{{ item['Prec.Unit'] }}</td>
+              <td class="nv-escaneado">{{ item.scanned }}</td>
+              <td class="nv-faltan">{{ item['Faltan'] }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -217,17 +206,29 @@
       </div>
 
       <div class="col">
-        <h2 style="margin:0 0 .4em; text-transform:uppercase;">Stock Actual</h2>
-        <table summary="Stock disponible">
+        <h2>Stock Actual</h2>
+
+        <!-- Flechas para RF (Stock) -->
+        <div class="rf-pager">
+          <button type="button" onclick="stkPrev()">&laquo;</button>
+          <span class="label">STK <span id="stk-page">1/2</span></span>
+          <button type="button" onclick="stkNext()">&raquo;</button>
+        </div>
+
+        <table class="stock-table">
           <thead>
-            <tr><th>Código</th><th>Nombre</th><th>Cantidad</th></tr>
+            <tr>
+              <th class="stk-codigo">CÓDIGO</th>
+              <th class="stk-nombre">NOMBRE</th>
+              <th class="stk-cantidad">CANTIDAD</th>
+            </tr>
           </thead>
           <tbody>
             {% for stk in stock_items %}
             <tr>
-              <td><div class="cell"><span class="label">Código</span><span class="value">{{ stk['Código'] }}</span></div></td>
-              <td><div class="cell"><span class="label">Nombre</span><span class="value">{{ stk['Nombre'] }}</span></div></td>
-              <td><div class="cell"><span class="label">Cantidad</span><span class="value">{{ stk['Cantidad'] }}</span></div></td>
+              <td class="stk-codigo">{{ stk['Código'] }}</td>
+              <td class="stk-nombre">{{ stk['Nombre'] }}</td>
+              <td class="stk-cantidad">{{ stk['Cantidad'] }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -235,18 +236,17 @@
       </div>
     </div>
 
-    <!-- Form de escaneo -->
     <form method="POST">
       <input type="hidden" name="action" value="scan">
       <div class="form-row">
         <div class="form-col">
           <label><strong>Código:</strong>
-            <input type="text" name="codigo" class="scan-input" autocomplete="off" inputmode="text">
+            <input type="text" name="codigo" autofocus>
           </label>
         </div>
         <div class="form-col">
           <label><strong>Cantidad:</strong>
-            <input type="number" name="cantidad" value="1" min="1" inputmode="numeric">
+            <input type="number" name="cantidad" value="1" min="1">
           </label>
         </div>
       </div>
@@ -261,33 +261,42 @@
 
   {% if not nv_items %}
     {% if not zona_seleccionada %}
-    <div class="zones-grid">
-      {% for z in zonas %}
-        <a class="zone-btn" href="{{ url_for('salida', zona=z.NOMBRE) }}">{{ z.NOMBRE }}</a>
-      {% endfor %}
-      {% if zonas|length == 0 %}
-        <p style="color:#fff;text-align:center;">No hay zonas definidas.</p>
-      {% endif %}
+    <div class="zones-wrap">
+      <table class="zones-table" cellspacing="12">
+        <tbody>
+          {% for fila in zonas|batch(2, None) %}
+          <tr>
+            {% for z in fila %}
+              {% if z %}
+              <td>
+                <a class="zone-btn" href="{{ url_for('salida', zona=z.NOMBRE) }}">{{ z.NOMBRE }}</a>
+              </td>
+              {% else %}
+              <td></td>
+              {% endif %}
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
     {% else %}
-    <h2 style="color:#fff; text-align:center; margin: 0 0 .6em;">Notas de Venta asignadas a {{ zona_seleccionada }}</h2>
-    <div style="text-align:center; margin-bottom: 10px;">
-      <a href="{{ url_for('salida') }}" class="btn" style="display:inline-block;">← Volver a zonas</a>
-    </div>
+    <h2>Notas de Venta asignadas a {{ zona_seleccionada }}</h2>
+    <a href="{{ url_for('salida') }}">← Volver a zonas</a>
 
     {% if lista_nv and lista_nv|length > 0 %}
-    <div class="container" style="margin-top: 0;">
-      <table summary="Notas de venta por zona">
+    <div class="container">
+      <table>
         <thead>
           <tr><th>NV</th><th>Fecha</th><th>Sucursal</th><th>Cliente</th><th>Acción</th></tr>
         </thead>
         <tbody>
           {% for nv in lista_nv %}
           <tr>
-            <td><div class="cell"><span class="label">NV</span><span class="value">{{ nv.numnota }}</span></div></td>
-            <td><div class="cell"><span class="label">Fecha</span><span class="value">{{ nv.fecha }}</span></div></td>
-            <td><div class="cell"><span class="label">Sucursal</span><span class="value">{{ nv.sucursal }}</span></div></td>
-            <td><div class="cell"><span class="label">Cliente</span><span class="value">{{ nv.cliente }}</span></div></td>
+            <td>{{ nv.numnota }}</td>
+            <td>{{ nv.fecha }}</td>
+            <td>{{ nv.sucursal }}</td>
+            <td>{{ nv.cliente }}</td>
             <td>
               <form method="post" action="{{ url_for('salida') }}">
                 <input type="hidden" name="action" value="buscar_nv">
@@ -300,10 +309,70 @@
         </tbody>
       </table>
     </div>
-    {% else %}
-      <p style="color:#fff; text-align:center;">No hay Notas de Venta asignadas a esta zona.</p>
     {% endif %}
     {% endif %}
   {% endif %}
+
+  <!-- JS súper básico compatible con IE/CE -->
+  <script type="text/javascript">
+  (function(){
+    function hasRF(){ return (document.body.className||'').indexOf('is-rf') !== -1; }
+
+    var nvView = 1;   // 1..3
+    var stkView = 1;  // 1..2
+
+    function getByClass(cls){
+      var all = document.getElementsByTagName('*'), r=[], i, c;
+      for(i=0;i<all.length;i++){
+        c = all[i].className || '';
+        if((' '+c+' ').indexOf(' '+cls+' ')>-1) r.push(all[i]);
+      }
+      return r;
+    }
+    function toggle(prefix, col, show){
+      var nodes = getByClass(prefix+'-'+col), i;
+      for(i=0;i<nodes.length;i++){ nodes[i].style.display = show ? '' : 'none'; }
+    }
+
+    function setNV(v){
+      nvView = v;
+      var all = ['codigo','nombre','cant','precio','escaneado','faltan'];
+      var show = {1:['codigo','nombre'], 2:['cant','precio'], 3:['escaneado','faltan']};
+      var vis = show[v], i, col, on;
+      for(i=0;i<all.length;i++){
+        col = all[i]; on = (vis.indexOf ? vis.indexOf(col)>=0 : (','+vis.join(',')+',').indexOf(','+col+',')>=0);
+        toggle('nv', col, on);
+      }
+      var p = document.getElementById('nv-page'); if(p){ p.innerHTML = v+'/3'; }
+    }
+    function setSTK(v){
+      stkView = v;
+      var all = ['codigo','nombre','cantidad'];
+      var vis = (v===1)? ['codigo','nombre'] : ['codigo','cantidad'];
+      var i, col, on;
+      for(i=0;i<all.length;i++){
+        col = all[i]; on = (','+vis.join(',')+',').indexOf(','+col+',')>=0;
+        toggle('stk', col, on);
+      }
+      var p = document.getElementById('stk-page'); if(p){ p.innerHTML = v+'/2'; }
+    }
+
+    window.nvPrev = function(){ setNV(nvView===1?3:nvView-1); };
+    window.nvNext = function(){ setNV(nvView===3?1:nvView+1); };
+    window.stkPrev = function(){ setSTK(stkView===1?2:1); };
+    window.stkNext = function(){ setSTK(stkView===2?1:2); };
+
+    function init(){
+      if(!hasRF()) return;
+      setNV(1);
+      setSTK(1);
+    }
+    if (document.addEventListener){
+      document.addEventListener('DOMContentLoaded', init, false);
+    }
+    // Fallback IE/CE
+    window.onload = init;
+  })();
+  </script>
 </body>
 </html>
