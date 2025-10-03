@@ -91,9 +91,14 @@ def _norm(s: str) -> str:
     s = re.sub(r"\s+", " ", s)
     return s.casefold()
 
+def _norm_pwd(s: str) -> str:
+    """Normaliza contraseña para comparación case-insensitive sin colapsar espacios."""
+    return (s or "").strip().casefold()
+
+
 def _verify_pwd(candidate: str, stored: str) -> bool:
     """
-    Verifica la contraseña ingresada contra la almacenada en la BD.
+    Verifica la contraseña ingresada contra la almacenada en la BD (case-insensitive).
     Soporta:
       1) bcrypt ($2...)
       2) formato legado "números.separados.por.puntos" (lp.codificar_clave)
@@ -102,25 +107,46 @@ def _verify_pwd(candidate: str, stored: str) -> bool:
     if stored is None:
         return False
     s = str(stored).strip()
+    c_raw = (candidate or "").strip()
+    c_low = _norm_pwd(candidate)
 
     # 1) bcrypt
     if s.startswith("$2"):
         if bcrypt is None:
             return False
         try:
-            return bcrypt.verify(candidate, s)
+            if bcrypt.verify(c_raw, s):
+                return True
+        except Exception:
+            pass
+        # intento case-insensitive
+        try:
+            return bcrypt.verify(c_low, s)
         except Exception:
             return False
 
-    # 2) formato legado (si existe módulo legacy_passwords)
+    # 2) formato legado
     if lp is not None:
         try:
-            return lp.codificar_clave(candidate) == s
+            if lp.codificar_clave(c_raw) == s:
+                return True
+            return lp.codificar_clave(c_low) == s
         except Exception:
             pass
 
-    # 3) texto plano (legacy)
-    return candidate == s
+    # 3) texto plano
+    return _norm_pwd(c_raw) == _norm_pwd(s)
+
+
+def hash_password(pwd: str) -> str:
+    """
+    Genera hash bcrypt de la contraseña en modo case-insensitive.
+    Úsalo al crear/actualizar usuarios para guardar consistente.
+    """
+    if bcrypt is None:
+        raise RuntimeError("bcrypt no disponible")
+    return bcrypt.hash(_norm_pwd(pwd))
+
 
 def _safe_get(name: str, default=None):
     """Obtiene una constante importada desde auth_map si existe; si no, default."""
@@ -193,16 +219,18 @@ def _map_rol_safe(grupo):
         return am.ROL_OPERARIO  # fallback
 
 def _verify_pwd_login1(ingresada: str, almacenada: str) -> bool:
-    """Comparador para Login1: texto, bcrypt o legacy-puntos."""
+    """Comparador para Login1 (case-insensitive): texto, bcrypt o legacy-puntos."""
     if almacenada is None:
         return False
-    s_in = (ingresada or "").strip()
-    s_st = str(almacenada).strip()
-    if not s_in:
+
+    s_in_raw = (ingresada or "").strip()
+    s_in_low = _norm_pwd(ingresada)
+    s_st = (str(almacenada) or "").strip()
+    if not s_in_raw:
         return False
 
     # 1) texto plano
-    if s_in == s_st:
+    if _norm_pwd(s_in_raw) == _norm_pwd(s_st):
         return True
 
     # 2) bcrypt
@@ -210,18 +238,26 @@ def _verify_pwd_login1(ingresada: str, almacenada: str) -> bool:
         if bcrypt is None:
             return False
         try:
-            return bcrypt.verify(s_in, s_st)
+            if bcrypt.verify(s_in_raw, s_st):
+                return True
+        except Exception:
+            pass
+        try:
+            return bcrypt.verify(s_in_low, s_st)
         except Exception:
             return False
 
     # 3) legacy puntos
     if lp is not None:
         try:
-            return lp.codificar_clave(s_in) == s_st
+            if lp.codificar_clave(s_in_raw) == s_st:
+                return True
+            return lp.codificar_clave(s_in_low) == s_st
         except Exception:
             pass
 
     return False
+
 
 def _fetch_user_santiago_login1(uq: str):
     """Busca al usuario por COD o NOMBRE directamente en SANTIAGO.dbo.USER_DB (BB1/SPT)."""

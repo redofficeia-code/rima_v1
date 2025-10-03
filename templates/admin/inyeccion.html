@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Inyección de documentos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; background:#f7f9fc; margin:0; padding:16px; }
+    h1 { margin: 0 0 12px 0; color:#0d47a1; }
+    .wrap { background:#fff; border-radius:12px; padding:16px; box-shadow:2px 2px 8px rgba(0,0,0,.1); }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:10px; border-bottom:1px solid #e5e7eb; text-align:left; vertical-align:middle; }
+    th { background:#eef2ff; }
+    .actions { display:flex; gap:8px; align-items:center; }
+    .btn { display:inline-block; padding:8px 12px; border-radius:8px; border:0; cursor:pointer; font-weight:bold; }
+    .btn-primary { background:#0057d1; color:#fff; }
+    .btn-outline { background:#fff; border:1px solid #0057d1; color:#0057d1; text-decoration:none; }
+    .muted { color:#6b7280; font-size:12px; }
+    .alert { padding:10px; border-radius:8px; margin:0 0 12px 0; }
+    .success { background:#e6ffed; color:#0b602b; border:1px solid #b7f7c6; }
+    .error { background:#ffecec; color:#7d1414; border:1px solid #ffb3b3; }
+  </style>
+</head>
+<body>
+  <h1>Inyección de documentos</h1>
+
+  <div class="wrap">
+
+    <!-- Mensajes flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert {{cat}}">{{ msg|safe }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <table>
+      <thead>
+        <tr>
+          <th>Num. Nota</th>
+          <th>RUT</th>
+          <th>Razón Social</th>
+          <th>Ciudad</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+          <th>Creado por</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in docs %}
+        <tr>
+          <td>{{ r.NUMNOTA }}</td>
+          <td>{{ r.RUT }}</td>
+          <td>{{ r.RAZON_SOCIAL }}</td>
+          <td>{{ r.CIUDAD }}</td>
+          <td>{{ r.FECHA_DOC }}</td>
+          <td>{{ r.ESTADO }}</td>
+          <td><span class="muted">{{ r.CREATED_BY }}</span></td>
+          <td class="actions">
+            <!-- POST directo: el backend toma r.ID (doc_id de la outbox) y hace la inyección -->
+            <form action="{{ url_for('admin_docs_inject', doc_id=r.ID) }}" method="post" style="display:inline;">
+              <button class="btn btn-primary" type="submit">Inyectar</button>
+            </form>
+            <a class="btn btn-outline" href="{{ url_for('admin_docs_detalle', doc_id=r.ID) }}">Ver detalle</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">Sin documentos pendientes.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

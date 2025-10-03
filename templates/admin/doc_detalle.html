@@ -1,0 +1,338 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía de Despacho (detalle)</title>
+  <style type="text/css">
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; }
+    body{
+      font-family: Arial, Helvetica, sans-serif;
+      background:#00c0cb;
+      background:-webkit-linear-gradient(left,#00c0cb,#0057d1);
+      background:   -moz-linear-gradient(left,#00c0cb,#0057d1);
+      background:        linear-gradient(to right,#00c0cb,#0057d1);
+      color:#333;
+      -webkit-text-size-adjust:100%;
+    }
+    a.top-link{
+      display:inline-block; margin:10px auto 8px;
+      background:#0d47a1; color:#fff; text-decoration:none;
+      padding:8px 14px; border-radius:10px; font-weight:bold;
+    }
+    .container{
+      width:94%; max-width:1200px; margin:16px auto;
+      background:#fff; border-radius:12px;
+      padding:16px 16px 20px;
+      box-shadow:2px 2px 8px rgba(0,0,0,.2);
+    }
+    h1{ margin:8px 0 10px; text-align:center; color:#0d47a1; font-size:22px; }
+    .badge{
+      display:inline-block; margin-left:8px; padding:4px 8px; border-radius:999px;
+      background:#e6fffa; color:#065f46; font-weight:700; font-size:13px; vertical-align:middle;
+    }
+    input, select, textarea{
+      width:100%; padding:10px 12px; font-size:16px;
+      border:1px solid #cfd6e4; border-radius:8px; line-height:1.2;
+      background:#f7f7f7;
+    }
+    input[readonly], textarea[readonly]{ background:#f7f7f7; }
+    select:disabled, input:disabled{ background:#f0f0f0; color:#333; }
+    label{ font-weight:bold; }
+    .table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch; }
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ border:1px solid #e5e9f2; padding:8px; vertical-align:middle; }
+    th{ background:#f0f4fa; text-align:left; }
+    .header-table{ min-width:760px; }
+    .items-table{ min-width:720px; }
+    .items-table th{ background:#0057d1; color:#fff; }
+    .items-table tbody tr:nth-child(even){ background:#f7f7f7; }
+    .dual{ display:flex; gap:6px; }
+    .dual .code{ width:110px; }
+    .dual .desc{ flex:1; }
+    .row{ display:flex; flex-wrap:wrap; gap:12px; margin:12px 0; }
+    .col{ width:100%; }
+    @media (min-width:720px){
+      .col-2{ width:48%; }
+      .col-3{ width:31.5%; }
+      .col-4{ width:23.5%; }
+    }
+    .options{ display:flex; flex-wrap:wrap; gap:12px 18px; margin:10px 0; font-size:16px; }
+    .options label{ display:inline-flex; align-items:center; gap:6px; }
+    .totals{ display:flex; flex-wrap:wrap; gap:20px; font-weight:bold; margin-top:10px; }
+    .footer-text{ margin-top:10px; text-align:right; color:#666; font-size:13px; }
+    .card{ background:#fff; border-radius:10px; padding:16px; margin-top:14px; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+  </style>
+</head>
+<body>
+
+  <a class="top-link" href="{{ url_for('admin_docs_inyeccion') }}">&larr; Volver</a>
+
+  <div class="container">
+    <h1>
+      Guía de Despacho (detalle)
+      {% if retira_cliente %}<span class="badge">RETIRA CLIENTE</span>{% endif %}
+    </h1>
+
+    <!-- Solo contenedor visual -->
+    <form>
+      <input type="hidden" value="{{ num_nota }}">
+
+      <!-- ===== Cabecera ===== -->
+      <div class="table-wrap">
+        <table class="header-table">
+          <tbody>
+            <tr>
+              <td><label>G/D N°</label></td>
+              <td><input type="text" value="{{ header.GD_NUM or '' }}" readonly></td>
+
+              <td><label>O/C N°</label></td>
+              <td><input type="text" value="{{ header.OC_NUM or '' }}" readonly></td>
+
+              <td><label>Fecha</label></td>
+              <td>
+                <input type="text"
+                       value="{{ (fecha_doc|string) if fecha_doc else datetime.utcnow().strftime('%Y-%m-%d') }}"
+                       readonly>
+              </td>
+            </tr>
+
+            <tr>
+              <td><label>FAV a</label></td>
+              <td colspan="2">
+                <div class="dual">
+                  <input class="code" type="text" value="{{ header.FAV_RUT or '' }}" readonly>
+                  <input class="desc" type="text" value="{{ header.FAV_RAZSOC or '' }}" readonly>
+                </div>
+              </td>
+              <td><label>Tipo Desp.</label></td>
+              <td colspan="2">
+                <select disabled>
+                  <option value="">{{ datos.get('Canal', '') or '–' }}</option>
+                </select>
+              </td>
+            </tr>
+
+            <tr>
+              <td><label>Desp. a</label></td>
+              <td colspan="2">
+                <div class="dual">
+                  <input class="code" type="text" value="{{ header.FAV_RUT or '' }}" readonly>
+                  <input class="desc" type="text" value="{{ header.FAV_RAZSOC or '' }}" readonly>
+                </div>
+              </td>
+              <td><label>Moneda</label></td>
+              <td>
+                <select disabled><option value="$" selected>$</option></select>
+              </td>
+              <td><input type="text" value="1.0000" readonly style="width:90px;"></td>
+            </tr>
+
+            <tr>
+              <td><label>Vendedor</label></td>
+              <td colspan="2">
+                <div class="dual">
+                  <input class="code" type="text" value="{{ header.VEND_CODIGO or '' }}" readonly>
+                  <input class="desc" type="text" value="{{ header.VEND_NOMBRE or '' }}" readonly>
+                </div>
+              </td>
+              <td><label>Descuento</label></td>
+              <td><input type="text" value="{{ header.DESCUENTO_UNICO_LINEAS or '' }}" readonly style="width:90px;"></td>
+              <td><label>%</label> <input type="checkbox" disabled></td>
+            </tr>
+
+            <tr>
+              <td><label>Entregar en</label></td>
+              <td colspan="2"><input type="text" value="{{ header.ENTREGAR_EN or '' }}" readonly></td>
+              <td><label>Comisión</label></td>
+              <td><input type="text" value="{{ header.COMISION or '' }}" readonly style="width:90px;"></td>
+              <td><label>%</label> <input type="checkbox" disabled></td>
+            </tr>
+
+            <tr>
+              <td><label>Sucursal</label></td>
+              <td colspan="2">
+                <div class="dual">
+                  <input class="code" type="text" value="{{ header.SUCURSAL or '' }}" readonly>
+                  <input class="desc" type="text" value="{{ header.SUCURSAL or '' }}" readonly>
+                </div>
+              </td>
+              <td><label>Glosa Pag.</label></td>
+              <td><input type="text" value="{{ header.GLOSA_PAG or '' }}" readonly></td>
+              <td>
+                <label>Pago a</label>
+                <input type="text" value="{{ pago_a_dias }}" readonly
+                       style="width:60px; background:#f5f5f5; text-align:right;"> días
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== Ítems ===== -->
+      <div class="table-wrap">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width:18%">Código</th>
+              <th>Descripción</th>
+              <th style="width:14%">Cantidad</th>
+              <th style="width:18%">Precio</th>
+              <th style="width:10%">D%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in detalles %}
+            <tr>
+              <td>{{ it.Codigo }}</td>
+              <td>{{ it.Descripcion }}</td>
+              <td style="text-align:right;">{{ it.Cantidad }}</td>
+              <td style="text-align:right;">{{ it.Precio }}</td>
+              <td style="text-align:right;">{% if it['D%'] is defined %}{{ it['D%'] }}{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center;color:#666;padding:18px;">Sin ítems cargados.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ===== Atención / Chofer / Observaciones ===== -->
+      <div class="row">
+        <div class="col col-2">
+          <label>Atención a</label>
+          <input type="text" value="{{ datos.get('atencion_a','') }}" readonly>
+        </div>
+        <div class="col col-2">
+          <label>Obra</label>
+          <input type="text" value="{{ datos.get('obra','') }}" readonly>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col col-3">
+          <label>Traslado Electr.</label>
+          <input type="text" value="{{ datos.get('traslado_elect','') }}" readonly>
+        </div>
+        <div class="col col-3">
+          <label>Patente</label>
+          <input type="text" value="{{ datos.get('patente','') }}" readonly>
+        </div>
+        <div class="col col-3">
+          <label>Rut Transportista</label>
+          <input type="text" value="{{ datos.get('rut_transportista','') }}" readonly>
+        </div>
+        <div class="col col-3">
+          <label>Rut Chofer</label>
+          <input type="text" value="{{ datos.get('rut_chofer','') }}" readonly>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <label>Observaciones</label>
+          <textarea rows="4" readonly>{{ obsfact_inicial }}</textarea>
+        </div>
+      </div>
+
+      <!-- ===== Referencias ===== -->
+      <h2 style="font-size:18px;color:#0d47a1;margin:10px 0;">Referencias a otros documentos</h2>
+      <div class="table-wrap">
+        <table class="refs-table">
+          <tbody>
+            <tr>
+              <td><strong>OC Referencia</strong></td>
+              <td><input type="text" value="{{ refs.oc_ref }}" readonly></td>
+              <td><strong>Fecha OC Referencia</strong></td>
+              <td><input type="text" value="{{ refs.fecha_oc_ref }}" readonly></td>
+            </tr>
+            <tr>
+              <td><strong>HES Referencia</strong></td>
+              <td><input type="text" value="{{ refs.hes_ref }}" readonly></td>
+              <td><strong>Fecha HES Referencia</strong></td>
+              <td><input type="text" value="{{ refs.fecha_hes_ref }}" readonly></td>
+            </tr>
+            <tr>
+              <td><strong>Guía Despacho Ref</strong></td>
+              <td><input type="text" value="{{ datos.get('guia_desp_ref','') }}" readonly></td>
+              <td><strong>Fecha Guía Despacho Ref</strong></td>
+              <td><input type="text" value="{{ datos.get('fecha_guia_desp_ref','') }}" readonly></td>
+            </tr>
+            <tr>
+              <td><strong>N° Contrato</strong></td>
+              <td><input type="text" value="{{ refs.numero_contrato }}" readonly></td>
+              <td><strong>Fecha Contrato</strong></td>
+              <td><input type="text" value="{{ datos.get('fecha_contrato','') }}" readonly></td>
+            </tr>
+            <tr>
+              <td><strong>N° Pedido (Nt de Vta)</strong></td>
+              <td><input type="text" value="{{ refs.numero_pedido }}" readonly></td>
+              <td><strong>Fecha Pedido (Nt de Vta)</strong></td>
+              <td><input type="text" value="{{ datos.get('fecha_pedido','') }}" readonly></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="options">
+        <label><input type="radio" disabled {% if datos.get('modo_despacho')=='retira_cliente' %}checked{% endif %}> Retira Cliente</label>
+        <label><input type="radio" disabled {% if datos.get('modo_despacho')=='packing' %}checked{% endif %}> Despacho Packing</label>
+        <label><input type="radio" disabled {% if datos.get('modo_despacho')=='tercero' %}checked{% endif %}> Despacho Tercero</label>
+      </div>
+
+      <div class="options">
+        <span style="font-weight:bold;">Emite Form Packing:</span>
+        <label><input type="radio" disabled {% if datos.get('emite_packing')=='si' %}checked{% endif %}> Sí</label>
+        <label><input type="radio" disabled {% if datos.get('emite_packing')=='no' %}checked{% endif %}> No</label>
+      </div>
+
+      <div class="options">
+        <label><input type="checkbox" disabled {% if datos.get('facturable') %}checked{% endif %}> Facturable</label>
+        <label><input type="checkbox" disabled {% if datos.get('facturada') %}checked{% endif %}> Facturada</label>
+        <label><input type="checkbox" disabled {% if datos.get('vobo') %}checked{% endif %}> V°B°</label>
+        <label><input type="checkbox" disabled {% if datos.get('nula') %}checked{% endif %}> Nula</label>
+        <label><input type="checkbox" disabled {% if datos.get('gd') %}checked{% endif %}> G/D</label>
+        <label><input type="checkbox" disabled {% if datos.get('trasp_bodega') %}checked{% endif %}> Traspaso a bodega</label>
+      </div>
+
+      <div class="totals">
+        <div>Neto: {{ "%.0f"|format(neto) }}</div>
+        <div>Otros Imp.: {{ "%.0f"|format(otros_imp) }}</div>
+      </div>
+
+      <!-- ===== Escaneos incluidos ===== -->
+      <div class="card">
+        <h3>Escaneos incluidos</h3>
+        <div class="table-wrap">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>NCODART</th>
+                <th>Cant. Escaneada</th>
+                <th>Serie</th>
+                <th>Hora</th>
+                <th>Operario</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in scans %}
+              <tr>
+                <td>{{ s.get('NCODART') }}</td>
+                <td>{{ s.get('CANT', 1) }}</td>
+                <td>{{ s.get('NSERIE','') }}</td>
+                <td>{{ s.get('TS') }}</td>
+                <td>{{ s.get('OPERARIO') }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" style="text-align:center;color:#666;padding:12px;">Sin escaneos.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</body>
+</html>

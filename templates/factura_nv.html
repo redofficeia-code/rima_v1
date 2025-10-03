@@ -48,6 +48,9 @@
       font-size:16px;          /* evita zoom en iOS/Android */
       line-height:1.2;
     }
+    input[readonly] {
+      background:#fafafa;
+    }
 
     /* ===== Tabla de cabecera (responsiva) ===== */
     .header-wrap { overflow:auto; -webkit-overflow-scrolling:touch; }
@@ -92,9 +95,7 @@
       gap:10px 12px;
       margin:12px 0;
     }
-    .fg-col {
-      width:100%;
-    }
+    .fg-col { width:100%; }
     .fg-2   { width:100%; }
     .fg-3   { width:100%; }
     .fg-4   { width:100%; }
@@ -149,57 +150,79 @@
       }
       .header-table td { border:0; padding-top:2px; }
     }
+
+    /* ===== Botonera ===== */
+    .actions {
+      margin-top:14px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .btn {
+      padding:10px 14px;
+      border:0; border-radius:8px;
+      cursor:pointer;
+      font-weight:bold;
+    }
+    .btn-primary { background:#0d47a1; color:#fff; }
+    .btn-secondary { background:#e0e7ff; color:#0d47a1; }
   </style>
 </head>
 <body>
   <div class="invoice-container">
     <h1>Factura de Venta</h1>
 
-    <form>
+    <!-- Importante: POST a la misma ruta (endpoint 'factura_nv') para enviar a OUTBOX -->
+    <form method="post" action="{{ url_for('factura_nv') }}">
+      <input type="hidden" name="num_nota" value="{{ num_nota }}">
+
       <!-- ===== Cabecera ===== -->
       <div class="header-wrap">
         <table class="header-table">
           <tr>
             <td class="label">FAV Nº</td>
-            <td><input id="fav" name="fav" type="text"></td>
+            <td><input id="fav" name="fav" type="text" value="{{ fav.FAV_NRO or '' }}" readonly></td>
             <td class="label">Fecha</td>
-            <td><input id="fecha" name="fecha" type="date"></td>
+            <td><input id="fecha" name="fecha" type="date" value="{{ fav.FECHA or '' }}" readonly></td>
             <td class="label">Vencimiento</td>
-            <td><input id="vencimiento" name="vencimiento" type="date"></td>
+            <td><input id="vencimiento" name="vencimiento" type="date" value="{{ fav.VENCIMIENTO or '' }}" readonly></td>
           </tr>
           <tr>
-            <td class="label">FAV A</td>
-            <td><input id="fav_a_codigo" name="fav_a_codigo" type="text"></td>
-            <td colspan="2"><input id="fav_a_nombre" name="fav_a_nombre" type="text" value="{{ header.FAV_A or '' }}"></td>
+            <td class="label">FAV A (RUT)</td>
+            <td><input id="fav_a_codigo" name="fav_a_codigo" type="text" value="{{ fav.RUT_CLIENTE or '' }}" readonly></td>
+            <td colspan="2">
+              <input id="fav_a_nombre" name="fav_a_nombre" type="text" value="{{ fav.RAZON_SOCIAL or '' }}" readonly>
+            </td>
             <td class="label">Fec. Aceptación</td>
             <td><input id="aceptacion" name="aceptacion" type="date"></td>
           </tr>
           <tr>
             <td class="label">Glosa Pago</td>
-            <td colspan="5"><input id="glosa_pago" name="glosa_pago" type="text"></td>
+            <td colspan="5"><input id="glosa_pago" name="glosa_pago" type="text" value="{{ fav.GLOSA_PAGO or '' }}"></td>
           </tr>
           <tr>
-            <td class="label">Cliente</td>
-            <td><input id="cliente_codigo" name="cliente_codigo" type="text"></td>
-            <td colspan="2"><input id="cliente_nombre" name="cliente_nombre" type="text"></td>
+            <td class="label">Cliente (RUT)</td>
+            <td><input id="cliente_codigo" name="cliente_codigo" type="text" value="{{ fav.RUT_CLIENTE or '' }}" readonly></td>
+            <td colspan="2"><input id="cliente_nombre" name="cliente_nombre" type="text" value="{{ fav.RAZON_SOCIAL or '' }}" readonly></td>
             <td class="label">Moneda</td>
-            <td><input id="moneda" name="moneda" type="text" value="1" readonly></td>
+            <td><input id="moneda" name="moneda" type="text" value="{{ fav.MONEDA or '' }}" readonly></td>
           </tr>
           <tr>
             <td class="label">Comisionista</td>
             <td><input id="comisionista_codigo" name="comisionista_codigo" type="text"></td>
             <td><input id="comisionista_nombre" name="comisionista_nombre" type="text"></td>
             <td class="label">Vendedor</td>
-            <td><input id="vendedor_codigo" name="vendedor_codigo" type="text" value="{{ header.VEND_CODIGO or '' }}"></td>
-            <td><input id="vendedor_nombre" name="vendedor_nombre" type="text"></td>
+            <td><input id="vendedor_codigo" name="vendedor_codigo" type="text" value="{{ fav.CODVEND or '' }}" readonly></td>
+            <td><input id="vendedor_nombre" name="vendedor_nombre" type="text" value="{{ fav.VENDEDOR or '' }}" readonly></td>
           </tr>
           <tr>
             <td class="label">Comisión %</td>
             <td><input id="comision_pct" name="comision_pct" type="number" step="0.01"></td>
             <td class="label">GD Nº</td>
-            <td><input id="gd" name="gd" type="text"></td>
+            <td><input id="gd" name="gd" type="text" value=""></td>
             <td class="label">O/C Nº</td>
-            <td><input id="oc" name="oc" type="text"></td>
+            <td><input id="oc" name="oc" type="text" value=""></td>
           </tr>
           <tr>
             <td class="label">Tipo Venta</td>
@@ -216,7 +239,7 @@
         </table>
       </div>
 
-      <!-- ===== Ítems ===== -->
+      <!-- ===== Ítems (escaneados) ===== -->
       <div class="table-wrap">
         <table class="items">
           <thead>
@@ -228,12 +251,30 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><input type="text" name="code1"></td>
-              <td><input type="text" name="desc1"></td>
-              <td><input type="number" name="qty1" min="0"></td>
-              <td><input type="number" name="price1" step="0.01" min="0"></td>
-            </tr>
+            {% if detalles and detalles|length %}
+              {% for it in detalles %}
+                <tr>
+                  <td>
+                    {{ it.codigo or it['Código'] }}
+                    <input type="hidden" name="item_codigo_{{ loop.index }}" value="{{ it.codigo or it['Código'] }}">
+                  </td>
+                  <td>
+                    {{ it.nombre or it['Descripcion'] or it['Descripción'] or '' }}
+                    <input type="hidden" name="item_desc_{{ loop.index }}" value="{{ it.nombre or it['Descripcion'] or it['Descripción'] or '' }}">
+                  </td>
+                  <td>
+                    {{ it.cantidad or it['Cant.Salida'] or it['Cantidad'] }}
+                    <input type="hidden" name="item_qty_{{ loop.index }}" value="{{ it.cantidad or it['Cant.Salida'] or it['Cantidad'] }}">
+                  </td>
+                  <td>
+                    {{ it.prec_unit or it['Prec.Unit.'] or 0 }}
+                    <input type="hidden" name="item_price_{{ loop.index }}" value="{{ it.prec_unit or it['Prec.Unit.'] or 0 }}">
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="4">No hay productos preparados (no se han escaneado ítems).</td></tr>
+            {% endif %}
           </tbody>
         </table>
       </div>
@@ -345,6 +386,12 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== Botonera ===== -->
+      <div class="actions">
+        <a class="btn btn-secondary" href="{{ url_for('finalizar_salida') }}">Cancelar</a>
+        <button type="submit" class="btn btn-primary">Enviar al Jefe (inyectar)</button>
+      </div> 
     </form>
   </div>
 </body>

@@ -1,109 +1,182 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <!-- Aunque HTML4 no lo define, los navegadores móviles sí usan viewport -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finalización de Recepción</title>
-  <style type="text/css">
-    /* Reset básico y caja consistente */
+  <meta charset="utf-8">
+  <title>Finalización de Salida</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <style>
+    :root { --azul:#0057d1; --amarillo:#ffc107; }
     * { box-sizing: border-box; }
-    html, body { margin:0; padding:0; }
+    html, body { height: 100%; }
+
     body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #00c0cb;
-      background: -webkit-linear-gradient(left, #00c0cb, #0057d1);
-      background: -moz-linear-gradient(left, #00c0cb, #0057d1);
-      background: linear-gradient(to right, #00c0cb, #0057d1);
-      color:#333;
-      text-align:center;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0057d1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center; /* PC: centrado vertical */
+      padding: 20px;
+      color: #111;
     }
 
-    /* Contenedor principal */
-    .wrap {
-      width: 94%;
-      max-width: 640px;            /* cómodo para escáneres RF y móviles */
-      margin: 16px auto;
-      background:#fff;
-      border-radius:8px;
-      padding:16px 16px 20px;
-      -webkit-box-shadow: 2px 2px 8px rgba(0,0,0,.2);
-      box-shadow: 2px 2px 8px rgba(0,0,0,.2);
+    /* Forzar modo RF con clase .rf (útil con ?rf=1) */
+    body.rf { justify-content: flex-start; padding: 12px; }
+
+    /* ===== Logo más pequeño ===== */
+    .logo {
+      display:block;
+      height: 64px;          /* tamaño base más chico */
+      width: auto;           /* mantiene proporción */
+      margin: 0 auto 8px;
     }
 
-    .top-link {
+    .top-button {
+      background: var(--amarillo);
+      border: none;
+      padding: 8px 16px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      text-decoration: none;
+      color:#111;
       display:inline-block;
-      margin: 10px auto 8px;
-      background:#0d47a1;
-      color:#fff; text-decoration:none;
-      padding:8px 14px; border-radius:10px;
-      font-weight:bold;
+      touch-action: manipulation;
     }
+    .top-button:active { transform: translateY(1px); }
 
-    h2 {
-      margin: 8px 0 6px;
-      color:#0d47a1;
-      font-size: 22px;
+    .container {
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      text-align: center;
+      margin-bottom: 16px;
+      max-width: 780px;
+      width: 100%;
     }
-    p { margin: 6px 0 16px; font-size: 16px; }
+    .container h2 { margin: 0 0 8px 0; color: #003366; font-size: 22px; }
+    .subtitle { margin: 0 0 12px 0; color: #333; }
 
-    /* Botones táctiles grandes */
+    .button-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    .button-row form { display:inline; }
+
     .btn {
-      display:block;                 /* 100% ancho en mobile */
-      width:100%;
-      text-align:center;
-      text-decoration:none;
-      background:#0d47a1;
-      color:#fff;
-      border:0;
-      border-radius:10px;
-      padding:14px 12px;             /* alto táctil >=44px */
-      margin:10px 0;
-      font-size:18px;
-      font-weight:bold;
-      cursor:pointer;
+      background: var(--azul);
+      color: #fff;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+      min-width: 200px;
+      flex: 1 1 220px;
+      line-height: 1.2;
+      touch-action: manipulation;
     }
-    .btn:focus, .btn:hover { background:#00c0cb; color:#0d47a1; }
+    .btn:active { transform: translateY(1px); }
 
-    .btn-secondary { background:#6c757d; }
-    .btn-secondary:hover, .btn-secondary:focus { background:#8a8f94; color:#fff; }
-
-    /* Grid simple para pantallas anchas */
-    .btn-grid { width:100%; }
-    @media (min-width: 560px) {
-      .btn-grid {
-        display:-ms-flexbox; display:flex;
-        -ms-flex-wrap:wrap; flex-wrap:wrap;
-        -ms-flex-pack:justify; justify-content:space-between;
-        gap:12px;
-      }
-      .btn-grid .btn { width:48%; margin:6px 0; } /* dos columnas */
-      .btn-grid .btn.full { width:100%; }
+    /* OBS NV */
+    .obsfact-box {
+      max-width: 780px;
+      width: 100%;
+      background: #ffffffcc;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 14px 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      font-size: 14px;
+      color: #333;
     }
+    .obsfact-box h3 { margin: 0 0 6px 0; font-size: 16px; color: #222; }
+
+    /* ====== PC / pantallas medianas+ ====== */
+    @media (min-width:600px){
+      .logo { height: 80px; }  /* un poco más grande en desktop */
+    }
+
+    /* ====== RF / pantallas pequeñas ====== */
+    @media (max-width: 480px), (max-height: 360px) {
+      body { justify-content: flex-start; padding: 12px; }
+      .logo { height: 48px; }  /* pequeño en RF */
+      .top-button { width: 100%; text-align:center; padding: 10px 12px; }
+
+      .container { padding: 14px; border-radius: 10px; box-shadow: none; }
+      .container h2 { font-size: 18px; }
+      .subtitle { font-size: 14px; }
+
+      .button-row { flex-direction: column; align-items: stretch; gap: 8px; }
+      .button-row form, .button-row a.btn { width: 100%; }
+      .btn { width: 100%; min-width: 0; padding: 14px 12px; font-size: 16px; border-radius: 12px; }
+
+      .obsfact-box { padding: 10px 12px; font-size: 13px; }
+      .obsfact-box h3 { font-size: 14px; }
+    }
+
+    /* ====== Forzar RF siempre con clase .rf ====== */
+    body.rf .logo { height: 48px; }
+    body.rf .button-row { flex-direction: column; align-items: stretch; gap: 8px; }
+    body.rf .button-row form, body.rf .button-row a.btn { width: 100%; }
+    body.rf .btn { width: 100%; min-width: 0; padding: 14px 12px; font-size: 16px; border-radius: 12px; }
+    body.rf .container { padding: 14px; border-radius: 10px; box-shadow: none; }
+    body.rf .top-button { width:100%; text-align:center; padding: 10px 12px; }
+    body.rf .obsfact-box { padding: 10px 12px; font-size: 13px; }
+    body.rf .obsfact-box h3 { font-size: 14px; }
   </style>
 </head>
-<body>
 
-  <a class="top-link" href="{{ url_for('index') }}">Inicio</a>
+<!-- Forzar RF con ?rf=1 o pasando rf=True al render_template -->
+<body class="{% if request.args.get('rf') == '1' or (rf|default(false)) %}rf{% endif %}">
 
-  <div class="wrap">
-    <h2>Recepción Finalizada</h2>
-    <p>Puedes descargar los siguientes documentos:</p>
+  <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="RIMA" class="logo">
+  <a class="top-button" href="{{ url_for('index') }}">Inicio</a>
 
-    <div class="btn-grid">
-      <!-- Informe de diferencias -->
-      <a class="btn full" href="/ingreso/diferencias.xls">📊 Descargar Informe de Diferencias</a>
+  <div class="container">
+    <h2>Salida finalizada</h2>
+    <p class="subtitle">Elige qué documento generar para la NV <strong>{{ num_nota or '—' }}</strong>:</p>
 
-      <!-- Guía de despacho -->
-      <a class="btn" href="{{ url_for('guia_despacho', num_nota=num_nota) }}">🚚 Guía de Despacho</a>
+    <div class="button-row">
+      <!-- Guía de Despacho -->
+      <form method="POST" action="{{ url_for('salida_preparar_guia') }}" style="display:inline">
+        <input type="hidden" name="num_nota" value="{{ num_nota }}">
+        <button class="btn" type="submit">🚛 Guía de Despacho</button>
+      </form>
 
-      <!-- Factura: apuntar al endpoint correcto -->
-      <a class="btn" href="{{ url_for('factura_nv', num_nota=num_nota) }}">🧾 Factura</a>
+      <!-- Factura (usar lo escaneado) -->
+      <form method="POST" action="{{ url_for('salida_preparar_guia') }}" style="display:inline">
+        <input type="hidden" name="num_nota" value="{{ num_nota }}">
+        <input type="hidden" name="go" value="factura">
+        <button class="btn" type="submit">🧾 Factura</button>
+      </form>
 
+      <!-- Boleta -->
+      <a class="btn" href="{{ url_for('boleta_alias', num_nota=num_nota) }}">🧾 Boleta</a>
+
+      {# Botón de Diferencias (opcional con show_diferencias=True) #}
+      {% if show_diferencias %}
+        <a class="btn" href="{{ url_for('download_diferencias', num_nota=num_nota) }}">📄 Diferencias</a>
+      {% endif %}
     </div>
-
-    <a class="btn btn-secondary full" href="{{ url_for('ingreso') }}">🔙 Volver al Inicio</a>
   </div>
+
+  {# AHORA muestra la observación de la Nota de Venta (OBSGRAL) #}
+  {% if obs_nota_venta %}
+  <div class="obsfact-box">
+    <h3>Observación de la Nota de Venta</h3>
+    <p style="white-space:pre-wrap">{{ obs_nota_venta }}</p>
+  </div>
+  {% endif %}
 
 </body>
 </html>

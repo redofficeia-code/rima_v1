@@ -1,0 +1,37 @@
+<div>
+  <h4 style="margin:6px 0 10px 0;">Detalle NV {{ num }}</h4>
+  {% if det and det|length %}
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr style="background:#eef2ff;">
+          <th style="text-align:left;padding:6px 8px;">Ítem</th>
+          <th style="text-align:left;padding:6px 8px;">Código</th>
+          <th style="text-align:left;padding:6px 8px;">Descripción</th>
+          <th style="text-align:right;padding:6px 8px;">Cant.</th>
+          <th style="text-align:right;padding:6px 8px;">Desp.</th>
+          <th style="text-align:right;padding:6px 8px;">Pend.</th>
+          <th style="text-align:left;padding:6px 8px;">Bodega</th>
+          <th style="text-align:left;padding:6px 8px;">Serie</th>
+          <th style="text-align:right;padding:6px 8px;">Prec.Unit.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in det %}
+        <tr style="border-bottom:1px solid #eef2f7;">
+          <td style="padding:6px 8px;">{{ x.ITEM }}</td>
+          <td style="padding:6px 8px;">{{ x.Codigo }}</td>
+          <td style="padding:6px 8px;">{{ x.Descripcion }}</td>
+          <td style="text-align:right;padding:6px 8px;">{{ x.Cantidad }}</td>
+          <td style="text-align:right;padding:6px 8px;">{{ x.Despachada }}</td>
+          <td style="text-align:right;padding:6px 8px;">{{ x.Pendiente }}</td>
+          <td style="padding:6px 8px;">{{ x.BODEGA }}</td>
+          <td style="padding:6px 8px;">{{ x.Serie }}</td>
+          <td style="text-align:right;padding:6px 8px;">{{ x.PrecioUnit }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <em>No hay líneas para esta nota.</em>
+  {% endif %}
+</div>

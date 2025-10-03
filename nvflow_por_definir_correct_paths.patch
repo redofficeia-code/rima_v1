@@ -1,0 +1,106 @@
+--- a/bodega_app/db_utils.py+++ b/bodega_app/db_utils.py@@ -62,7 +62,7 @@     with _ENGINE_RIMA.begin() as cx:
+         row = cx.execute(sql, {"n": int(num_nota)}).mappings().first()
+     return dict(row) if row else {
+-        "ESTADO": "PEND",
++        "ESTADO": "",
+         "ZONA_ID": None,
+         "RETIRA_CLIENTE": 0
+     }
+
+--- a/bodega_app/templates/admin/nv_gestionar.html+++ b/bodega_app/templates/admin/nv_gestionar.html@@ -177,84 +177,16 @@               <div class="sub-block" style="gap:12px;">
+                 <span class="sub-title">Flujo:</span>
+ 
+-                {% if estado in ['APROB','PEND'] %}
+-                  <div class="chipbox">
+-                    {% if estado == 'APROB' %}
+-                      <span class="pill ok">APROBADA</span>
+-                    {% elif estado == 'PEND' %}
+-                      <span class="pill bad">PENDIENTE</span>
+-                    {% endif %}
+-                  </div>
+-                {% endif %}
+-
+-                <div class="chipbox">
+-                  {% if retira %}
+-                    <span class="pill">RETIRA CLIENTE</span>
+-                  {% else %}
+-                    <span class="pill gray">No retira</span>
+-                  {% endif %}
+-                </div>
+-
+-                <div class="acciones">
+-                  <form method="post" action="{{ url_for('admin_nv_aprobar', num_nota=r.NumNota) }}">
+-                    <input type="hidden" name="next" value="{{ url_for('admin_nv_gestionar') }}">
+-                    <button type="submit" class="btn btn-green">Aprobar</button>
+-                  </form>
+-
+-                  <form method="post" action="{{ url_for('admin_nv_pendiente', num_nota=r.NumNota) }}">
+-                    <input type="hidden" name="next" value="{{ url_for('admin_nv_gestionar') }}">
+-                    <button type="submit" class="btn btn-red">Pendiente</button>
+-                  </form>
+-
+-                  <form method="post" action="{{ url_for('admin_nv_retira', num_nota=r.NumNota) }}" style="display:flex;align-items:center;gap:6px;">
+-                    <input type="hidden" name="next" value="{{ url_for('admin_nv_gestionar') }}">
+-                    <label>
+-                      <input type="checkbox" name="retira" value="1" {% if retira %}checked{% endif %}>
+-                      Retira cliente
+-                    </label>
+-                    <button type="submit" class="btn">Guardar</button>
+-                  </form>
+-                </div>
+-              </div>
+-
+-              <!-- Zona -->
+-              <div class="sub-block" style="gap:12px;">
+-                <span class="sub-title">Zona:</span>
+-                <div class="zona-cell">
+-                  <form method="post" action="{{ url_for('admin_nv_asignar', num_nota=r.NumNota) }}" style="display:flex; gap:8px; align-items:center;">
+-                    <input type="hidden" name="next" value="{{ url_for('admin_nv_gestionar') }}">
+-                    <select name="zona_id" class="zona-select" {% if estado != 'APROB' %}disabled{% endif %}>
+-                      <option value="" {% if not r.ZonaAsignada and not r.ZonaID %}selected{% endif %}>— Selecciona zona —</option>
+-                      {% for z in zonas %}
+-                        <option value="{{ z.ID }}"
+-                          {% if r.ZonaID and r.ZonaID == z.ID %}selected{% elif r.ZonaAsignada and r.ZonaAsignada|upper == z.NOMBRE|upper %}selected{% endif %}>
+-                          {{ z.NOMBRE }}
+-                        </option>
+-                      {% endfor %}
+-                    </select>
+-                    <button type="submit" class="btn btn-prim" {% if estado != 'APROB' %}disabled{% endif %}>Asignar</button>
+-                  </form>
+-
+-                  {% if r.ZonaAsignada %}
+-                    <small class="pill zona-actual">Actual: {{ r.ZonaAsignada }}</small>
+-                  {% else %}
+-                    <small class="pill gray zona-actual">Sin asignar</small>
+-                  {% endif %}
+-                </div>
+-              </div>
+-
+-            </div>
+-          </td>
+-        </tr>
+-
+-        {% endfor %}
+-
+-        {% if rows|length == 0 %}
+-        <tr class="mainrow"><td colspan="10" style="color:#666; text-align:center;">No hay datos para mostrar.</td></tr>
+-        {% endif %}
+-      </tbody>
+-    </table>
+-  </div>
+-</div>
+-</body>
+-</html>
++                {% if estado in ['APROB','PEND'] %}
++                  <div class="chipbox">
++                    {% if estado == 'APROB' %}
++                      <span class="pill ok">APROBADA</span>
++                    {% elif estado == 'PEND' %}
++                      <span class="pill bad">PENDIENTE</span>
++                    {% endif %}
++                  </div>
++                {% else %}
++                  <div class="chipbox">
++                    <span class="pill gray">POR DEFINIR</span>
++                  </div>
++                {% endif %}

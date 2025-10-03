@@ -2,35 +2,63 @@
 <html lang="es">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Viewport y compat RF -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>Guía de Despacho</title>
   <style type="text/css">
     /* ===== Base ===== */
     * { box-sizing: border-box; }
     html, body { margin:0; padding:0; }
+    @-ms-viewport { width: device-width; }
+
+    :root{
+      --azul:#0057d1;
+      --amarillo:#ffc107;
+      --azul-osc:#0d47a1;
+    }
+
     body{
       font-family: Arial, Helvetica, sans-serif;
-      background:#00c0cb;
-      background:-webkit-linear-gradient(left,#00c0cb,#0057d1);
-      background:   -moz-linear-gradient(left,#00c0cb,#0057d1);
-      background:        linear-gradient(to right,#00c0cb,#0057d1);
+      background: var(--azul); /* Azul sólido del index */
       color:#333;
       -webkit-text-size-adjust:100%;
     }
+
+    /* Barra superior con botón Inicio centrado */
+    .top-bar{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px 10px 6px;
+    }
     a.top-link{
-      display:inline-block; margin:10px auto 8px;
-      background:#0d47a1; color:#fff; text-decoration:none;
-      padding:8px 14px; border-radius:10px; font-weight:bold;
+      display:block;
+      margin:0 auto;
+      background:var(--amarillo);
+      color:#111; text-decoration:none;
+      padding:10px 18px;
+      border-radius:12px;
+      font-weight:bold;
+      font-size:16px;
+      line-height:1;
+      box-shadow: 0 2px 6px rgba(0,0,0,.2);
+      border:1px solid rgba(0,0,0,.08);
+    }
+    a.top-link:focus,
+    a.top-link:hover{
+      filter:brightness(0.95);
     }
 
     .container{
-      width:94%; max-width:1200px; margin:16px auto;
+      width:94%; max-width:1200px; margin:12px auto 16px;
       background:#fff; border-radius:12px;
       padding:16px 16px 20px;
       -webkit-box-shadow:2px 2px 8px rgba(0,0,0,.2);
               box-shadow:2px 2px 8px rgba(0,0,0,.2);
     }
-    h1{ margin:8px 0 10px; text-align:center; color:#0d47a1; font-size:22px; }
+    h1{ margin:8px 0 10px; text-align:center; color:var(--azul-osc); font-size:22px; }
     .badge{
       display:inline-block; margin-left:8px; padding:4px 8px; border-radius:999px;
       background:#e6fffa; color:#065f46; font-weight:700; font-size:13px; vertical-align:middle;
@@ -38,38 +66,30 @@
 
     /* ===== Inputs táctiles ===== */
     input, select, textarea{
-      width:100%; padding:10px 12px; font-size:16px;
+      width:100%; padding:10px 12px; font-size:16px; /* >=16px evita auto-zoom */
       border:1px solid #cfd6e4; border-radius:8px; line-height:1.2;
     }
+    input[readonly]{ background:#f5f7fb; }
     label{ font-weight:bold; }
 
-    /* ===== Tablas con scroll táctil ===== */
+    /* ===== Tablas ===== */
     .table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch; }
     table{ width:100%; border-collapse:collapse; }
     th, td{ border:1px solid #e5e9f2; padding:8px; vertical-align:middle; }
     th{ background:#f0f4fa; text-align:left; }
 
-    /* Cabecera: table “ancha” con scroll en móvil */
     .header-table{ min-width:760px; }
     .items-table{ min-width:720px; }
-    .items-table th{ background:#0057d1; color:#fff; }
+    .items-table th{ background:var(--azul); color:#fff; }
     .items-table tbody tr:nth-child(even){ background:#f7f7f7; }
 
-    /* Dual input sin grid */
-    .dual{
-      display:-ms-flexbox; display:flex;
-      gap:6px;
-    }
+    /* Dual input */
+    .dual{ display:flex; gap:6px; }
     .dual .code{ width:110px; }
-    .dual .desc{ -ms-flex:1; flex:1; }
+    .dual .desc{ flex:1; }
 
     /* Filas/columnas flexibles (apilan en móvil) */
-    .row{
-      display:-ms-flexbox; display:flex;
-      -ms-flex-wrap:wrap; flex-wrap:wrap;
-      gap:12px;
-      margin:12px 0;
-    }
+    .row{ display:flex; flex-wrap:wrap; gap:12px; margin:12px 0; }
     .col{ width:100%; }
     @media (min-width:720px){
       .col-2{ width:48%; }
@@ -77,38 +97,104 @@
       .col-4{ width:23.5%; }
     }
 
-    /* Grupos de opciones */
-    .options{
-      display:-ms-flexbox; display:flex;
-      -ms-flex-wrap:wrap; flex-wrap:wrap;
-      gap:12px 18px; margin:10px 0;
-      font-size:16px;
-    }
-    .options label{ display:-ms-inline-flexbox; display:inline-flex; -ms-align-items:center; align-items:center; gap:6px; }
+    .options{ display:flex; flex-wrap:wrap; gap:12px 18px; margin:10px 0; font-size:16px; }
+    .options label{ display:inline-flex; align-items:center; gap:6px; }
     .options input{ width:auto; }
 
-    /* Totales y pie */
-    .totals{
-      display:-ms-flexbox; display:flex;
-      -ms-flex-wrap:wrap; flex-wrap:wrap;
-      gap:20px; font-weight:bold; margin-top:10px;
-    }
+    .totals{ display:flex; flex-wrap:wrap; gap:20px; font-weight:bold; margin-top:10px; }
     .footer-text{ margin-top:10px; text-align:right; color:#666; font-size:13px; }
 
-    /* Botones estilo enlace (compatibles RF) */
     .btn{
-      display:inline-block; background:#0d47a1; color:#fff; text-decoration:none;
+      display:inline-block; background:var(--azul-osc); color:#fff; text-decoration:none;
       padding:12px 16px; border-radius:10px; font-size:18px; font-weight:bold; cursor:pointer; border:0;
     }
     .btn + .btn{ margin-left:8px; }
-    .btn-primary{ background:#0d47a1; }
-    .btn-success{ background:#1b8f4b; }
-    .btn:focus, .btn:hover{ background:#00c0cb; color:#0d47a1; }
+    .btn-primary{ background:var(--azul-osc); }
+    .btn:focus, .btn:hover{ background:#00c0cb; color:var(--azul-osc); }
+
+    /* =====================================================
+       RF STACK MODE: apila TODO en columna
+       ===================================================== */
+    @media (max-width: 768px) {
+      body:not(.rf) .rf-stack-on-small { display:block; }
+      body:not(.rf) .rf-stack-on-small .header-table,
+      body:not(.rf) .rf-stack-on-small .header-table tbody,
+      body:not(.rf) .rf-stack-on-small .header-table tr,
+      body:not(.rf) .rf-stack-on-small .header-table td,
+      body:not(.rf) .rf-stack-on-small .header-table th,
+      body:not(.rf) .rf-stack-on-small .refs-table,
+      body:not(.rf) .rf-stack-on-small .refs-table tbody,
+      body:not(.rf) .rf-stack-on-small .refs-table tr,
+      body:not(.rf) .rf-stack-on-small .refs-table td,
+      body:not(.rf) .rf-stack-on-small .refs-table th {
+        display:block; width:100%;
+      }
+      body:not(.rf) .rf-stack-on-small .header-table,
+      body:not(.rf) .rf-stack-on-small .refs-table { min-width:0; border:0; }
+      body:not(.rf) .rf-stack-on-small .header-table tr,
+      body:not(.rf) .rf-stack-on-small .refs-table tr {
+        margin-bottom:8px; border:1px solid #eee; border-left:0; border-right:0;
+      }
+      body:not(.rf) .rf-stack-on-small .header-table td,
+      body:not(.rf) .rf-stack-on-small .refs-table td { border:0; padding:6px 2px; }
+      body:not(.rf) .rf-stack-on-small .header-table td label{ display:block; margin-bottom:4px; }
+
+      body:not(.rf) .rf-stack-on-small .dual{ flex-direction:column; gap:6px; }
+      body:not(.rf) .rf-stack-on-small .dual .code,
+      body:not(.rf) .rf-stack-on-small .dual .desc{ width:100%; }
+
+      .items-table{ min-width:520px; }
+    }
+
+    /* ===== Forzar RF siempre con clase .rf en <body> ===== */
+    body.rf .header-table,
+    body.rf .header-table tbody,
+    body.rf .header-table tr,
+    body.rf .header-table td,
+    body.rf .header-table th,
+    body.rf .refs-table,
+    body.rf .refs-table tbody,
+    body.rf .refs-table tr,
+    body.rf .refs-table td,
+    body.rf .refs-table th {
+      display:block; width:100%;
+    }
+    body.rf .header-table,
+    body.rf .refs-table { min-width:0; border:0; }
+    body.rf .header-table tr,
+    body.rf .refs-table tr {
+      margin-bottom:8px; border:1px solid #eee; border-left:0; border-right:0;
+    }
+    body.rf .header-table td,
+    body.rf .refs-table td { border:0; padding:6px 2px; }
+    body.rf .header-table td label{ display:block; margin-bottom:4px; }
+    body.rf .dual{ flex-direction:column; gap:6px; }
+    body.rf .dual .code,
+    body.rf .dual .desc{ width:100%; }
+
+    @media (max-width: 768px), (max-height: 360px) {
+      .container{ width:96%; margin:8px auto; padding:10px; border-radius:10px; box-shadow:none; }
+      h1{ font-size:16px; margin:6px 0 8px; }
+      .badge{ font-size:11px; padding:3px 6px; }
+      input, select, textarea{ padding:8px 10px; font-size:16px; border-radius:10px; }
+      label{ font-size:12px; }
+      .row{ gap:8px; margin:8px 0; }
+      .options{ flex-direction:column; align-items:flex-start; gap:6px; font-size:14px; }
+      .options label{ width:100%; }
+      .totals{ flex-direction:column; gap:6px; }
+      .btn{ width:100%; padding:12px 10px; font-size:16px; border-radius:12px; }
+      .btn + .btn{ margin-left:0; margin-top:6px; }
+      .footer-text{ font-size:12px; text-align:center; }
+    }
   </style>
 </head>
-<body>
 
-  <a class="top-link" href="{{ url_for('index') }}">Inicio</a>
+<!-- Agrega clase .rf automáticamente con ?rf=1 o si pasas rf=True desde Flask -->
+<body class="{% if request.args.get('rf') == '1' or (rf|default(false)) %}rf{% endif %}">
+
+  <div class="top-bar">
+    <a class="top-link" href="{{ url_for('index') }}">Inicio</a>
+  </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -120,17 +206,17 @@
     {% endif %}
   {% endwith %}
 
-  <div class="container">
+  <div class="container rf-stack-on-small">
     <h1>
       Guía de Despacho
       {% if retira_cliente %}<span class="badge">RETIRA CLIENTE</span>{% endif %}
     </h1>
 
-    <form method="POST" action="#">
-      <!-- valores necesarios para el POST -->
+    <form method="POST" action="{{ url_for('docs_enviar') }}">
+      <!-- la app procesa num_nota y re-lee desde la BD -->
       <input type="hidden" name="num_nota" value="{{ num_nota }}">
+
       {% if retira_cliente %}
-        <!-- cuando el radio está disabled, no se envía; este hidden asegura el valor -->
         <input type="hidden" name="modo_despacho" value="retira_cliente">
       {% endif %}
 
@@ -140,21 +226,31 @@
           <tbody>
             <tr>
               <td><label>G/D N°</label></td>
-              <td><input type="text" name="gd_num" value="{{ header.GD_NUM or '' }}" readonly></td>
+              <td>
+                <input type="text" name="gd_num" value="{{ header.GD_NUM or '' }}" readonly>
+              </td>
 
               <td><label>O/C N°</label></td>
-              <td><input type="text" name="oc_num" value="{{ header.OC_NUM or '' }}"></td>
+              <td>
+                <input type="text" name="oc_num" value="{{ header.OC_NUM or header.NUMORDEN or '' }}">
+              </td>
 
               <td><label>Fecha</label></td>
-              <td><input type="date" name="fecha" value="{{ datetime.utcnow().strftime('%Y-%m-%d') }}"></td>
+              <td>
+                <input type="date" name="fecha"
+                  value="{{ (header.FECHA or datetime.utcnow().strftime('%Y-%m-%d')) }}">
+              </td>
             </tr>
 
             <tr>
               <td><label>FAV a</label></td>
               <td colspan="2">
                 <div class="dual">
-                  <input class="code" type="text" name="fav_rut" value="{{ header.FAV_RUT or '' }}">
-                  <input class="desc" type="text" name="fav_razsoc" value="{{ header.FAV_RAZSOC or '' }}">
+                  <!-- Soporta ambos headers: FAV_RUT (viejo) o RUTFACT (nuevo) -->
+                  <input class="code" type="text" name="fav_rut"
+                         value="{{ header.FAV_RUT or header.RUTFACT or '' }}">
+                  <input class="desc" type="text" name="fav_razsoc"
+                         value="{{ header.FAV_RAZSOC or header.RAZON_SOCIAL or '' }}">
                 </div>
               </td>
               <td><label>Tipo Desp.</label></td>
@@ -170,8 +266,11 @@
               <td><label>Desp. a</label></td>
               <td colspan="2">
                 <div class="dual">
-                  <input class="code" type="text" name="desp_a_codigo" value="{{ header.FAV_RUT or '' }}">
-                  <input class="desc" type="text" name="desp_a_desc" value="{{ header.FAV_RAZSOC or '' }}">
+                  <!-- En “despacho a” mostramos lo mismo del cliente de la NV -->
+                  <input class="code" type="text" name="desp_a_codigo"
+                         value="{{ header.FAV_RUT or header.RUTFACT or header.NRUTCLIE or '' }}">
+                  <input class="desc" type="text" name="desp_a_desc"
+                         value="{{ header.FAV_RAZSOC or header.RAZON_SOCIAL or '' }}">
                 </div>
               </td>
               <td><label>Moneda</label></td>
@@ -188,36 +287,52 @@
               <td><label>Vendedor</label></td>
               <td colspan="2">
                 <div class="dual">
-                  <input class="code" type="text" name="vend_codigo" value="{{ header.VEND_CODIGO or '' }}">
-                  <input class="desc" type="text" name="vend_nombre" value="{{ header.VEND_NOMBRE or '' }}">
+                  <!-- Soporta VEND_CODIGO (viejo) o CODVEND (nuevo) -->
+                  <input class="code" type="text" name="vend_codigo"
+                         value="{{ header.VEND_CODIGO or header.CODVEND or '' }}">
+                  <input class="desc" type="text" name="vend_nombre"
+                         value="{{ header.VEND_NOMBRE or '' }}">
                 </div>
               </td>
               <td><label>Descuento</label></td>
-              <td><input type="number" step="0.01" name="descuento" value="{{ header.DESCUENTO_UNICO_LINEAS or '' }}" style="width:90px;"></td>
+              <td><input type="number" step="0.01" name="descuento" value="{{ header.DESCUENTO_UNICO_LINEAS or header.DCTOPJE or '' }}" style="width:90px;"></td>
               <td><label>%</label> <input type="checkbox" name="porc_descuento" style="width:auto;"></td>
             </tr>
 
             <tr>
               <td><label>Entregar en</label></td>
-              <td colspan="2"><input type="text" name="entregar_en" value="{{ header.ENTREGAR_EN or '' }}"></td>
+              <td colspan="2">
+                <input type="text" name="entregar_en" value="{{ header.ENTREGAR_EN or header.ENTREGAR or '' }}">
+                <!-- comuna/ciudad como hidden si vinieron en el header nuevo -->
+                <input type="hidden" name="entr_comu" value="{{ header.ENTR_COMU or '' }}">
+                <input type="hidden" name="entr_ciud" value="{{ header.ENTR_CIUD or '' }}">
+              </td>
               <td><label>Comisión</label></td>
               <td><input type="number" step="0.01" name="comision" value="{{ header.COMISION or '' }}" style="width:90px;"></td>
               <td><label>%</label> <input type="checkbox" name="porc_comision" style="width:auto;"></td>
             </tr>
 
+            <!-- ===== Sucursal (CODIGO + DESCRIP) y NVSUC oculto ===== -->
             <tr>
               <td><label>Sucursal</label></td>
               <td colspan="2">
                 <div class="dual">
-                  <input class="code" type="text" name="sucursal_codigo" value="{{ header.SUCURSAL or '' }}">
-                  <input class="desc" type="text" name="sucursal_desc" value="{{ header.SUCURSAL or '' }}">
+                  <!-- CODIGO de CHOI_DB (fallback a header si no viene) -->
+                  <input class="code" type="text" name="sucursal_codigo"
+                         value="{{ sucur_codigo or header.SUCUR_CODIGO or '' }}" readonly>
+                  <!-- DESCRIP de CHOI_DB -->
+                  <input class="desc" type="text" name="sucursal_desc"
+                         value="{{ sucur_nombre or header.SUCUR_DESCRIP or '' }}" readonly>
                 </div>
+                <!-- NVSUC numérico real para grabar en DOCU_DB.SUCUR -->
+                <input type="hidden" name="sucur" value="{{ sucur_nvsuc or header.SUCUR or '' }}">
               </td>
               <td><label>Glosa Pag.</label></td>
-              <td><input type="text" name="glosa_pag" value="{{ header.GLOSA_PAG or '' }}"></td>
+              <td><input type="text" name="glosa_pag" value="{{ header.GLOSA_PAG or header.GLOSACON or '' }}"></td>
               <td>
                 <label>Pago a</label>
-                <input type="number" name="pago_a" value="30" style="width:60px;"> días
+                <input type="number" name="pago_a" value="{{ pago_a_dias }}" readonly
+                       style="width:60px; background:#f5f5f5; text-align:right;"> días
               </td>
             </tr>
           </tbody>
@@ -240,12 +355,10 @@
             {% for it in detalles %}
             <tr>
               <td>{{ it.codigo or it.Codigo }}</td>
-              <td>{{ it.nombre or it.Descripcion }}</td>
+              <td style="white-space: normal;">{{ it.nombre or it.Descripcion }}</td>
               <td style="text-align:right;">{{ it.cantidad or it.Cantidad }}</td>
               <td style="text-align:right;">{{ it.prec_unit or it.Precio }}</td>
-              <td style="text-align:right;">
-                {% if it['D%'] is defined %}{{ it['D%'] }}{% endif %}
-              </td>
+              <td style="text-align:right;">{% if it['D%'] is defined %}{{ it['D%'] }}{% else %}{{ it.D|default('') }}{% endif %}</td>
             </tr>
             {% endfor %}
             {% if not detalles %}
@@ -257,7 +370,7 @@
         </table>
       </div>
 
-      <!-- ===== Atención / Chofer / Observaciones ===== -->
+      <!-- ===== Atención / Chofer ===== -->
       <div class="row">
         <div class="col col-2">
           <label for="atencion_a">Atención a</label>
@@ -288,46 +401,47 @@
         </div>
       </div>
 
+      <!-- ===== Observaciones (AHORA SON DOS) ===== -->
       <div class="row">
         <div class="col col-2">
-          <label for="nombre_chofer">Nombre Chofer</label>
-          <input type="text" id="nombre_chofer" name="nombre_chofer" value="{{ datos.get('nombre_chofer', '') }}">
+          <label for="obs_guia_desp">Observaciones para la Guía de Despacho</label>
+          <textarea id="obs_guia_desp" rows="4" readonly>{{ obs_guia_desp or '' }}</textarea>
         </div>
         <div class="col col-2">
-          <label for="rut_mandante">Rut Mandante</label>
-          <input type="text" id="rut_mandante" name="rut_mandante" value="{{ datos.get('rut_mandante', '') }}">
+          <label for="observaciones">Observaciones para la Factura de Venta</label>
+          <!-- mantenemos name="observaciones" para compat con docs_enviar -->
+          <textarea id="observaciones" name="observaciones" rows="4" placeholder="Agrega observaciones para la factura...">{{ obs_factura or obsfact_inicial }}</textarea>
         </div>
       </div>
 
-      <div class="row">
-        <div class="col">
-          <label for="observaciones1">Observaciones</label>
-          <textarea id="observaciones1" name="observaciones1" rows="4">{{ datos.get('observaciones1', '') }}</textarea>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col">
-          <label for="observaciones2">&nbsp;</label>
-          <textarea id="observaciones2" name="observaciones2" rows="4">{{ datos.get('observaciones2', '') }}</textarea>
-        </div>
-      </div>
-
-      <!-- ===== Referencias ===== -->
-      <h2 style="font-size:18px;color:#0d47a1;margin:10px 0;">Referencias a otros documentos</h2>
+      <!-- ===== Referencias (PC tabla / RF bloques) ===== -->
+      <h2 style="font-size:18px;color:var(--azul-osc);margin:10px 0;">Referencias a otros documentos</h2>
       <div class="table-wrap">
         <table class="refs-table">
           <tbody>
             <tr>
               <td><strong>OC Referencia</strong></td>
-              <td><input type="text" name="oc_ref" value="{{ datos.get('oc_ref', '') }}"></td>
+              <td>
+                <input type="text" value="{{ refs.oc_ref }}" disabled>
+                <input type="hidden" name="oc_ref" value="{{ refs.oc_ref }}">
+              </td>
               <td><strong>Fecha OC Referencia</strong></td>
-              <td><input type="date" name="fecha_oc_ref" value="{{ datos.get('fecha_oc_ref', '') }}"></td>
+              <td>
+                <input type="date" value="{{ refs.fecha_oc_ref }}" disabled>
+                <input type="hidden" name="fecha_oc_ref" value="{{ refs.fecha_oc_ref }}">
+              </td>
             </tr>
             <tr>
               <td><strong>HES Referencia</strong></td>
-              <td><input type="text" name="hes_ref" value="{{ datos.get('hes_ref', '') }}"></td>
+              <td>
+                <input type="text" value="{{ refs.hes_ref }}" disabled>
+                <input type="hidden" name="hes_ref" value="{{ refs.hes_ref }}">
+              </td>
               <td><strong>Fecha HES Referencia</strong></td>
-              <td><input type="date" name="fecha_hes_ref" value="{{ datos.get('fecha_hes_ref', '') }}"></td>
+              <td>
+                <input type="date" value="{{ refs.fecha_hes_ref }}" disabled>
+                <input type="hidden" name="fecha_hes_ref" value="{{ refs.fecha_hes_ref }}">
+              </td>
             </tr>
             <tr>
               <td><strong>Guía Despacho Ref</strong></td>
@@ -337,15 +451,25 @@
             </tr>
             <tr>
               <td><strong>N° Contrato</strong></td>
-              <td><input type="text" name="numero_contrato" value="{{ datos.get('numero_contrato', '') }}"></td>
+              <td>
+                <input type="text" value="{{ refs.numero_contrato }}" disabled>
+                <input type="hidden" name="numero_contrato" value="{{ refs.numero_contrato }}">
+              </td>
               <td><strong>Fecha Contrato</strong></td>
-              <td><input type="date" name="fecha_contrato" value="{{ datos.get('fecha_contrato', '') }}"></td>
+              <td>
+                <input type="date" name="fecha_contrato" value="{{ datos.get('fecha_contrato', '') }}">
+              </td>
             </tr>
             <tr>
               <td><strong>N° Pedido (Nt de Vta)</strong></td>
-              <td><input type="text" name="numero_pedido" value="{{ datos.get('numero_pedido', '') }}"></td>
+              <td>
+                <input type="text" value="{{ refs.numero_pedido }}" disabled>
+                <input type="hidden" name="numero_pedido" value="{{ refs.numero_pedido }}">
+              </td>
               <td><strong>Fecha Pedido (Nt de Vta)</strong></td>
-              <td><input type="date" name="fecha_pedido" value="{{ datos.get('fecha_pedido', '') }}"></td>
+              <td>
+                <input type="date" name="fecha_pedido" value="{{ datos.get('fecha_pedido', '') }}">
+              </td>
             </tr>
           </tbody>
         </table>
@@ -390,17 +514,18 @@
 
       <div class="totals">
         <div>Neto: {{ neto }}</div>
+        <div>IVA: {{ header.TOTIVA if header.TOTIVA is defined else iva }}</div>
+        <div>Total: {{ header.TOTAL if header.TOTAL is defined else total }}</div>
         <div>Otros Imp.: {{ otros_imp }}</div>
       </div>
 
-      <div class="footer-text">SUCURSAL Sucursal Santiago</div>
+      <div class="footer-text">
+        SUCURSAL {{ (sucur_codigo or header.SUCUR_CODIGO or '') }}
+        {% if (sucur_nombre or header.SUCUR_DESCRIP) %} - {{ sucur_nombre or header.SUCUR_DESCRIP }}{% endif %}
+      </div>
 
-      <!-- Botones -->
       <div style="margin-top:12px;">
-        <button name="action" value="guardar" class="btn btn-success">Guardar Guía</button>
-        {% if descarga_url %}
-          <button name="action" value="export" class="btn btn-primary">Descargar XLS</button>
-        {% endif %}
+        <button type="submit" class="btn btn-primary">Enviar</button>
       </div>
 
     </form>

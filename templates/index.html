@@ -2,98 +2,88 @@
 <html lang="es">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Menú WMS – Operario</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Menú WMS</title>
   <style type="text/css">
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0; padding: 0;
+    /* ====== ESTILO POR DEFECTO (RF: 320x240) ====== */
+    body{
+      margin:0; padding:0;
       font-family: Arial, Helvetica, sans-serif;
-      background: #0057d1;
-      background: -webkit-linear-gradient(left, #00c0cb, #0057d1);
-      background: linear-gradient(to right, #00c0cb, #0057d1);
-      color: #fff; text-align: center;
+      background:#0057d1;        /* igual al Admin */
+      color:#fff; text-align:center;
+    }
+    .logo{
+      margin:2px auto 4px;
+      display:block;
+      height:22px;               /* fijo RF */
+    }
+    .row{ width:100%; text-align:center; }
+
+    .btn{
+      display:inline-block;
+      margin:2px;
+      background:#0a55d8;        /* mismo azul de botones */
+      color:#fff;
+      text-decoration:none;
+      font-weight:bold;
+      border-radius:4px;
+      border:1px solid #003a99;
+      box-shadow: 0 4px 10px rgba(0,0,0,.25);
       -webkit-tap-highlight-color: transparent;
     }
+    .btn-big   { width:146px; height:92px;  line-height:92px;  font-size:14px; }
+    .btn-small { width:94px;  height:64px;  line-height:64px;  font-size:12px; }
 
-    /* Barra superior */
-    .topbar { text-align: right; padding: 10px 12px; }
-    .topbar a { color: #fff; text-decoration: none; font-weight: 600; }
-    .topbar a:active { position: relative; top: 1px; }
-
-    /* Contenedor principal */
-    .container { width: 95%; max-width: 1000px; margin: 8px auto 16px; }
-
-    /* Logo */
-    .logo { display: block; max-width: 260px; width: 60%; height: auto; margin: -12px auto 8px; }
-
-    /* Grupos de botones */
-    .group {
-      display: -webkit-box; display: -ms-flexbox; display: flex;
-      -ms-flex-wrap: wrap; flex-wrap: wrap;
-      -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center;
-      gap: 12px; margin: 12px 0 18px;
+    /* ====== SALIR arriba a la derecha ====== */
+    .logout-link{
+      position:fixed;
+      top:6px; right:8px;
+      padding:4px 8px;
+      font-weight:bold;
+      color:#fff;
+      text-decoration:none;
+      border-radius:4px;
+      opacity:.9;
     }
+    .logout-link:focus,
+    .logout-link:hover{ text-decoration:underline; opacity:1; }
 
-    /* Botón base */
-    .tile {
-      display: block; position: relative;
-      background: #0057d1; border-radius: 12px;
-      box-shadow: 2px 2px 6px rgba(0,0,0,.35);
-      text-decoration: none; color: #fff; overflow: hidden;
-      transition: background .15s ease;
-      min-width: 120px; min-height: 44px;
-    }
-    .tile:active { top: 1px; }
-    .tile:hover { background: #00c0cb; }
-
-    /* Texto dentro del botón */
-    .tile > span {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      font-weight: 800; letter-spacing: .3px;
-      white-space: nowrap;
-    }
-
-    /* Desktop */
-    .primary .tile   { width: 31%; padding-bottom: 31%; font-size: 20px; }
-    .secondary .tile { width: 18%; padding-bottom: 18%; font-size: 16px; }
-
-    /* Responsive móvil */
-    @media screen and (max-width: 760px) {
-      .logo { width: 72%; max-width: 300px; }
-      .primary .tile, .secondary .tile {
-        width: 46%; padding-bottom: 46%; font-size: 18px;
+    /* ====== PC / PANTALLAS GRANDES ====== */
+    @media (min-width:600px){
+      .logo{
+        margin:10px auto;
+        max-width:320px; height:auto; max-height:80px;
       }
-      .secondary .tile.wide { width: 94%; padding-bottom: 24%; font-size: 18px; }
-    }
-    @media screen and (max-width: 420px) {
-      .primary .tile, .secondary .tile { width: 48%; padding-bottom: 48%; font-size: 17px; }
-      .secondary .tile.wide { width: 96%; padding-bottom: 26%; }
+      .btn-big{
+        width:300px; height:220px; font-size:22px; line-height:220px;
+      }
+      .btn-small{
+        width:180px; height:140px; font-size:16px; line-height:140px;
+      }
+      .logout-link{ top:10px; right:14px; padding:6px 10px; font-size:16px; }
     }
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <a href="{{ url_for('logout') }}">Salir</a>
+
+  <!-- Salir arriba-derecha -->
+  <a href="{{ url_for('logout') }}" class="logout-link">Salir</a>
+
+  <!-- Logo -->
+  <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="RIMA" class="logo">
+
+  <!-- Fila grande -->
+  <div class="row">
+    <a href="{{ url_for('ingreso') }}" class="btn btn-big">RECEPCIÓN</a>
+    <a href="{{ url_for('salida') }}"  class="btn btn-big">DESPACHO</a>
   </div>
 
-  <div class="container">
-    <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="Logo" class="logo">
-
-    <!-- fila 1 -->
-    <div class="group primary">
-      <a href="{{ url_for('ingreso') }}" class="tile"><span>INGRESO</span></a>
-      <a href="{{ url_for('salida') }}" class="tile"><span>SALIDA</span></a>
-    </div>
-
-    <!-- fila 2 -->
-    <div class="group secondary">
-      <a href="{{ url_for('listados') }}" class="tile"><span>LISTADOS</span></a>
-      <a href="{{ url_for('inventario') }}" class="tile"><span>INVENTARIO</span></a>
-      <a href="{{ url_for('devoluciones') }}" class="tile wide"><span>DEVOLUCIONES</span></a>
-    </div>
+  <!-- Fila chica -->
+  <div class="row">
+    <a href="{{ url_for('listados') }}"     class="btn btn-small">LISTADOS</a>
+    <a href="{{ url_for('inventario') }}"   class="btn btn-small">INVENTARIO</a>
+    <a href="{{ url_for('devoluciones') }}" class="btn btn-small">DEVOLUCIONES</a>
   </div>
+
 </body>
 </html>

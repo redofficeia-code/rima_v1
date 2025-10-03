@@ -1,4 +1,3 @@
-# utils.py
 # -*- coding: utf-8 -*-
 """
 Deprecated compatibility layer. Use `db` module instead.
@@ -13,7 +12,7 @@ Además, incluye utilidades de flujo para Notas de Venta (NV_FLOW, opción B):
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from sqlalchemy import text
 
@@ -29,21 +28,56 @@ from db import (
 
 # Intentar usar el engine dedicado a RIMA si existe; si no, caer en ENGINE
 try:
-    from db import ENGINE_RIMA as _ENGINE_RIMA  # tipo: ignore
+    from db import ENGINE_RIMA as _ENGINE_RIMA  # type: ignore
 except Exception:  # pragma: no cover
     _ENGINE_RIMA = ENGINE
+
+
+# =========================
+#   ZONAS (Paso 2)
+# =========================
+
+def get_zonas() -> List[Dict[str, Any]]:
+    """
+    Devuelve la lista de zonas desde RIMA.dbo.ZONAS_DB
+    con llaves: ID_ZONA (int) y NOMBRE (str), ordenadas por NOMBRE.
+    """
+    sql = text("""
+        SELECT ID AS ID_ZONA,
+               NOMBRE
+        FROM RIMA.dbo.ZONAS_DB
+        ORDER BY NOMBRE
+    """)
+    with _ENGINE_RIMA.begin() as cx:
+        rows = cx.execute(sql).mappings().all()
+    # Normalizamos a dict por si el caller no maneja MappingResult
+    return [dict(r) for r in rows]
 
 
 # =========================
 #   NV_FLOW (Opción B)
 # =========================
 
+def _nvflow_defaults() -> Dict[str, Any]:
+    """Valores por defecto para NV_FLOW cuando no existe registro."""
+    return {
+        "ESTADO": "",                # "", "PEND", "APROB"
+        "ZONA_ID": None,
+        "RETIRA_CLIENTE": 0,
+        "APROBADO_POR": None,
+        "APROBADO_FECHA": None,
+        "ASIGNADO_POR": None,
+        "ASIGNADO_FECHA": None,
+        "UPDATED_AT": None,
+    }
+
+
 def get_nv_flow(num_nota: int) -> Dict[str, Any]:
     """
     Lee el estado de flujo para la Nota de Venta desde RIMA.dbo.NV_FLOW.
     Devuelve un dict con llaves: ESTADO, ZONA_ID, RETIRA_CLIENTE, APROBADO_POR, APROBADO_FECHA,
     ASIGNADO_POR, ASIGNADO_FECHA, UPDATED_AT.
-    Si no existe registro, devuelve valores por defecto (PEND / None / 0).
+    Si no existe registro, devuelve valores por defecto ("" / None / 0).
     """
     sql = text("""
         SELECT TOP 1
@@ -61,11 +95,25 @@ def get_nv_flow(num_nota: int) -> Dict[str, Any]:
     """)
     with _ENGINE_RIMA.begin() as cx:
         row = cx.execute(sql, {"n": int(num_nota)}).mappings().first()
-    return dict(row) if row else {
-        "ESTADO": "PEND",
-        "ZONA_ID": None,
-        "RETIRA_CLIENTE": 0
-    }
+
+    if not row:
+        return _nvflow_defaults()
+
+    data = dict(row)
+
+    # Normalizar/asegurar llaves
+    defaults = _nvflow_defaults()
+    for k, v in defaults.items():
+        data.setdefault(k, v)
+
+    # Si viniera NULL en BD, convertir ESTADO a cadena vacía
+    if not data.get("ESTADO"):
+        data["ESTADO"] = ""
+
+    # Cast seguro de RETIRA_CLIENTE
+    data["RETIRA_CLIENTE"] = int(bool(data.get("RETIRA_CLIENTE", 0)))
+
+    return data
 
 
 def upsert_nv_flow(
@@ -156,6 +204,8 @@ __all__ = [
     "get_stock_actual",
     "get_guia_desde_nv",
     "get_factura_desde_nv",
+    # zonas
+    "get_zonas",
     # nv_flow helpers
     "get_nv_flow",
     "upsert_nv_flow",

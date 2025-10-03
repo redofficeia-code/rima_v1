@@ -2,8 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <!-- Evita zoom al enfocar y fija el ancho -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="HandheldFriendly" content="true">
+  <meta name="MobileOptimized" content="320">
+  <meta http-equiv="cleartype" content="on">
+
   <title>Login 1</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 
@@ -12,38 +15,48 @@
 
     html, body {
       height: 100%;
-      -ms-text-size-adjust: 100%;
+      -ms-text-size-adjust: none;
       -webkit-text-size-adjust: 100%;
     }
 
     body {
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
-      background: #0057d1; /* azul sólido */
+      background: #0057d1;
       color: #111;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
-    .logo { margin: 2px 0 2px; }
-    .logo img { max-width: 85px; height: auto; }
+    /* Logo SIEMPRE centrado */
+    .logo {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin: 20px 0 10px;
+    }
+    .logo img {
+      max-width: 100px;
+      height: auto;
+    }
 
     .login-box {
       width: 90%;
       max-width: 360px;
-      margin: 2px auto 6px;
-      padding: 8px 9px;
+      margin: 10px auto 20px;
+      padding: 10px 10px;
       background: #fff;
       border: 1px solid #d9e2ef;
       border-radius: 8px;
       text-align: left;
-      overflow: hidden; /* ⛑ contención por si el motor se pasa de ancho */
     }
 
     .login-box h1 {
-      margin: 0 0 6px;
+      margin: 0 0 8px;
       text-align: center;
-      font-size: 14px;
-      line-height: 1.1;
+      font-size: 16px;
     }
 
     .login-box ul {
@@ -53,47 +66,46 @@
       color: #b00020;
     }
 
-    label { display:block; margin:5px 0 3px; font-size:12px; }
+    label { display:block; margin:6px 0 4px; font-size:13px; }
 
-    /* Campos: usar <100% y box-sizing con prefijos */
     select,
-    input[type="password"] {
+    input[type="text"],
+    input[type="password"],
+    textarea {
       display: block;
-      width: 96%;               /* 💡 clave: no 100% */
+      width: 96%;
       max-width: 100%;
-      font-size: 16px;          /* anti-zoom */
-      line-height: 1.25;
-      padding: 7px 9px;
+      font-size: 18px !important;
+      line-height: 1.35 !important;
+      padding: 9px 10px !important;
+      min-height: 34px !important;
       border-radius: 8px;
       border: 1px solid #cfd7e6;
-      /* box-sizing con prefijos para IE/CE */
       box-sizing: border-box;
-      -ms-box-sizing: border-box;
-      -webkit-box-sizing: border-box;
     }
 
     button {
       display: block;
-      width: 96%;               /* igual que inputs para alinear */
-      font-size: 16px;
-      padding: 8px 10px;
+      width: 96%;
+      font-size: 18px;
+      padding: 10px 12px;
       border-radius: 8px;
       border: 0;
       background: #0057d1;
       color: #fff;
       font-weight: 700;
-      margin-top: 6px;
+      margin-top: 8px;
       cursor: pointer;
     }
 
     @media screen and (min-width: 600px) {
-      .logo img { max-width: 110px; }
-      .login-box { width: 88%; padding: 10px 12px; border-radius: 10px; }
-      .login-box h1 { font-size: 18px; margin-bottom: 8px; }
-      label { font-size: 13px; }
-      select, input[type="password"], button {
+      .logo img { max-width: 130px; }
+      .login-box { width: 88%; padding: 12px 14px; border-radius: 10px; }
+      .login-box h1 { font-size: 18px; margin-bottom: 10px; }
+      label { font-size: 14px; }
+      select, input[type="text"], input[type="password"], button {
         width: 97%;
-        font-size: 18px; padding: 10px 12px;
+        font-size: 18px; padding: 12px 14px;
       }
     }
   </style>
@@ -118,7 +130,7 @@
 
     <form method="post" action="{{ url_for('login1') }}">
       <label for="usuario">Usuario</label>
-      <select id="usuario" name="usuario" required autofocus>
+      <select id="usuario" name="usuario" required>
         {% for value, label in usuarios %}
           <option value="{{ value }}"{% if value == selected_usuario %} selected{% endif %}>
             {{ label }}
@@ -126,9 +138,8 @@
         {% endfor %}
       </select>
 
-      <label for="clave">Clave</label>
-      <!-- Fallback CE: size="12" ayuda a que no “crezca” raro -->
-      <input id="clave" type="password" name="clave" required size="12">
+      <label for="clave">Contraseña</label>
+      <input id="clave" type="password" name="clave" required autocomplete="off" inputmode="none">
 
       <button type="submit">Ingresar</button>
     </form>

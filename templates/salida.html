@@ -91,6 +91,7 @@
       padding:0;
     }
     .zone-btn{
+      position:relative;
       display:block;
       width:100%;
       min-height:60px;
@@ -106,7 +107,19 @@
       box-shadow:0 2px 6px rgba(0,0,0,.12);
       word-wrap:break-word;
       white-space:normal;
-      text-align:center;        /* PC OK */
+      text-align:center;
+    }
+    .zone-btn .badge{
+      position:absolute; top:-10px; right:-10px;
+      min-width:22px; height:22px; padding:0 6px;
+      border-radius:999px;
+      display:inline-flex; align-items:center; justify-content:center;
+      font-size:12px; font-weight:700;
+      background:#ff3b30; color:#fff;
+      box-shadow:0 0 0 2px #fff;
+    }
+    @media (max-width:360px){
+      .zone-btn .badge{ top:-8px; right:-8px; min-width:18px; height:18px; font-size:10px; }
     }
 
     /* ====================== Solo RF (clase en <body>) ====================== */
@@ -143,6 +156,10 @@
     body.is-rf .rf-pager .label{
       display:inline-block; min-width:70px; font-size:12px;
     }
+
+    /* util */
+    .actions { margin:8px 0 0; }
+    .actions a { display:inline-block; background:#ffc107; color:#333; padding:6px 10px; border-radius:8px; text-decoration:none; font-weight:700; }
   </style>
 </head>
 
@@ -167,6 +184,7 @@
       <button type="submit">Buscar</button>
     </form>
 
+    {# ====== BLOQUE NV + STOCK + FORMULARIOS (de "antes") ====== #}
     {% if nv_items %}
     <div class="row">
       <div class="col">
@@ -259,8 +277,10 @@
     {% endif %}
   </div>
 
+  {# ====== BLOQUE ZONAS (de "después", con badges y robusto) ====== #}
   {% if not nv_items %}
     {% if not zona_seleccionada %}
+    <!-- ======= GRID DE ZONAS (robusto a distintas claves) ======= -->
     <div class="zones-wrap">
       <table class="zones-table" cellspacing="12">
         <tbody>
@@ -268,8 +288,37 @@
           <tr>
             {% for z in fila %}
               {% if z %}
+                {# Resolver nombre e id soportando varias claves #}
+                {% set _get = z.get if z is mapping else None %}
+                {% set nombre = (
+                    (z.NOMBRE if z.NOMBRE is defined else
+                     (z.nombre if z.nombre is defined else
+                      (_get('NOMBRE') if _get else None) or
+                      (_get('nombre') if _get else None) or
+                      (_get('Nombre') if _get else None)))
+                ) %}
+                {% set zid = (
+                    (z.ID_ZONA if z.ID_ZONA is defined else
+                     (z.ID if z.ID is defined else
+                      (z.id if z.id is defined else
+                       (_get('ID_ZONA') if _get else None) or
+                       (_get('ID') if _get else None) or
+                       (_get('id') if _get else None))))
+                ) %}
               <td>
-                <a class="zone-btn" href="{{ url_for('salida', zona=z.NOMBRE) }}">{{ z.NOMBRE }}</a>
+                <a class="zone-btn"
+                   href="{{ url_for('salida', zona_id=zid, zona=nombre) }}">
+                  {{ nombre or 'ZONA' }}
+                  {# contador: prioriza por id y luego por nombre #}
+                  {% set c = 0 %}
+                  {% if zona_counts_id is defined and zid is not none %}
+                    {% set c = zona_counts_id.get(zid, 0) %}
+                  {% endif %}
+                  {% if c == 0 and zona_counts is defined and nombre %}
+                    {% set c = zona_counts.get(nombre, 0) %}
+                  {% endif %}
+                  {% if c %}<span class="badge">{{ c }}</span>{% endif %}
+                </a>
               </td>
               {% else %}
               <td></td>
@@ -281,39 +330,66 @@
       </table>
     </div>
     {% else %}
-    <h2>Notas de Venta asignadas a {{ zona_seleccionada }}</h2>
-    <a href="{{ url_for('salida') }}">← Volver a zonas</a>
-
-    {% if lista_nv and lista_nv|length > 0 %}
-    <div class="container">
-      <table>
-        <thead>
-          <tr><th>NV</th><th>Fecha</th><th>Sucursal</th><th>Cliente</th><th>Acción</th></tr>
-        </thead>
-        <tbody>
-          {% for nv in lista_nv %}
-          <tr>
-            <td>{{ nv.numnota }}</td>
-            <td>{{ nv.fecha }}</td>
-            <td>{{ nv.sucursal }}</td>
-            <td>{{ nv.cliente }}</td>
-            <td>
-              <form method="post" action="{{ url_for('salida') }}">
-                <input type="hidden" name="action" value="buscar_nv">
-                <input type="hidden" name="nv" value="{{ nv.numnota }}">
-                <button type="submit" class="btn">Cargar NV</button>
-              </form>
-            </td>
-          </tr>
+      <!-- ======= LISTADO DE NV DE LA ZONA SELECCIONADA ======= -->
+      <div class="container" style="margin-top:10px;">
+        {% set z_obj = None %}
+        {% if zona_seleccionada is number %}
+          {% for z in zonas %}
+            {% if (z.ID_ZONA is defined and z.ID_ZONA == zona_seleccionada) or (z.id is defined and z.id == zona_seleccionada) or (z.ID is defined and z.ID == zona_seleccionada) %}
+              {% set z_obj = z %}
+            {% endif %}
           {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% endif %}
+        {% endif %}
+        <h2>
+          Zona: 
+          {% if z_obj %}
+            {{ (z_obj.NOMBRE or z_obj.nombre) | default('—') }}
+          {% else %}
+            {{ request.args.get('zona') or '—' }}
+          {% endif %}
+        </h2>
+
+        {% if lista_nv and lista_nv|length > 0 %}
+          <table class="nv-table">
+            <thead>
+              <tr>
+                <th>Num. Nota</th>
+                <th>Cliente</th>
+                <th>Ciudad</th>
+                <th>Fecha</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in lista_nv %}
+              <tr>
+                <td>{{ r.numnota }}</td>
+                <td>{{ r.cliente }}</td>
+                <td>{{ r.sucursal }}</td>
+                <td>{{ r.fecha }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('salida') }}">
+                    <input type="hidden" name="action" value="buscar_nv">
+                    <input type="hidden" name="nv" value="{{ r.numnota }}">
+                    <button type="submit" class="btn">Ir</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="flash-message">No hay notas asignadas a esta zona.</div>
+        {% endif %}
+
+        <div class="actions">
+          <a href="{{ url_for('salida') }}">Volver</a>
+        </div>
+      </div>
     {% endif %}
   {% endif %}
 
-  <!-- JS súper básico compatible con IE/CE -->
+  <!-- JS RF pager -->
   <script type="text/javascript">
   (function(){
     function hasRF(){ return (document.body.className||'').indexOf('is-rf') !== -1; }

@@ -5,20 +5,19 @@
   <title>Menú WMS – Admin</title>
   <style type="text/css">
     /* ====== ESTILO POR DEFECTO (RF: 320x240) ====== */
-    body {
+    body{
       margin:0; padding:0;
       font-family: Arial, Helvetica, sans-serif;
-      background:#0057d1;
-      color:#fff;
-      text-align:center;
+      background:#0057d1;        /* si quieres el degradado del home: linear-gradient(135deg,#00c0cb,#0057d1) */
+      color:#fff; text-align:center;
     }
-    .logo {
+    .logo{
       margin:2px auto 4px;
       display:block;
       height:22px;
     }
-    .row { width:100%; text-align:center; }
-    .btn {
+    .row{ width:100%; text-align:center; }
+    .btn{
       display:inline-block;
       margin:2px;
       background:#0a55d8;
@@ -27,25 +26,44 @@
       font-weight:bold;
       border-radius:4px;
       border:1px solid #003a99;
+      box-shadow: 0 4px 10px rgba(0,0,0,.25);
     }
-    .btn-big { width:146px; height:92px; line-height:92px; font-size:14px; }
-    .btn-small { width:94px; height:64px; line-height:64px; font-size:12px; }
+    .btn-big   { width:146px; height:92px; line-height:92px; font-size:14px; }
+    .btn-small { width:94px;  height:64px; line-height:64px; font-size:12px; }
+
+    /* ====== SALIR arriba a la derecha ====== */
+    .logout-link{
+      position:fixed;       /* siempre visible como en la imagen */
+      top:6px; right:8px;
+      padding:4px 8px;
+      font-weight:bold;
+      color:#fff;
+      text-decoration:none;
+      border-radius:4px;
+      opacity:.9;
+    }
+    .logout-link:focus,
+    .logout-link:hover{ text-decoration:underline; opacity:1; }
 
     /* ====== PC / PANTALLAS GRANDES ====== */
     @media (min-width:600px){
-      .logo{margin:10px auto;max-width:320px;height:auto;max-height:80px;}
-      .btn-big{width:300px;height:220px;font-size:22px;line-height:220px;}
-      .btn-small{width:180px;height:140px;font-size:16px;line-height:140px;}
+      .logo{ margin:10px auto; max-width:320px; height:auto; max-height:80px; }
+      .btn-big{ width:300px; height:220px; font-size:22px; line-height:220px; }
+      .btn-small{ width:180px; height:140px; font-size:16px; line-height:140px; }
+      .logout-link{ top:10px; right:14px; padding:6px 10px; font-size:16px; }
     }
   </style>
 </head>
 <body>
 
+  <!-- Salir arriba-derecha -->
+  <a href="{{ url_for('logout') }}" class="logout-link">Salir</a>
+
   <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="RIMA" class="logo">
 
   <div class="row">
-    <a href="{{ url_for('ingreso') }}" class="btn btn-big">INGRESO</a>
-    <a href="{{ url_for('salida') }}" class="btn btn-big">SALIDA</a>
+    <a href="{{ url_for('ingreso') }}" class="btn btn-big">RECEPCIÓN</a>
+    <a href="{{ url_for('salida') }}" class="btn btn-big">DESPACHO</a>
   </div>
 
   <div class="row">

@@ -2,11 +2,106 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Login 2 (Operario)</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+  <style>
+    @-ms-viewport { width: device-width; }
+
+    html, body {
+      height: 100%;
+      -ms-text-size-adjust: 100%;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0057d1; /* azul sólido */
+      color: #111;
+      text-align: center;
+    }
+
+    .logo { margin: 2px 0 2px; }
+    .logo img { max-width: 85px; height: auto; }
+
+    .login-box {
+      width: 90%;
+      max-width: 360px;
+      margin: 2px auto 6px;
+      padding: 8px 9px;
+      background: #fff;
+      border: 1px solid #d9e2ef;
+      border-radius: 8px;
+      text-align: left;
+      overflow: hidden; /* ⛑ contención por si el motor se pasa de ancho */
+    }
+
+    .login-box h1 {
+      margin: 0 0 6px;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.1;
+    }
+
+    .login-box ul {
+      margin: 6px 0 8px;
+      padding-left: 18px;
+      font-size: 12px;
+      color: #b00020;
+    }
+
+    label { display:block; margin:5px 0 3px; font-size:12px; }
+
+    /* Campos: usar <100% y box-sizing con prefijos */
+    select,
+    input[type="password"] {
+      display: block;
+      width: 96%;               /* 💡 clave: no 100% */
+      max-width: 100%;
+      font-size: 16px;          /* anti-zoom */
+      line-height: 1.25;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid #cfd7e6;
+      /* box-sizing con prefijos para IE/CE */
+      box-sizing: border-box;
+      -ms-box-sizing: border-box;
+      -webkit-box-sizing: border-box;
+    }
+
+    button {
+      display: block;
+      width: 96%;               /* igual que inputs para alinear */
+      font-size: 16px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 0;
+      background: #0057d1;
+      color: #fff;
+      font-weight: 700;
+      margin-top: 6px;
+      cursor: pointer;
+    }
+
+    @media screen and (min-width: 600px) {
+      .logo img { max-width: 110px; }
+      .login-box { width: 88%; padding: 10px 12px; border-radius: 10px; }
+      .login-box h1 { font-size: 18px; margin-bottom: 8px; }
+      label { font-size: 13px; }
+      select, input[type="password"], button {
+        width: 97%;
+        font-size: 18px; padding: 10px 12px;
+      }
+    }
+  </style>
 </head>
 <body>
+<div class="logo">
+    <img src="{{ url_for('static', filename='img/logo2.png') }}" alt="RIMA">
+  </div>
+
+
   <div class="login-box">
     <h1>Identificación Operario</h1>
 
@@ -24,11 +119,12 @@
       <label>Código de operario</label>
       <input type="text" name="codigo" required autofocus>
 
-      <label>Clave/NOMBRE</label>
+      <label>Contraseña</label>
       <input type="password" name="clave_nombre" required>
 
       <button type="submit">Continuar</button>
     </form>
   </div>
+
 </body>
 </html>

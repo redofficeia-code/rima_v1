@@ -1,260 +1,409 @@
-<!DOCTYPE html>
+<!DOCTYPE html>  
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Gestionar Notas de Venta</title>
+
+  {# ——— CSRF para fetch (si usas Flask-WTF) ——— #}
+  {% if csrf_token is defined %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% endif %}
+
   <style type="text/css">
     * { box-sizing: border-box; }
     html, body { height: 100%; }
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f7f9fc;
-      margin: 0;
-      color:#111827;
-      -webkit-tap-highlight-color: transparent;
-    }
+    body { font-family: Arial, Helvetica, sans-serif; background:#0057d1; margin:0; color:#111827; -webkit-tap-highlight-color:transparent; }
 
-    /* ===== Separador entre notas (versión escritorio) ===== */
-    tbody tr.subrow + tr.mainrow td { border-top: 2px solid #dbe4ef; }
-    tbody tr.subrow + tr.mainrow td:first-child { padding-top: 14px; }
+    /* NUEVO: barra superior fuera del contenedor blanco */
+    .toolbar { 
+    max-width:1200px;
+    margin:16px auto 0;
+    padding:0 16px 8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;     /* << centrado */
+    gap:8px;
+  }
 
-    @media (max-width: 820px) {
-      tbody tr.subrow + tr.mainrow { border-top: 2px solid #dbe4ef; margin-top: 8px; }
-      tbody tr.subrow + tr.mainrow .cell { padding-top: 6px; }
-    }
 
-    .wrap { max-width: 1200px; margin: 16px auto; background:#fff; padding:16px; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.06); }
-    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap; }
+    .wrap { max-width:1200px; margin:0 auto 16px; background:#fff; padding:16px; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.06); }
+
+    .topbar { display:flex; flex-direction:column; justify-content:center; align-items:center; margin-bottom:12px; gap:12px; }
     h2 { margin:0; font-size:22px; text-transform:uppercase; }
+
     .btn { display:inline-block; min-height:40px; padding:8px 12px; border-radius:10px; border:1px solid #e0e6ef; background:#e9edf3; color:#111; text-decoration:none; font-weight:600; cursor:pointer; }
-    .btn:active { position: relative; top:1px; }
+    .btn:active { position:relative; top:1px; }
     .btn-prim { background:#0d6efd; color:#fff; border-color:#0a58ca; }
     .btn-green { background:#10b981; color:#fff; border-color:#059669; }
     .btn-red { background:#ef4444; color:#fff; border-color:#dc2626; }
+    .btn-link { background:transparent; border:0; color:#0d6efd; cursor:pointer; text-decoration:underline; padding:0; min-height:auto; }
+    .btn-volver { background:#ffcc00; border-color:#e6b800; color:#000; font-weight:bold; border-radius:8px; padding:8px 20px; box-shadow:0 1px 0 rgba(0,0,0,.05); }
+    .btn-volver:hover { background:#ffd84d; }
+
     .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#eef2ff; color:#283; font-weight:600; }
     .pill.gray { background:#eef0f4; color:#555; }
     .pill.ok { background:#d1fae5; color:#065f46; }
     .pill.bad { background:#fee2e2; color:#991b1b; }
 
-    .zona-select { padding:8px 10px; border:1px solid #cfd6e4; border-radius:8px; min-width: 200px; font-size:16px; }
+    .zona-select { padding:8px 10px; border:1px solid #cfd6e4; border-radius:8px; min-width:200px; font-size:16px; }
     .zona-cell { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .acciones { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
     .chipbox { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
 
-    /* ===== Contenedor con scroll + encabezado sticky (PC) ===== */
-    .table-wrap {
-      max-height: calc(100vh - 200px);
-      overflow: auto;
-      border-radius: 10px;
-    }
-    table { width: 100%; border-collapse: collapse; background:#fff; }
+    .table-wrap { max-height:calc(100vh - 200px); overflow:auto; border-radius:10px; }
+    table { width:100%; border-collapse:collapse; background:#fff; }
     thead th { text-align:left; background:#f0f4fa; white-space:nowrap; padding:10px 12px; border-bottom:1px solid #e9edf3; }
-    thead th, thead td { position: sticky; top: 0; z-index: 3; background:#f0f4fa; box-shadow: 0 1px 0 #e9edf3; }
+    thead th, thead td { position:sticky; top:0; z-index:3; background:#f0f4fa; box-shadow:0 1px 0 #e9edf3; }
     tbody td { padding:10px 12px; border-bottom:1px solid #eef2f7; vertical-align:middle; }
 
-    tr.subrow td { background:#fafbff; border-top:0; }
+    tr.subrow td { background:#fafbff; border-top:0; border-bottom:6px solid #0057d1; }
+    tbody tr.subrow + tr.mainrow td:first-child { padding-top:14px; }
+    @media (max-width: 820px) { 
+      tbody tr.subrow { border-bottom:6px solid #0057d1; margin-bottom:6px; } 
+      tbody tr.subrow + tr.mainrow .cell { padding-top:8px; } 
+    }
+
     .subrow-inner { display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
     .sub-block { display:flex; align-items:center; gap:10px; }
     .sub-title { font-weight:700; color:#374151; }
-
     .bar { height:14px; background:#e5e7eb; border-radius:8px; overflow:hidden; width:160px; }
     .bar > span { display:block; height:14px; width:0; background:#10b981; }
-    .pct { font-variant-numeric: tabular-nums; color:#374151; }
+    .pct { font-variant-numeric:tabular-nums; color:#374151; }
 
-    /* Responsive móvil (media query) */
     .cell { display:flex; gap:8px; }
     .cell .label { display:none; }
-    @media screen and (max-width: 820px) {
-      thead { display:none; }
-      table, tbody, tr, td { display:block; width:100%; }
+
+    @media screen and (max-width:820px) {
+      thead { display:none; } 
+      table, tbody, tr, td { display:block; width:100%; } 
       tbody { display:block; }
       tr.mainrow { border:1px solid #e0e6ef; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin-bottom:6px; overflow:hidden; background:#fff; }
-      tr.subrow { border:1px solid #e0e6ef; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin:0 0 12px 0; }
-      tbody td { border:none; border-bottom:1px solid #eef3fa; }
-      tbody td:last-child { border-bottom:none; }
-      .cell .label { display:inline-block; width:40%; color:#6b7280; font-weight:bold; }
-      .cell .value { display:inline-block; width:60%; }
+      tr.subrow { border:1px solid #e0e6ef; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin:0 0 8px 0; border-bottom:6px solid #0057d1 !important; }
+      tbody td { border:none !important; border-bottom:1px solid #eef3fa !important; padding:6px 8px; }
+      tbody td:last-child { border-bottom:none !important; }
+      .cell .label { display:inline-block !important; width:45%; color:#6b7280; font-weight:bold; }
+      .cell .value { display:inline-block !important; width:55%; }
       .subrow-inner { flex-direction:column; align-items:flex-start; }
-      .bar { width:100%; }
-      .table-wrap { max-height: none; overflow: visible; }
+      .bar { width:100%; } 
+      .table-wrap { max-height:none !important; overflow:visible !important; }
+      body.is-rf { font-size:12px; } 
+      body.is-rf h2 { font-size:16px; }
+      body.is-rf .btn { font-size:12px; padding:4px 6px; min-height:28px; border-radius:6px; }
+      body.is-rf .zona-select { font-size:12px; padding:4px; min-width:120px; }
+      /* Compactar la toolbar en RF */
+      .toolbar { padding:0 8px 8px; margin-top:8px; }
+      .btn-volver { min-height:32px; padding:6px 12px; border-radius:6px; }
     }
 
-    /* ===== Fallback RF: aplica layout móvil por clase .is-rf (sin media queries) ===== */
-    body.is-rf thead { display:none !important; }
-    body.is-rf table,
-    body.is-rf tbody,
-    body.is-rf tr,
-    body.is-rf td { display:block !important; width:100% !important; }
-    body.is-rf tbody { display:block !important; }
-    body.is-rf tr.mainrow { border:1px solid #e0e6ef; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin-bottom:6px; overflow:hidden; background:#fff; }
-    body.is-rf tr.subrow  { border:1px solid #e0e6ef; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.04); margin:0 0 12px 0; }
-    body.is-rf tbody td { border:none !important; border-bottom:1px solid #eef3fa !important; padding:6px 8px; }
-    body.is-rf tbody td:last-child { border-bottom:none !important; }
-    body.is-rf .cell .label { display:inline-block !important; width:45%; color:#6b7280; font-weight:bold; }
-    body.is-rf .cell .value { display:inline-block !important; width:55%; }
-    body.is-rf .subrow-inner { flex-direction:column; align-items:flex-start; }
-    body.is-rf .bar { width:100%; }
-    body.is-rf .table-wrap { max-height: none !important; overflow: visible !important; }
-    /* Tipografía más compacta en RF */
-    body.is-rf { font-size:12px; }
-    body.is-rf h2 { font-size:16px; }
-    body.is-rf .btn { font-size:12px; padding:4px 6px; min-height:28px; border-radius:6px; }
-    body.is-rf .zona-select { font-size:12px; padding:4px; min-width:120px; }
+    .pager { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 0; border-top:1px solid #e9edf3; margin-top:8px; }
   </style>
 </head>
 <body class="{{ 'is-rf' if (request.args.get('rf') == '1' or session.get('is_rf')) else '' }}">
-<div class="wrap">
-  <div class="topbar">
-    <h2>Gestionar Notas de Venta</h2>
-    <a class="btn" href="{{ url_for('listado_nv') }}">← Volver</a>
+
+  <!-- === Botón Volver arriba del contenedor blanco === -->
+  <div class="toolbar">
+    <a class="btn btn-volver" href="{{ url_for('admin_index') }}">Volver</a>
   </div>
 
-  {# Mensajes flash #}
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div style="margin:8px 0 12px 0;">
-      {% for cat, msg in messages %}
-        <div class="pill {% if cat=='success' %}ok{% elif cat in ['info','warning'] %}gray{% else %}bad{% endif %}" style="margin-right:6px;">
-          {{ msg }}
-        </div>
-      {% endfor %}
+  <!-- === Contenedor blanco principal === -->
+  <div class="wrap">
+    <div class="topbar">
+      <h2>Gestionar Notas de Venta</h2>
+
+      <form method="get" action="{{ url_for('admin_nv_gestionar') }}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <label for="flow" style="font-weight:600;">Flujo:</label>
+        <select id="flow" name="flow" class="zona-select">
+          {% set _flow = (flow or estado_filtro or 'ALL') %}
+          <option value="ALL"   {% if _flow == 'ALL' %}selected{% endif %}>Todas</option>
+          <option value="APROB" {% if _flow == 'APROB' %}selected{% endif %}>Solo aprobadas</option>
+          <option value="PEND"  {% if _flow == 'PEND' %}selected{% endif %}>Solo pendientes</option>
+          <option value="UNSET" {% if _flow == 'UNSET' %}selected{% endif %}>Solo por definir</option>
+        </select>
+
+        {% if request.args.get('estado') %}<input type="hidden" name="estado" value="{{ request.args.get('estado') }}">{% endif %}
+        {% for m in request.args.getlist('mes') %}<input type="hidden" name="mes" value="{{ m }}">{% endfor %}
+        {% if request.args.get('order') %}<input type="hidden" name="order" value="{{ request.args.get('order') }}">{% endif %}
+        {% if request.args.get('per_page') %}<input type="hidden" name="per_page" value="{{ request.args.get('per_page') }}">{% endif %}
+        {% if request.args.get('rf') %}<input type="hidden" name="rf" value="{{ request.args.get('rf') }}">{% endif %}
+
+        <button class="btn btn-prim" type="submit">Aplicar</button>
+      </form>
     </div>
-  {% endif %}
-  {% endwith %}
 
-  <div class="table-wrap">
-    <table summary="Gestión de Notas de Venta">
-      <thead>
-        <tr>
-          <th>Num. Nota</th>
-          <th>RUT</th>
-          <th>Ciudad</th>
-          <th>Razón Social</th>
-          <th>Fecha Entrega</th>
-          <th style="text-align:right;">Cantidad</th>
-          <th style="text-align:right;">Cant. Desp.</th>
-          <th style="text-align:right;">Precio Unit.</th>
-          <th style="text-align:right;">Pendiente</th>
-          <th>Terminado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in rows %}
-        {% set pct = (r.StockPct or 0)|round(0)|int %}
-        {# estado de flujo manual, sin default #}
-        {% set estado = (r.EstadoFlow or '') %}
-        {% set retira = (r.RetiraCliente or 0) %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="margin:8px 0 12px 0;">
+        {% for cat, msg in messages %}
+          <div class="pill {% if cat=='success' %}ok{% elif cat in ['info','warning'] %}gray{% else %}bad{% endif %}" style="margin-right:6px;">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% endwith %}
 
-        <!-- Fila principal -->
-        <tr class="mainrow">
-          <td><div class="cell"><span class="label">Num. Nota:</span><span class="value">{{ r.NumNota|int }}</span></div></td>
-          <td><div class="cell"><span class="label">RUT:</span><span class="value">{{ r.RUT }}</span></div></td>
-          <td><div class="cell"><span class="label">Ciudad:</span><span class="value">{{ r.Ciudad }}</span></div></td>
-          <td><div class="cell"><span class="label">Razón Social:</span><span class="value">{{ r.RazonSocial }}</span></div></td>
-          <td><div class="cell"><span class="label">Fecha Entrega:</span><span class="value">{{ r.FechaEntrega }}</span></div></td>
-          <td style="text-align:right;"><div class="cell"><span class="label">Cantidad:</span><span class="value">{{ r.Cantidad }}</span></div></td>
-          <td style="text-align:right;"><div class="cell"><span class="label">Cant. Desp.:</span><span class="value">{{ r.CantDesp }}</span></div></td>
-          <td style="text-align:right;"><div class="cell"><span class="label">Precio Unitario:</span><span class="value">{{ r.PrecioUnit }}</span></div></td>
-          <td style="text-align:right;"><div class="cell"><span class="label">Pendiente:</span><span class="value">{{ r.Pendiente }}</span></div></td>
-          <td><div class="cell"><span class="label">Terminado:</span><span class="value">{% if r.Terminado %}Sí{% else %}No{% endif %}</span></div></td>
-        </tr>
+    <div class="table-wrap">
+      <table summary="Gestión de Notas de Venta">
+        <thead>
+          <tr>
+            <th>Num. Nota</th>
+            <th>RUT</th>
+            <th>Ciudad</th>
+            <th>Razón Social</th>
+            <th>Fecha Entrega</th>
+            <th style="text-align:right;">Cantidad</th>
+            <th>Terminado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          {% set pct = (r.StockPct or 0)|round(0)|int %}
+          {% set estado = (r.EstadoFlow or '') %}
+          {% set retira = (r.RetiraCliente or 0) %}
+          {% set terminado_calc = (r.EstadoDespacho or '') == 'TERMINADO' %}
 
-        <!-- Subfila con acciones -->
-        <tr class="subrow">
-          <td colspan="10">
-            <div class="subrow-inner">
+          <tr class="mainrow">
+            <td><div class="cell"><span class="label">Num. Nota:</span><span class="value">{{ r.NumNota|int }}</span></div></td>
+            <td><div class="cell"><span class="label">RUT:</span><span class="value">{{ r.RUT }}</span></div></td>
+            <td><div class="cell"><span class="label">Ciudad:</span><span class="value">{{ r.Ciudad }}</span></div></td>
+            <td><div class="cell"><span class="label">Razón Social:</span><span class="value">{{ r.RazonSocial }}</span></div></td>
+            <td><div class="cell"><span class="label">Fecha Entrega:</span><span class="value">{{ r.FechaEntrega }}</span></div></td>
+            <td style="text-align:right;"><div class="cell"><span class="label">Cantidad:</span><span class="value">{{ r.Cantidad }}</span></div></td>
+            <td><div class="cell"><span class="label">Terminado:</span><span class="value">
+              {% if r.Terminado is not none %}
+                {{ 'Sí' if r.Terminado else 'No' }}
+              {% else %}
+                {{ 'Sí' if terminado_calc else 'No' }}
+              {% endif %}
+            </span></div></td>
+          </tr>
 
-              <!-- Stock -->
-              <div class="sub-block">
-                <span class="sub-title">Stock:</span>
-                <div class="bar"><span style="width: {{ pct }}%"></span></div>
-                <small class="pct">{{ pct }}%</small>
-              </div>
+          <!-- Subfila con acciones -->
+          <tr class="subrow nv-row" data-nv="{{ r.NumNota }}">
+            <td colspan="7">
+              <div class="subrow-inner">
 
-              <!-- Flujo (no mostrar nada si no hay estado) -->
-              <div class="sub-block" style="gap:12px;">
-                <span class="sub-title">Flujo:</span>
+                <!-- Stock -->
+                <div class="sub-block">
+                  <span class="sub-title">Stock:</span>
+                  <div class="bar"><span style="width: {{ pct }}%"></span></div>
+                  <small class="pct">{{ pct }}%</small>
+                </div>
 
-                {% if estado in ['APROB','PEND'] %}
+                <!-- Flujo -->
+                <div class="sub-block" style="gap:12px;">
+                  <span class="sub-title">Flujo:</span>
+
+                  {% set pill_class = 'gray' if not estado else ('ok' if estado=='APROB' else 'bad') %}
+                  {% set pill_text  = 'POR DEFINIR' if not estado else ('APROBADA' if estado=='APROB' else 'PENDIENTE') %}
+                  <span class="pill estado-badge {{ pill_class }}">{{ pill_text }}</span>
+
                   <div class="chipbox">
-                    {% if estado == 'APROB' %}
-                      <span class="pill ok">APROBADA</span>
-                    {% elif estado == 'PEND' %}
-                      <span class="pill bad">PENDIENTE</span>
+                    {% if retira %}
+                      <span class="pill">RETIRA CLIENTE</span>
+                    {% else %}
+                      <span class="pill gray">No retira</span>
                     {% endif %}
                   </div>
-                {% endif %}
 
-                <div class="chipbox">
-                  {% if retira %}
-                    <span class="pill">RETIRA CLIENTE</span>
-                  {% else %}
-                    <span class="pill gray">No retira</span>
-                  {% endif %}
-                </div>
+                  <div class="acciones">
+                    <button type="button" class="btn btn-green btn-aprobar">Aprobar</button>
+                    <button type="button" class="btn btn-red btn-pendiente">Pendiente</button>
 
-                <div class="acciones">
-                  <form method="post" action="{{ url_for('admin_nv_aprobar', num_nota=r.NumNota) }}">
-                    <input type="hidden" name="next" value="{{ url_for('admin_nv_gestionar') }}">
-                    <button type="submit" class="btn btn-green">Aprobar</button>
-                  </form>
-
-                  <form method="post" action="{{ url_for('admin_nv_pendiente', num_nota=r.NumNota) }}">
-                    <input type="hidden" name="next" value="{{ url_for('admin_nv_gestionar') }}">
-                    <button type="submit" class="btn btn-red">Pendiente</button>
-                  </form>
-
-                  <form method="post" action="{{ url_for('admin_nv_retira', num_nota=r.NumNota) }}" style="display:flex;align-items:center;gap:6px;">
-                    <input type="hidden" name="next" value="{{ url_for('admin_nv_gestionar') }}">
-                    <label>
-                      <input type="checkbox" name="retira" value="1" {% if retira %}checked{% endif %}>
+                    <label style="display:flex;align-items:center;gap:6px;margin-left:8px;">
+                      <input type="checkbox" class="chk-retira" value="1" {% if retira %}checked{% endif %}>
                       Retira cliente
                     </label>
-                    <button type="submit" class="btn">Guardar</button>
-                  </form>
-                </div>
-              </div>
 
-              <!-- Zona -->
-              <div class="sub-block" style="gap:12px;">
-                <span class="sub-title">Zona:</span>
-                <div class="zona-cell">
-                  <form method="post" action="{{ url_for('admin_nv_asignar', num_nota=r.NumNota) }}" style="display:flex; gap:8px; align-items:center;">
-                    <input type="hidden" name="next" value="{{ url_for('admin_nv_gestionar') }}">
-                    <select name="zona_id" class="zona-select" {% if estado != 'APROB' %}disabled{% endif %}>
+                    <input type="hidden" class="estado-flow" value="{{ estado or '' }}">
+                  </div>
+                </div>
+
+                <!-- Zona -->
+                <div class="sub-block" style="gap:12px;">
+                  <span class="sub-title">Zona:</span>
+                  <div class="zona-cell">
+                    <select class="zona-select" {% if estado != 'APROB' %}disabled{% endif %}>
                       <option value="" {% if not r.ZonaAsignada and not r.ZonaID %}selected{% endif %}>— Selecciona zona —</option>
                       {% for z in zonas %}
-                        <option value="{{ z.ID }}"
-                          {% if r.ZonaID and r.ZonaID == z.ID %}selected{% elif r.ZonaAsignada and r.ZonaAsignada|upper == z.NOMBRE|upper %}selected{% endif %}>
-                          {{ z.NOMBRE }}
-                        </option>
+                        {% set zid = (z.get('ID') or z.get('id') or z.get('ID_ZONA')) %}
+                        {% set zn  = (z.get('NOMBRE') or z.get('nombre') or z.get('Nombre')) %}
+                        {% if zid is not none %}
+                          <option value="{{ zid }}" {% if r.ZonaID and zid == r.ZonaID %}selected{% endif %}>{{ zn }}</option>
+                        {% endif %}
                       {% endfor %}
                     </select>
-                    <button type="submit" class="btn btn-prim" {% if estado != 'APROB' %}disabled{% endif %}>Asignar</button>
-                  </form>
 
-                  {% if r.ZonaAsignada %}
-                    <small class="pill zona-actual">Actual: {{ r.ZonaAsignada }}</small>
-                  {% else %}
-                    <small class="pill gray zona-actual">Sin asignar</small>
-                  {% endif %}
+                    <button type="button" class="btn btn-prim btn-asignar" {% if estado != 'APROB' %}disabled{% endif %}>
+                      Asignar
+                    </button>
+
+                    {% if r.ZonaAsignada %}
+                      <small class="pill zona-actual">Actual: {{ r.ZonaAsignada }}</small>
+                    {% else %}
+                      <small class="pill gray zona-actual">Sin asignar</small>
+                    {% endif %}
+                  </div>
                 </div>
+
+                <!-- Obs. Fact -->
+                <div class="sub-block" style="gap:12px; flex-basis:100%;">
+                  <span class="sub-title">Obs. Fact:</span>
+                  <small class="pill gray obsfact-text">{{ r.ObsFact if r.ObsFact else '—' }}</small>
+                </div>
+
               </div>
+            </td>
+          </tr>
 
-            </div>
-          </td>
-        </tr>
+          {% endfor %}
 
-        {% endfor %}
+          {% if rows|length == 0 %}
+          <tr class="mainrow"><td colspan="7" style="color:#666; text-align:center;">No hay datos para mostrar.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
 
-        {% if rows|length == 0 %}
-        <tr class="mainrow"><td colspan="10" style="color:#666; text-align:center;">No hay datos para mostrar.</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
+      <!-- === Paginación === -->
+      <form class="pager" method="get" action="{{ url_for('admin_nv_gestionar') }}">
+        <input type="hidden" name="flow" value="{{ flow }}">
+        {% if request.args.get('estado') %}<input type="hidden" name="estado" value="{{ request.args.get('estado') }}">{% endif %}
+        {% for m in request.args.getlist('mes') %}<input type="hidden" name="mes" value="{{ m }}">{% endfor %}
+        {% if order %}<input type="hidden" name="order" value="{{ order }}">{% endif %}
+        {% if request.args.get('rf') %}<input type="hidden" name="rf" value="{{ request.args.get('rf') }}">{% endif %}
+
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button class="btn" type="submit" name="page" value="1" {% if page <= 1 %}disabled{% endif %}>&laquo; Primero</button>
+          <button class="btn" type="submit" name="page" value="{{ page-1 }}" {% if page <= 1 %}disabled{% endif %}>&lsaquo; Anterior</button>
+          <span class="pill gray">Página {{ page }} de {{ total_pages }}</span>
+          <button class="btn" type="submit" name="page" value="{{ page+1 }}" {% if page >= total_pages %}disabled{% endif %}>Siguiente &rsaquo;</button>
+          <button class="btn" type="submit" name="page" value="{{ total_pages }}" {% if page >= total_pages %}disabled{% endif %}>Última &raquo;</button>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:6px;">
+          <label for="per_page" style="font-weight:600;">Ver:</label>
+          <input type="hidden" name="page" value="{{ page }}" id="page-hidden">
+          <select id="per_page" name="per_page" class="zona-select" onchange="document.getElementById('page-hidden').value = 1; this.form.submit();">
+            {% for n in [20,50,100] %}
+              <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }} por página</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="pill gray" style="margin-left:auto;">
+          Mostrando
+          {{ (page-1)*per_page + 1 if total else 0 }}–{{ (page-1)*per_page + (rows|length) }}
+          de {{ total }}
+        </div>
+      </form>
+      <!-- === Fin paginación === -->
+
+    </div>
   </div>
-</div>
+
+<script>
+(function () {
+  function closestRow(el) { return el.closest('.nv-row'); }
+  function getCsrf() {
+    const m = document.querySelector('meta[name="csrf-token"]');
+    return m ? m.getAttribute('content') : '';
+  }
+  function setEstadoBadge(row, estado) {
+    const badge = row.querySelector('.estado-badge');
+    if (!badge) return;
+    badge.classList.remove('ok','bad','gray');
+    if (estado === 'APROB') { badge.textContent = 'APROBADA'; badge.classList.add('ok'); }
+    else if (estado === 'PEND') { badge.textContent = 'PENDIENTE'; badge.classList.add('bad'); }
+    else { badge.textContent = 'POR DEFINIR'; badge.classList.add('gray'); }
+  }
+  function enableZona(row, on) {
+    const sel = row.querySelector('.zona-select');
+    const btn = row.querySelector('.btn-asignar');
+    if (sel) sel.disabled = !on;
+    if (btn) btn.disabled = !on;
+  }
+  async function safeJson(resp) {
+    try { return await resp.json(); } catch { return null; }
+  }
+  async function postUpdate(row, payload, btn) {
+    try {
+      if (btn) { btn.disabled = true; btn.dataset._old = btn.textContent; btn.textContent = 'Guardando...'; }
+      const resp = await fetch('/admin/nv/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload)
+      });
+
+      const text = await resp.clone().text();
+      const json = await safeJson(resp);
+
+      if (!resp.ok || !json || json.ok === false) {
+        const msg = (json && (json.error || json.message)) || text || ('HTTP ' + resp.status);
+        throw new Error(msg);
+      }
+
+      const data = json.data || {};
+      const estado = (data.ESTADO || payload.estado || '').toUpperCase();
+
+      row.querySelector('.estado-flow').value = estado;
+      setEstadoBadge(row, estado);
+      enableZona(row, estado === 'APROB');
+
+      const chk = row.querySelector('.chk-retira');
+      if (chk) chk.checked = !!data.RETIRA_CLIENTE;
+
+      const sel = row.querySelector('.zona-select');
+      const zonaActual = row.querySelector('.zona-actual');
+      if (sel && zonaActual) {
+        if (data.ZONA_ID !== undefined && data.ZONA_ID !== null) sel.value = String(data.ZONA_ID);
+        const txt = sel.value ? ('Actual: ' + (sel.options[sel.selectedIndex]?.text || sel.value)) : 'Sin asignar';
+        zonaActual.textContent = txt;
+        zonaActual.classList.toggle('gray', !sel.value);
+      }
+
+    } catch (e) {
+      alert(e.message || 'No se pudo guardar. Reintenta.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = btn.dataset._old || 'Asignar'; }
+    }
+  }
+
+  // Click en Aprobar / Pendiente (solo UI)
+  document.addEventListener('click', (ev) => {
+    if (ev.target.classList.contains('btn-aprobar')) {
+      const row = closestRow(ev.target);
+      row.querySelector('.estado-flow').value = 'APROB';
+      setEstadoBadge(row, 'APROB'); enableZona(row, true);
+    }
+    if (ev.target.classList.contains('btn-pendiente')) {
+      const row = closestRow(ev.target);
+      row.querySelector('.estado-flow').value = 'PEND';
+      setEstadoBadge(row, 'PEND'); enableZona(row, false);
+    }
+  });
+
+  // Asignar zona (guarda zona + retira_cliente + respeta estado actual)
+  document.addEventListener('click', (ev) => {
+    if (!ev.target.classList.contains('btn-asignar')) return;
+    const btn = ev.target;
+    const row = closestRow(btn);
+    const nv = parseInt(row.dataset.nv, 10);
+    const estado = (row.querySelector('.estado-flow')?.value || '').toUpperCase();
+    const zonaEl = row.querySelector('.zona-select');
+    const zona_id = zonaEl && !zonaEl.disabled && zonaEl.value ? zonaEl.value : null;
+    const retira = row.querySelector('.chk-retira')?.checked ? 1 : 0;
+    if (!zona_id) { alert('Debes seleccionar una zona.'); return; }
+    postUpdate(row, { nv, estado, zona_id, retira_cliente: retira }, btn);
+  });
+
+  // Evitar submits accidentales en filas
+  document.addEventListener('submit', (ev) => {
+    if (ev.target.closest('.nv-row')) { ev.preventDefault(); return false; }
+  });
+})();
+</script>
 </body>
 </html>

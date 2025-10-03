@@ -1,7 +1,2 @@
-flask==2.3.3
-pandas==2.3.1
-SQLAlchemy>=2.0
-flask_sqlalchemy
-pyodbc
-python-dotenv
-passlib[bcrypt]
+flusk
+pandas
